@@ -1,0 +1,10 @@
+# Emacs patterns
+\#*\#
+*~
+
+# Nano patterns
+*.swp
+
+# Added by cargo
+/target
+/Cargo.lock
