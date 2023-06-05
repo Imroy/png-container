@@ -600,6 +600,56 @@ impl PNGChunk {
                 })
             },
 
+            "bKGD" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+
+                match ihdr.unwrap() {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                        match colour_type {
+                            PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
+                                if self.length != 2 {
+                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                }
+
+                                Ok(PNGChunkData::BKGD{
+                                    data: PNGbKGDType::Greyscale {
+                                        value: u16_be(&data[0..2]),
+                                    },
+                                })
+                            },
+
+                            PNGColourType::TrueColour | PNGColourType::TrueColourAlpha => {
+                                if self.length != 6 {
+                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                }
+
+                                Ok(PNGChunkData::BKGD{
+                                    data: PNGbKGDType::TrueColour {
+                                        red: u16_be(&data[0..2]),
+                                        green: u16_be(&data[2..4]),
+                                        blue: u16_be(&data[4..6]),
+                                    }
+                                })
+                            },
+
+                            PNGColourType::IndexedColour => {
+                                if self.length != 2 {
+                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                }
+
+                                Ok(PNGChunkData::BKGD{
+                                    data: PNGbKGDType::IndexedColour {
+                                        index: data[0],
+                                    }
+                                })
+                            },
+                        }
+                    },
+                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                }
+            },
+
             "pHYs" => {
                 let mut buf = [ 0_u8; 9 ];
                 chunkstream.read_exact(&mut buf)?;
