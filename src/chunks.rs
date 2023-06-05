@@ -581,6 +581,22 @@ impl PNGChunk {
 
             "IEND" => Ok(PNGChunkData::IEND),
 
+            "cHRM" => {
+                let mut data = Vec::with_capacity(32);
+                chunkstream.read_to_end(&mut data)?;
+
+                Ok(PNGChunkData::CHRM {
+                    white_x: u32_be(&data[0..4]),
+                    white_y: u32_be(&data[4..8]),
+                    red_x: u32_be(&data[8..12]),
+                    red_y: u32_be(&data[12..16]),
+                    green_x: u32_be(&data[16..20]),
+                    green_y: u32_be(&data[20..24]),
+                    blue_x: u32_be(&data[24..28]),
+                    blue_y: u32_be(&data[28..32]),
+                })
+            },
+
             "iCCP" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
@@ -601,6 +617,18 @@ impl PNGChunk {
                 Ok(PNGChunkData::TEXT {
                     keyword: String::from_utf8(data[0..keyword_len].to_vec()).unwrap_or(String::new()),
                     string: String::from_utf8(data[keyword_len + 1..].to_vec()).unwrap_or(String::new()),
+                })
+            },
+
+            "zTXt" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let keyword_len = find_null(&data);
+
+                Ok(PNGChunkData::ZTXT {
+                    keyword: String::from_utf8(data[0..keyword_len].to_vec()).unwrap_or(String::new()),
+                    compression_method: data[keyword_len + 1].try_into()?,
+                    compressed_string: data[keyword_len + 2..].to_vec(),
                 })
             },
 
