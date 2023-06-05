@@ -507,6 +507,16 @@ fn u16_be(bytes: &[u8]) -> u16 {
     (bytes[1] as u16) | ((bytes[0] as u16) << 8)
 }
 
+fn find_null(bytes: &[u8]) -> usize {
+    for i in 0..bytes.len() {
+        if bytes[i] == 0 {
+            return i;
+        }
+    }
+
+    bytes.len()
+}
+
 impl PNGChunk {
     /// Convert the chunk type bytes to a string that can be compared and printed much more easily
     #[inline]
@@ -563,6 +573,29 @@ impl PNGChunk {
             }
 
             "IEND" => Ok(PNGChunkData::IEND),
+
+            "iCCP" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let name_len = find_null(&data);
+
+                Ok(PNGChunkData::ICCP {
+                    name: String::from_utf8(data[0..name_len].to_vec()).unwrap_or(String::new()),
+                    compression_method: data[name_len].try_into()?,
+                    compressed_profile: data[name_len + 2..].to_vec(),
+                })
+            },
+
+            "tEXt" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let keyword_len = find_null(&data);
+
+                Ok(PNGChunkData::TEXT {
+                    keyword: String::from_utf8(data[0..keyword_len].to_vec()).unwrap_or(String::new()),
+                    string: String::from_utf8(data[keyword_len + 1..].to_vec()).unwrap_or(String::new()),
+                })
+            },
 
             "pHYs" => {
                 let mut buf = [ 0_u8; 9 ];
