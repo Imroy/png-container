@@ -234,7 +234,7 @@ pub enum PNGUnitType {
 
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
-pub enum PNGChunkData<'a> {
+pub enum PNGChunkData {
     // Critical chunks
 
     /// Image header
@@ -306,7 +306,7 @@ pub enum PNGChunkData<'a> {
 
     /// Embedded ICC profile
     ICCP {
-        name: &'a str,
+        name: String,
         compression_method: PNGCompressionType,
         compressed_profile: Vec<u8>,
     },
@@ -333,24 +333,24 @@ pub enum PNGChunkData<'a> {
 
     /// Textual data
     TEXT {
-        keyword: &'a str,
-        string: &'a str,
+        keyword: String,
+        string: String,
     },
 
     /// Compressed textual data
     ZTXT {
-        keyword: &'a str,
+        keyword: String,
         compression_method: PNGCompressionType,
         compressed_string: Vec<u8>,
     },
 
     /// International textual data
     ITXT {
-        keyword: &'a str,
+        keyword: String,
         compressed: bool,
         compression_method: PNGCompressionType,
-        language: &'a str,
-        translated_keyword: &'a str,
+        language: String,
+        translated_keyword: String,
         compressed_string: Vec<u8>,
     },
 
@@ -375,7 +375,7 @@ pub enum PNGChunkData<'a> {
 
     /// Suggested palette
     SPLT {
-        name: &'a str,
+        name: String,
         depth: u8,
         // TODO
     },
@@ -412,20 +412,20 @@ pub enum PNGChunkData<'a> {
 
     /// Calibration of pixel values
     PCAL {
-        name: &'a str,
+        name: String,
         original_zero: u32,
         original_max: u32,
         equation_type: u8,
         num_parameters: u8,
-        unit_name: &'a str,
-        parameters: Vec<&'a str>,
+        unit_name: String,
+        parameters: Vec<String>,
     },
 
     /// Physical scale of image subject
     SCAL {
         unit: PNGUnitType,
-        pixel_width: &'a str,
-        pixel_height: &'a str,
+        pixel_width: String,
+        pixel_height: String,
     },
 
     /// GIF Graphic Control Extension
@@ -449,7 +449,7 @@ pub enum PNGChunkData<'a> {
 
 }
 
-impl<'a> PNGChunkData<'a> {
+impl PNGChunkData {
 
 }
 
@@ -498,7 +498,7 @@ impl PNGChunk {
         str::from_utf8(&self.chunktype).unwrap_or("")
     }
 
-    pub fn read_chunk<'a, R>(&self, stream: &mut R) -> Result<PNGChunkData<'a>, std::io::Error>
+    pub fn read_chunk<R>(&self, stream: &mut R) -> Result<PNGChunkData, std::io::Error>
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
