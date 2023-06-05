@@ -632,6 +632,23 @@ impl PNGChunk {
                 })
             },
 
+            "iTXt" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let keyword_end = find_null(&data);
+                let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
+                let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
+
+                Ok(PNGChunkData::ITXT {
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
+                    compressed: data[keyword_end + 1] > 0,
+                    compression_method: data[keyword_end + 2].try_into()?,
+                    language: String::from_utf8(data[keyword_end + 3..language_end].to_vec()).unwrap_or(String::new()),
+                    translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end].to_vec()).unwrap_or(String::new()),
+                    compressed_string: data[tkeyword_end + 1..].to_vec(),
+                })
+            },
+
             "bKGD" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
