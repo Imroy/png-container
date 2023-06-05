@@ -492,12 +492,17 @@ fn u32_be(bytes: &[u8]) -> u32 {
 }
 
 impl PNGChunk {
+    /// Convert the chunk type bytes to a string that can be compared and printed much more easily
+    #[inline]
+    pub fn type_str(&self) -> &str {
+        str::from_utf8(&self.chunktype).unwrap_or("")
+    }
+
     pub fn read_chunk<'a, R>(&self, stream: &mut R) -> Result<PNGChunkData<'a>, std::io::Error>
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
-        let chunktypestr = str::from_utf8(&self.chunktype).unwrap();
-        match chunktypestr {
+        match self.type_str() {
             "IHDR" => {
                 let mut ihdr = [ 0_u8; 13 ];
                 stream.read_exact(&mut ihdr)?;
@@ -512,7 +517,7 @@ impl PNGChunk {
                 })
             },
 
-            _ => Err(std::io::Error::other(format!("PNG: Unhandled chunk type ({})", chunktypestr)))
+            _ => Err(std::io::Error::other(format!("PNG: Unhandled chunk type ({})", self.type_str())))
         }
     }
 

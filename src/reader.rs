@@ -84,7 +84,7 @@ where R: Read + Seek
 
             let mut chunktype = [ 0_u8; 4 ];
             fr.stream.read_exact(&mut chunktype)?;
-            let chunktypestr = str::from_utf8(&chunktype).unwrap();
+            let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
 
             fr.stream.seek(SeekFrom::Current(length as i64))?;
             // TODO: check CRC
