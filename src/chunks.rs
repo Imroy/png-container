@@ -503,6 +503,10 @@ fn u32_be(bytes: &[u8]) -> u32 {
     (bytes[3] as u32) | ((bytes[2] as u32) << 8) | ((bytes[1] as u32) << 16) | ((bytes[0] as u32) << 24)
 }
 
+fn u16_be(bytes: &[u8]) -> u16 {
+    (bytes[1] as u16) | ((bytes[0] as u16) << 8)
+}
+
 impl PNGChunk {
     /// Convert the chunk type bytes to a string that can be compared and printed much more easily
     #[inline]
@@ -559,6 +563,29 @@ impl PNGChunk {
             }
 
             "IEND" => Ok(PNGChunkData::IEND),
+
+            "pHYs" => {
+                let mut buf = [ 0_u8; 9 ];
+                chunkstream.read_exact(&mut buf)?;
+                Ok(PNGChunkData::PHYS {
+                    x_pixels_per_unit: u32_be(&buf[0..4]),
+                    y_pixels_per_unit: u32_be(&buf[4..8]),
+                    unit: buf[8].try_into()?,
+                })
+            },
+
+            "tIME" => {
+                let mut buf = [ 0_u8; 7 ];
+                chunkstream.read_exact(&mut buf)?;
+                Ok(PNGChunkData::TIME {
+                    year: u16_be(&buf[0..2]),
+                    month: buf[2],
+                    day: buf[3],
+                    hour: buf[4],
+                    minute: buf[5],
+                    second: buf[6],
+                })
+            },
 
             _ => Err(std::io::Error::other(format!("PNG: Unhandled chunk type ({})", self.type_str())))
         }
