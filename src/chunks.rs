@@ -504,16 +504,16 @@ impl PNGChunk {
         stream.seek(SeekFrom::Start(self.position + 8))?;
         match self.type_str() {
             "IHDR" => {
-                let mut ihdr = [ 0_u8; 13 ];
-                stream.read_exact(&mut ihdr)?;
+                let mut buf = Vec::with_capacity(13);
+                stream.read_to_end(&mut buf)?;
                 Ok(PNGChunkData::IHDR {
-                    width: u32_be(&ihdr[0..4]),
-                    height: u32_be(&ihdr[4..8]),
-                    bit_depth: ihdr[8],
-                    colour_type: ihdr[9].try_into()?,
-                    compression_method: ihdr[10].try_into()?,
-                    filter_method: ihdr[11].try_into()?,
-                    interlace_method: ihdr[12].try_into()?,
+                    width: u32_be(&buf[0..4]),
+                    height: u32_be(&buf[4..8]),
+                    bit_depth: buf[8],
+                    colour_type: buf[9].try_into()?,
+                    compression_method: buf[10].try_into()?,
+                    filter_method: buf[11].try_into()?,
+                    interlace_method: buf[12].try_into()?,
                 })
             },
 
