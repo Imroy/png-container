@@ -40,8 +40,7 @@ pub struct PNGFileReader<R> {
 
     pub all_chunks: Vec<PNGChunk>,
 
-    ihdr_idx: usize,
-    iend_idx: usize,
+    pub ihdr: PNGChunkData,
 
     optional_chunk_idxs: HashMap<[ u8; 4 ], usize>,
     optional_multi_chunk_idxs: HashMap<[ u8; 4 ], Vec<usize>>,
@@ -68,8 +67,7 @@ where R: Read + Seek
             colour_type: PNGColourType::Greyscale,
             stream,
             all_chunks: Vec::new(),
-            ihdr_idx: 0,
-            iend_idx: 0,
+            ihdr: PNGChunkData::None,
             optional_chunk_idxs: HashMap::new(),
             optional_multi_chunk_idxs: HashMap::new(),
         };
@@ -106,10 +104,9 @@ where R: Read + Seek
 
             match chunktypestr {
                 "IHDR" => {
-                    fr.ihdr_idx = idx;
                     let oldpos = fr.stream.stream_position()?;
                     // Fill in image metadata
-                    let ihdr = fr.all_chunks[idx].read_chunk(&mut fr.stream)?;
+                    fr.ihdr = fr.all_chunks[idx].read_chunk(&mut stream, None)?;
                     match ihdr {
                         PNGChunkData::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
                             fr.width = width;
@@ -125,7 +122,6 @@ where R: Read + Seek
                 },
 
                 "IEND" => {
-                    fr.iend_idx = idx;
                     break;
                 },
 

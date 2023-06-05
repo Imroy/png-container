@@ -247,6 +247,9 @@ impl TryFrom<u8> for PNGUnitType {
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
 pub enum PNGChunkData {
+    /// Empty type
+    None,
+
     // Critical chunks
 
     /// Image header
@@ -524,7 +527,7 @@ impl PNGChunk {
         str::from_utf8(&self.chunktype).unwrap_or("")
     }
 
-    pub fn read_chunk<R>(&self, stream: &mut R) -> Result<PNGChunkData, std::io::Error>
+    pub fn read_chunk<R>(&self, stream: &mut R, ihdr: Option<&PNGChunkData>) -> Result<PNGChunkData, std::io::Error>
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
