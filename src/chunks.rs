@@ -231,6 +231,18 @@ pub enum PNGUnitType {
 
 }
 
+impl TryFrom<u8> for PNGUnitType {
+    type Error = std::io::Error;
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        match val {
+            x if x == PNGUnitType::Unknown as u8 => Ok(PNGUnitType::Unknown),
+            x if x == PNGUnitType::Metre as u8 => Ok(PNGUnitType::Metre),
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of unit ({})", val))),
+        }
+    }
+
+}
+
 
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
