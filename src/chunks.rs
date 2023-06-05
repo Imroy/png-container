@@ -600,35 +600,35 @@ impl PNGChunk {
             "iCCP" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let name_len = find_null(&data);
+                let name_end = find_null(&data);
 
                 Ok(PNGChunkData::ICCP {
-                    name: String::from_utf8(data[0..name_len].to_vec()).unwrap_or(String::new()),
-                    compression_method: data[name_len].try_into()?,
-                    compressed_profile: data[name_len + 2..].to_vec(),
+                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or(String::new()),
+                    compression_method: data[name_end].try_into()?,
+                    compressed_profile: data[name_end + 2..].to_vec(),
                 })
             },
 
             "tEXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let keyword_len = find_null(&data);
+                let keyword_end = find_null(&data);
 
                 Ok(PNGChunkData::TEXT {
-                    keyword: String::from_utf8(data[0..keyword_len].to_vec()).unwrap_or(String::new()),
-                    string: String::from_utf8(data[keyword_len + 1..].to_vec()).unwrap_or(String::new()),
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
+                    string: String::from_utf8(data[keyword_end + 1..].to_vec()).unwrap_or(String::new()),
                 })
             },
 
             "zTXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let keyword_len = find_null(&data);
+                let keyword_end = find_null(&data);
 
                 Ok(PNGChunkData::ZTXT {
-                    keyword: String::from_utf8(data[0..keyword_len].to_vec()).unwrap_or(String::new()),
-                    compression_method: data[keyword_len + 1].try_into()?,
-                    compressed_string: data[keyword_len + 2..].to_vec(),
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
+                    compression_method: data[keyword_end + 1].try_into()?,
+                    compressed_string: data[keyword_end + 2..].to_vec(),
                 })
             },
 
