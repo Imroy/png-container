@@ -21,6 +21,7 @@
 
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
+use inflate::inflate_bytes_zlib;
 
 use crate::types::*;
 
@@ -465,6 +466,54 @@ pub enum PNGChunkData {
 }
 
 impl PNGChunkData {
+
+    /// Decompress the compressed profile in a iCCP chunk
+    pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
+        match self {
+            PNGChunkData::ICCP { name: _, compression_method, compressed_profile } => {
+                match compression_method {
+                    PNGCompressionType::Zlib => {
+                        Ok(inflate_bytes_zlib(compressed_profile.as_slice())?)
+                    }
+                }
+            },
+            _ => Err("PNG: Not a iCCP chunk".to_string()),
+        }
+    }
+
+    /// Decompress the compressed string in a zTXt chunk
+    pub fn ztxt_string(&self) -> Result<String, String> {
+        match self {
+            PNGChunkData::ZTXT { keyword: _, compression_method, compressed_string } => {
+                match compression_method {
+                    PNGCompressionType::Zlib => {
+                        let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
+                        Ok(String::from_utf8(bytes).unwrap_or(String::new()))
+                    }
+                }
+            },
+            _ => Err("PNG: Not a zTXt chunk".to_string()),
+        }
+    }
+
+    /// Decompress the compressed string in an iTXt chunk
+    pub fn itxt_string(&self) -> Result<String, String> {
+        match self {
+            PNGChunkData::ITXT { keyword: _, compressed, compression_method, language: _, translated_keyword: _, compressed_string } => {
+                if *compressed {
+                    match compression_method {
+                        PNGCompressionType::Zlib => {
+                            let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
+                            Ok(String::from_utf8(bytes).unwrap_or(String::new()))
+                        }
+                    }
+                } else {
+                    Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or(String::new()))
+                }
+            },
+            _ => Err("PNG: Not an iTXt chunk".to_string()),
+        }
+    }
 
 }
 
