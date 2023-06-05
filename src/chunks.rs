@@ -22,6 +22,8 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
+use crate::types::*;
+
 /// Palette entry
 #[derive(Clone, Debug)]
 pub struct PNGPaletteEntry {
@@ -232,7 +234,7 @@ pub enum PNGUnitType {
 
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
-pub enum PNGChunkType<'a> {
+pub enum PNGChunkData<'a> {
     // Critical chunks
 
     /// Image header
@@ -447,7 +449,7 @@ pub enum PNGChunkType<'a> {
 
 }
 
-impl<'a> PNGChunkType<'a> {
+impl<'a> PNGChunkData<'a> {
 
 }
 
@@ -490,7 +492,7 @@ fn u32_be(bytes: &[u8]) -> u32 {
 }
 
 impl PNGChunk {
-    pub fn read_chunk<'a, R>(&self, stream: &mut R) -> Result<PNGChunkType<'a>, std::io::Error>
+    pub fn read_chunk<'a, R>(&self, stream: &mut R) -> Result<PNGChunkData<'a>, std::io::Error>
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
@@ -499,7 +501,7 @@ impl PNGChunk {
             "IHDR" => {
                 let mut ihdr = [ 0_u8; 13 ];
                 stream.read_exact(&mut ihdr)?;
-                Ok(PNGChunkType::IHDR {
+                Ok(PNGChunkData::IHDR {
                     width: u32_be(&ihdr[0..4]),
                     height: u32_be(&ihdr[4..8]),
                     bit_depth: ihdr[8],

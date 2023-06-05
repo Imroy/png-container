@@ -111,7 +111,7 @@ where R: Read + Seek
                     // Fill in image metadata
                     let ihdr = fr.all_chunks[idx].read_chunk(&mut fr.stream)?;
                     match ihdr {
-                        PNGChunkType::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                        PNGChunkData::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
                             fr.width = width;
                             fr.height = height;
                             fr.bit_depth = bit_depth;
