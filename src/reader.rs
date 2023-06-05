@@ -28,16 +28,22 @@ use crate::chunks::*;
 /// A PNG file reader
 #[derive(Debug)]
 pub struct PNGFileReader<R> {
+    /// Image width in pixels
     pub width: u32,
 
+    /// Image height in pixels
     pub height: u32,
 
+    /// Image bit depth per pixel component
     pub bit_depth: u8,
 
+    /// Image colour type
     pub colour_type: PNGColourType,
 
+    /// File stream we're reading from
     pub stream: R,
 
+    /// The list of all chunks in the file
     pub all_chunks: Vec<PNGChunk>,
 
     pub ihdr: PNGChunkData,

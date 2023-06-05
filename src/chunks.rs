@@ -469,16 +469,19 @@ impl PNGChunkData {
 }
 
 
-/// A chunk in a PNG file
+/// Referece to a chunk in a PNG file
 #[derive(Copy, Clone, Debug)]
 pub struct PNGChunk {
     /// The position in the stream/file for this chunk
     pub position: u64,
 
+    /// Length of this chunk
     pub length: u32,
 
+    /// Chunk type
     pub chunktype: [ u8; 4 ],
 
+    /// Chunk CRC
     pub crc: u32,
 
     /// Is this chunk necessary for successful display of the contents of
@@ -527,6 +530,7 @@ impl PNGChunk {
         str::from_utf8(&self.chunktype).unwrap_or("")
     }
 
+    /// Read the chunk data and parse it into a PNGChunkData enum
     pub fn read_chunk<R>(&self, stream: &mut R, ihdr: Option<&PNGChunkData>) -> Result<PNGChunkData, std::io::Error>
         where R: Read + Seek
     {
