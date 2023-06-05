@@ -519,6 +519,35 @@ impl PNGChunk {
                 })
             },
 
+            "PLTE" => {
+                let num_entries = self.length / 3;
+                let mut entries = Vec::with_capacity(num_entries as usize);
+                for n in 0..num_entries {
+                    let mut buf = [ 0_u8; 3 ];
+                    chunkstream.read_exact(&mut buf)?;
+                    entries.push(PNGPaletteEntry {
+                        red: buf[0],
+                        green: buf[1],
+                        blue: buf[2],
+                    });
+                }
+
+                Ok(PNGChunkData::PLTE {
+                    entries,
+                })
+            },
+
+            "IDAT" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+
+                Ok(PNGChunkData::IDAT {
+                    data,
+                })
+            }
+
+            "IEND" => Ok(PNGChunkData::IEND),
+
             _ => Err(std::io::Error::other(format!("PNG: Unhandled chunk type ({})", self.type_str())))
         }
     }
