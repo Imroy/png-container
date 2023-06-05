@@ -502,10 +502,12 @@ impl PNGChunk {
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
+        let mut chunkstream = stream.take(self.length as u64);
+
         match self.type_str() {
             "IHDR" => {
                 let mut buf = Vec::with_capacity(13);
-                stream.read_to_end(&mut buf)?;
+                chunkstream.read_to_end(&mut buf)?;
                 Ok(PNGChunkData::IHDR {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
