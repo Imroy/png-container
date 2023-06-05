@@ -60,38 +60,33 @@ where R: Read + Seek
             }
         }
 
-        let mut fr = PNGFileReader {
-            width: 0,
-            height: 0,
-            bit_depth: 0,
-            colour_type: PNGColourType::Greyscale,
-            stream,
-            all_chunks: Vec::new(),
-            ihdr: PNGChunkData::None,
-            optional_chunk_idxs: HashMap::new(),
-            optional_multi_chunk_idxs: HashMap::new(),
-        };
+        let mut width = 0;
+        let mut height = 0;
+        let mut bit_depth = 0;
+        let mut colour_type = PNGColourType::Greyscale;
+        let mut all_chunks = Vec::new();
+        let mut ihdr = PNGChunkData::None;
+        let mut optional_chunk_idxs = HashMap::new();
+        let mut optional_multi_chunk_idxs = HashMap::new();
 
         // Now just loop reading chunks
         loop {
-            let position = fr.stream.stream_position()?;
+            let position = stream.stream_position()?;
 
             let mut buf4 = [ 0_u8; 4 ];
-            fr.stream.read_exact(&mut buf4)?;
+            stream.read_exact(&mut buf4)?;
             let length = u32::from_be_bytes(buf4);
 
             let mut chunktype = [ 0_u8; 4 ];
-            fr.stream.read_exact(&mut chunktype)?;
+            stream.read_exact(&mut chunktype)?;
             let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
 
-            fr.stream.seek(SeekFrom::Current(length as i64))?;
+            stream.seek(SeekFrom::Current(length as i64))?;
             // TODO: check CRC
-            fr.stream.read_exact(&mut buf4)?;
+            stream.read_exact(&mut buf4)?;
             let crc = u32::from_be_bytes(buf4);
 
-            let idx = fr.all_chunks.len();
-
-            fr.all_chunks.push(PNGChunk {
+            let chunk = PNGChunk {
                 position,
                 length,
                 chunktype,
@@ -100,25 +95,25 @@ where R: Read + Seek
                 private: chunktype[1] & 0x20 > 0,
                 reserved: chunktype[2] & 0x20 > 0,
                 safe_to_copy: chunktype[3] & 0x20 > 0,
-            });
+            };
 
             match chunktypestr {
                 "IHDR" => {
-                    let oldpos = fr.stream.stream_position()?;
+                    let oldpos = stream.stream_position()?;
                     // Fill in image metadata
-                    fr.ihdr = fr.all_chunks[idx].read_chunk(&mut stream, None)?;
+                    ihdr = chunk.read_chunk(&mut stream, None)?;
                     match ihdr {
                         PNGChunkData::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
-                            fr.width = width;
-                            fr.height = height;
-                            fr.bit_depth = bit_depth;
-                            fr.colour_type = colour_type;
+                            width = width;
+                            height = height;
+                            bit_depth = bit_depth;
+                            colour_type = colour_type;
                         },
 
                         _ => (),
                     }
 
-                    fr.stream.seek(SeekFrom::Start(oldpos))?;
+                    stream.seek(SeekFrom::Start(oldpos))?;
                 },
 
                 "IEND" => {
@@ -126,19 +121,30 @@ where R: Read + Seek
                 },
 
                 "IDAT" | "fcTL" | "tEXt" | "iTXt" | "zTXt" => {
-                    if !fr.optional_multi_chunk_idxs.contains_key(&chunktype) {
-                        fr.optional_multi_chunk_idxs.insert(chunktype, Vec::new());
+                    if !optional_multi_chunk_idxs.contains_key(&chunktype) {
+                        optional_multi_chunk_idxs.insert(chunktype, Vec::new());
                     }
-                    fr.optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(idx);
+                    optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(all_chunks.len());
                 },
 
                 _ => {
-                    fr.optional_chunk_idxs.insert(chunktype, idx);
+                    optional_chunk_idxs.insert(chunktype, all_chunks.len());
                 },
             }
+            all_chunks.push(chunk);
         }
 
-        Ok(fr)
+        Ok(PNGFileReader {
+            width,
+            height,
+            bit_depth,
+            colour_type,
+            stream,
+            all_chunks,
+            ihdr,
+            optional_chunk_idxs,
+            optional_multi_chunk_idxs,
+        })
     }
 
     /*
@@ -146,9 +152,5 @@ where R: Read + Seek
         self.all_chunks.iter()
 }
     */
-
-    pub fn ihdr(&self) -> PNGChunk {
-        self.all_chunks[self.ihdr_idx]
-    }
 
 }
