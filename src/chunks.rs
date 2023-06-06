@@ -782,6 +782,67 @@ impl PNGChunk {
                 })
             },
 
+            "sBIT" => {
+                match ihdr.unwrap() {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                        match colour_type {
+                            PNGColourType::Greyscale => {
+                                let mut buf = [ 0_u8; 1 ];
+                                chunkstream.read_exact(&mut buf);
+
+                                Ok(PNGChunkData::SBIT {
+                                    bits: PNGsBITType::Greyscale {
+                                        grey_bits: buf[0],
+                                    },
+                                })
+                            },
+
+                            PNGColourType::TrueColour | PNGColourType::IndexedColour => {
+                                let mut buf = [ 0_u8; 3 ];
+                                chunkstream.read_exact(&mut buf);
+
+                                Ok(PNGChunkData::SBIT {
+                                    bits: PNGsBITType::Colour {
+                                        red_bits: buf[0],
+                                        green_bits: buf[1],
+                                        blue_bits: buf[2],
+                                    },
+                                })
+                            },
+
+                            PNGColourType::GreyscaleAlpha => {
+                                let mut buf = [ 0_u8; 2 ];
+                                chunkstream.read_exact(&mut buf);
+
+                                Ok(PNGChunkData::SBIT {
+                                    bits: PNGsBITType::GreyscaleAlpha {
+                                        grey_bits: buf[0],
+                                        alpha_bits: buf[1],
+                                    },
+                                })
+                            },
+
+                            PNGColourType::TrueColourAlpha => {
+                                let mut buf = [ 0_u8; 4 ];
+                                chunkstream.read_exact(&mut buf);
+
+                                Ok(PNGChunkData::SBIT {
+                                    bits: PNGsBITType::TrueColourAlpha {
+                                        red_bits: buf[0],
+                                        green_bits: buf[1],
+                                        blue_bits: buf[2],
+                                        alpha_bits: buf[3],
+                                    },
+                                })
+                            },
+
+                            _ => Err(std::io::Error::other(format!("PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
+                        }
+                    },
+                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                }
+            },
+
             "tEXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
