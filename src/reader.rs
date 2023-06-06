@@ -119,6 +119,9 @@ where R: Read + Seek
                 safe_to_copy: chunktype[3] & 0x20 > 0,
             };
 
+            let idx = all_chunks.len();
+            all_chunks.push(chunk);
+
             match chunktypestr {
                 "IHDR" => {
                     let oldpos = stream.stream_position()?;
@@ -146,14 +149,13 @@ where R: Read + Seek
                     if !optional_multi_chunk_idxs.contains_key(&chunktype) {
                         optional_multi_chunk_idxs.insert(chunktype, Vec::new());
                     }
-                    optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(all_chunks.len());
+                    optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(idx);
                 },
 
                 _ => {
-                    optional_chunk_idxs.insert(chunktype, all_chunks.len());
+                    optional_chunk_idxs.insert(chunktype, idx);
                 },
             }
-            all_chunks.push(chunk);
         }
 
         Ok(PNGFileReader {
