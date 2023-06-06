@@ -245,6 +245,19 @@ impl TryFrom<u8> for PNGUnitType {
 }
 
 
+/// Entry for the suggested palette "sPLT" chunk
+///
+/// When depth=8, the red, green, blue, and alpha fields will actually be unscaled u8 values.
+#[derive(Copy, Clone, Debug)]
+pub struct PNGSuggestedPaletteEntry {
+    red: u16,
+    green: u16,
+    blue: u16,
+    alpha: u16,
+    frequency: u16,
+}
+
+
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
 pub enum PNGChunkData {
@@ -393,7 +406,7 @@ pub enum PNGChunkData {
     SPLT {
         name: String,
         depth: u8,
-        // TODO
+        palette: Vec<PNGSuggestedPaletteEntry>,
     },
 
     /// Exchangeable Image File (Exif) Profile
@@ -755,6 +768,43 @@ impl PNGChunk {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
                     y_pixels_per_unit: u32_be(&buf[4..8]),
                     unit: buf[8].try_into()?,
+                })
+            },
+
+            "sPLT" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let name_end = find_null(&data);
+                let depth = data[name_end + 1];
+                let entry_size = ((depth / 8) * 4) + 2;
+                let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
+                let mut palette = Vec::with_capacity(num_entries);
+
+                for i in 0..num_entries {
+                    let start = name_end + 2 + (i * entry_size as usize);
+                    if depth == 8 {
+                        palette.push(PNGSuggestedPaletteEntry {
+                            red: data[start] as u16,
+                            green: data[start + 1] as u16,
+                            blue: data[start + 2] as u16,
+                            alpha: data[start + 3] as u16,
+                            frequency: u16_be(&data[start + 4..start + 6]),
+                        });
+                    } else {
+                        palette.push(PNGSuggestedPaletteEntry {
+                            red: u16_be(&data[start..start + 2]),
+                            green: u16_be(&data[start + 2..start + 4]),
+                            blue: u16_be(&data[start + 4..start + 6]),
+                            alpha: u16_be(&data[start + 6..start + 8]),
+                            frequency: u16_be(&data[start + 8..start + 10]),
+                        });
+                    }
+                }
+
+                Ok(PNGChunkData::SPLT {
+                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or(String::new()),
+                    depth,
+                    palette,
                 })
             },
 
