@@ -25,16 +25,6 @@ use inflate::inflate_bytes_zlib;
 
 use crate::types::*;
 
-/// Palette entry
-#[derive(Clone, Debug)]
-pub struct PNGPaletteEntry {
-    red: u8,
-    green: u8,
-    blue: u8,
-
-}
-
-
 /// Colour type of image
 #[derive(Copy, Clone, Debug)]
 pub enum PNGColourType {
@@ -128,6 +118,16 @@ impl TryFrom<u8> for PNGInterlaceType {
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of interlace method ({})", val))),
         }
     }
+}
+
+
+/// Palette entry for for PLTE chunk
+#[derive(Clone, Debug)]
+pub struct PNGPaletteEntry {
+    red: u8,
+    green: u8,
+    blue: u8,
+
 }
 
 
