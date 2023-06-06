@@ -690,6 +690,15 @@ impl PNGChunk {
                 }
             },
 
+            "gAMA" => {
+                let mut buf = [ 0_u8; 4 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::GAMA {
+                    gamma: u32_be(&buf),
+                })
+            },
+
             "cHRM" => {
                 let mut data = Vec::with_capacity(32);
                 chunkstream.read_to_end(&mut data)?;
