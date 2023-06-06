@@ -264,6 +264,50 @@ pub struct PNGSuggestedPaletteEntry {
 }
 
 
+/// Disposal operators in the "fcTL" chunk
+#[derive(Copy, Clone, Debug)]
+pub enum PNGDisposalOperator {
+    None,
+    Background,
+    Previous,
+}
+
+impl TryFrom<u8> for PNGDisposalOperator {
+    type Error = std::io::Error;
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        match val {
+            x if x == PNGDisposalOperator::None as u8 => Ok(PNGDisposalOperator::None),
+            x if x == PNGDisposalOperator::Background as u8 => Ok(PNGDisposalOperator::Background),
+            x if x == PNGDisposalOperator::Previous as u8 => Ok(PNGDisposalOperator::Previous),
+
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of disposal operator ({})", val))),
+        }
+    }
+
+}
+
+
+/// Blend operators in the "fcTL" chunk
+#[derive(Copy, Clone, Debug)]
+pub enum PNGBlendOperator {
+    Source,
+    Over,
+}
+
+impl TryFrom<u8> for PNGBlendOperator {
+    type Error = std::io::Error;
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        match val {
+            x if x == PNGBlendOperator::Source as u8 => Ok(PNGBlendOperator::Source),
+            x if x == PNGBlendOperator::Over as u8 => Ok(PNGBlendOperator::Over),
+
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of blend operator ({})", val))),
+        }
+    }
+
+}
+
+
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
 pub enum PNGChunkData {
@@ -434,7 +478,29 @@ pub enum PNGChunkData {
 
     // Animation information
 
-    // TODO
+    /// Animation control
+    ACTL {
+        num_frames: u32,
+        num_plays: u32,
+    },
+
+    /// Frame control
+    FCTL {
+        sequence_number: u32,
+        width: u32,
+        height: u32,
+        x_offset: u32,
+        y_offset: u32,
+        delay_num: u16,
+        delay_den: u16,
+        dispose_op: PNGDisposalOperator,
+        blend_op: PNGBlendOperator,
+    },
+
+    FDAT {
+        sequence_number: u32,
+        frame_data: Vec<u8>,
+    },
 
     // Extensions
 
@@ -589,6 +655,17 @@ impl PNGChunkData {
             },
 
             _ => Err("PNG: Not an iTXt chunk".to_string()),
+        }
+    }
+
+    /// Calculate delay from fcTL chunk in seconds
+    pub fn fctl_delay(&self) -> Result<f64, String> {
+        match self {
+            PNGChunkData::FCTL { sequence_number: _, width: _, height: _, x_offset: _, y_offset: _, delay_num, delay_den, dispose_op: _, blend_op: _ } => {
+                Ok(*delay_num as f64 / *delay_den as f64)
+            },
+
+            _ => Err("PNG: Not an fcTL chunk".to_string()),
         }
     }
 
@@ -1051,6 +1128,43 @@ impl PNGChunk {
                     hour: buf[4],
                     minute: buf[5],
                     second: buf[6],
+                })
+            },
+
+            "acTL" => {
+                let mut buf = [ 0_u8; 8 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::ACTL {
+                    num_frames: u32_be(&buf[0..4]),
+                    num_plays: u32_be(&buf[4..8]),
+                })
+            },
+
+            "fcTL" => {
+                let mut buf = [ 0_u8; 26 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::FCTL {
+                    sequence_number: u32_be(&buf[0..4]),
+                    width: u32_be(&buf[4..8]),
+                    height: u32_be(&buf[8..12]),
+                    x_offset: u32_be(&buf[12..16]),
+                    y_offset: u32_be(&buf[16..20]),
+                    delay_num: u16_be(&buf[20..22]),
+                    delay_den: u16_be(&buf[22..24]),
+                    dispose_op: buf[24].try_into()?,
+                    blend_op: buf[24].try_into()?,
+                })
+            },
+
+            "fdAT" => {
+                let mut buf = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut buf)?;
+
+                Ok(PNGChunkData::FDAT {
+                    sequence_number: u32_be(&buf[0..4]),
+                    frame_data: buf[4..].to_vec(),
                 })
             },
 

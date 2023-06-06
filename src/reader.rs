@@ -145,7 +145,7 @@ where R: Read + Seek
                     break;
                 },
 
-                "IDAT" | "fcTL" | "tEXt" | "iTXt" | "zTXt" => {
+                "IDAT" | "fcTL" | "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
                     if !optional_multi_chunk_idxs.contains_key(&chunktype) {
                         optional_multi_chunk_idxs.insert(chunktype, Vec::new());
                     }
