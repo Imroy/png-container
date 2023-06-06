@@ -47,10 +47,16 @@ pub struct PNGFileReader<R> {
     /// The list of all chunks in the file
     pub all_chunks: Vec<PNGChunk>,
 
+    /// The IHDR chunk
     pub ihdr: PNGChunkData,
 
-    optional_chunk_idxs: HashMap<[ u8; 4 ], usize>,
-    optional_multi_chunk_idxs: HashMap<[ u8; 4 ], Vec<usize>>,
+    /// A hashmap of optional chunks that can only appear once in a file,
+    /// keyed to their chunk type
+    pub optional_chunk_idxs: HashMap<[ u8; 4 ], usize>,
+
+    /// A hashmap of optional chunks that can appear multiple times in a
+    /// file, keyed to their chunk type
+    pub optional_multi_chunk_idxs: HashMap<[ u8; 4 ], Vec<usize>>,
 }
 
 impl<R> PNGFileReader<R>
