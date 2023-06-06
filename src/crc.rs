@@ -54,13 +54,31 @@ const CRC_TABLE: [ u32; 256 ] = [
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d,
 ];
 
-/// Produce CRC of given array of bytes
-pub fn crc(buf: &[u8]) -> u32 {
-    let mut c = 0xffffffff;
+pub struct CRC {
+    state: u32,
+}
 
-    for byte in buf {
-        c = CRC_TABLE[((c as u8) ^ byte) as usize] ^ (c >> 8);
+impl CRC {
+    /// Constructor
+    pub fn new() -> Self {
+        CRC {
+            state: 0xffffffff,
+        }
     }
 
-    return c ^ 0xffffffff;
+    /// Update CRC using given array of bytes
+    pub fn consume(&mut self, buf: &[u8]) {
+        let mut c = self.state;
+
+        for byte in buf {
+            c = CRC_TABLE[((c as u8) ^ byte) as usize] ^ (c >> 8);
+        }
+
+        self.state = c;
+    }
+
+    pub fn value(&self) -> u32 {
+        return self.state ^ 0xffffffff;
+    }
+
 }
