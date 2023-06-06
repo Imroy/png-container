@@ -54,6 +54,7 @@ impl TryFrom<u8> for PNGColourType {
             x if x == PNGColourType::IndexedColour as u8 => Ok(PNGColourType::IndexedColour),
             x if x == PNGColourType::GreyscaleAlpha as u8 => Ok(PNGColourType::GreyscaleAlpha),
             x if x == PNGColourType::TrueColourAlpha as u8 => Ok(PNGColourType::TrueColourAlpha),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of colour type ({})", val))),
         }
     }
@@ -73,6 +74,7 @@ impl TryFrom<u8> for PNGCompressionType {
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
             x if x == PNGCompressionType::Zlib as u8 => Ok(PNGCompressionType::Zlib),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of compression method ({})", val))),
         }
     }
@@ -92,6 +94,7 @@ impl TryFrom<u8> for PNGFilterType {
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
             x if x == PNGFilterType::Adaptive as u8 => Ok(PNGFilterType::Adaptive),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter method ({})", val))),
         }
     }
@@ -115,6 +118,7 @@ impl TryFrom<u8> for PNGInterlaceType {
         match val {
             x if x == PNGInterlaceType::None as u8 => Ok(PNGInterlaceType::None),
             x if x == PNGInterlaceType::Adam7 as u8 => Ok(PNGInterlaceType::Adam7),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of interlace method ({})", val))),
         }
     }
@@ -196,6 +200,7 @@ impl TryFrom<u8> for PNGRenderingIntent {
             x if x == PNGRenderingIntent::Relative_colorimetric as u8 => Ok(PNGRenderingIntent::Relative_colorimetric),
             x if x == PNGRenderingIntent::Saturation as u8 => Ok(PNGRenderingIntent::Saturation),
             x if x == PNGRenderingIntent::Absolute_colorimetric as u8 => Ok(PNGRenderingIntent::Absolute_colorimetric),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of rendering intent ({})", val))),
         }
     }
@@ -238,6 +243,7 @@ impl TryFrom<u8> for PNGUnitType {
         match val {
             x if x == PNGUnitType::Unknown as u8 => Ok(PNGUnitType::Unknown),
             x if x == PNGUnitType::Metre as u8 => Ok(PNGUnitType::Metre),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of unit ({})", val))),
         }
     }
@@ -545,6 +551,7 @@ impl PNGChunkData {
                     }
                 }
             },
+
             _ => Err("PNG: Not a iCCP chunk".to_string()),
         }
     }
@@ -560,6 +567,7 @@ impl PNGChunkData {
                     }
                 }
             },
+
             _ => Err("PNG: Not a zTXt chunk".to_string()),
         }
     }
@@ -579,6 +587,7 @@ impl PNGChunkData {
                     Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or(String::new()))
                 }
             },
+
             _ => Err("PNG: Not an iTXt chunk".to_string()),
         }
     }
@@ -658,6 +667,7 @@ impl PNGChunk {
             "IHDR" => {
                 let mut buf = Vec::with_capacity(13);
                 chunkstream.read_to_end(&mut buf)?;
+
                 Ok(PNGChunkData::IHDR {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
@@ -741,6 +751,7 @@ impl PNGChunk {
 
                         }
                     },
+
                     _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
             },
@@ -839,6 +850,7 @@ impl PNGChunk {
                             _ => Err(std::io::Error::other(format!("PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
                         }
                     },
+
                     _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
             },
@@ -950,6 +962,7 @@ impl PNGChunk {
                             },
                         }
                     },
+
                     _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
             },
@@ -973,6 +986,7 @@ impl PNGChunk {
             "pHYs" => {
                 let mut buf = [ 0_u8; 9 ];
                 chunkstream.read_exact(&mut buf)?;
+
                 Ok(PNGChunkData::PHYS {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
                     y_pixels_per_unit: u32_be(&buf[4..8]),
@@ -1029,6 +1043,7 @@ impl PNGChunk {
             "tIME" => {
                 let mut buf = [ 0_u8; 7 ];
                 chunkstream.read_exact(&mut buf)?;
+
                 Ok(PNGChunkData::TIME {
                     year: u16_be(&buf[0..2]),
                     month: buf[2],
