@@ -24,6 +24,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
 use crate::chunks::*;
+use crate::crc::*;
 
 /// A PNG file reader
 #[derive(Debug)]
@@ -87,10 +88,25 @@ where R: Read + Seek
             stream.read_exact(&mut chunktype)?;
             let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
 
-            stream.seek(SeekFrom::Current(length as i64))?;
-            // TODO: check CRC
+            let mut data_crc = CRC::new();
+            data_crc.consume(&chunktype);
+            {
+                let mut datastream = stream.take(length as u64);
+                let mut toread = length;
+                let mut buf = [ 0_u8; 65536 ];	// 64 KiB buffer
+                while toread > 0 {
+                    let readsize = datastream.read(&mut buf)?;
+                    data_crc.consume(&buf[0..readsize]);
+                    toread -= readsize as u32;
+                }
+
+                stream = datastream.into_inner();
+            }
             stream.read_exact(&mut buf4)?;
             let crc = u32::from_be_bytes(buf4);
+            if crc != data_crc.value() {
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("PNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})", crc, data_crc.value())));
+            }
 
             let chunk = PNGChunk {
                 position,
