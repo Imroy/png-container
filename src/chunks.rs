@@ -480,6 +480,61 @@ pub enum PNGChunkData {
 
 impl PNGChunkData {
 
+    /// Scaled white coordinates of the cHRM chunk
+    pub fn chrm_white_coords(&self) -> Result<(f64, f64), String> {
+        match self {
+            PNGChunkData::CHRM { white_x, white_y, red_x: _, red_y: _, green_x: _, green_y: _, blue_x: _, blue_y: _ } => {
+                Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0))
+            },
+
+            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        }
+    }
+
+    /// Scaled red coordinates of the cHRM chunk
+    pub fn chrm_red_coords(&self) -> Result<(f64, f64), String> {
+        match self {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x, red_y, green_x: _, green_y: _, blue_x: _, blue_y: _ } => {
+                Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0))
+            },
+
+            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        }
+    }
+
+    /// Scaled green coordinates of the cHRM chunk
+    pub fn chrm_green_coords(&self) -> Result<(f64, f64), String> {
+        match self {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _, green_x, green_y, blue_x: _, blue_y: _ } => {
+                Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0))
+            },
+
+            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        }
+    }
+
+    /// Scaled blue coordinates of the cHRM chunk
+    pub fn chrm_blue_coords(&self) -> Result<(f64, f64), String> {
+        match self {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _, green_x: _, green_y: _, blue_x, blue_y } => {
+                Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0))
+            },
+
+            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        }
+    }
+
+    /// Scaled gamma value of a gAMA chunk
+    pub fn gama_gamma(&self) -> Result<f64, String> {
+        match self {
+            PNGChunkData::GAMA { gamma } => {
+                Ok(*gamma as f64 / 100000.0)
+            },
+
+            _ => Err("PNG: Not a gAMA chunk".to_string()),
+        }
+    }
+
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
         match self {
