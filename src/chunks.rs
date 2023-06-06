@@ -792,7 +792,7 @@ impl PNGChunk {
                             },
 
                             PNGColourType::IndexedColour => {
-                                if self.length != 2 {
+                                if self.length != 1 {
                                     return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
                                 }
 
