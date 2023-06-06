@@ -643,6 +643,53 @@ impl PNGChunk {
 
             "IEND" => Ok(PNGChunkData::IEND),
 
+            "tRNS" => {
+                match ihdr.unwrap() {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                        match colour_type {
+                            PNGColourType::Greyscale => {
+                                let mut buf = [ 0_u8; 2 ];
+                                chunkstream.read_exact(&mut buf)?;
+
+                                Ok(PNGChunkData::TRNS {
+                                    data: PNGtRNSType::Greyscale {
+                                        value: u16_be(&buf),
+                                    },
+                                })
+                            },
+
+                            PNGColourType::TrueColour => {
+                                let mut buf = [ 0_u8; 6 ];
+                                chunkstream.read_exact(&mut buf)?;
+
+                                Ok(PNGChunkData::TRNS {
+                                    data: PNGtRNSType::TrueColour {
+                                        red: u16_be(&buf[0..2]),
+                                        green: u16_be(&buf[2..4]),
+                                        blue: u16_be(&buf[4..6]),
+                                    },
+                                })
+                            },
+
+                            PNGColourType::IndexedColour => {
+                                let mut values = Vec::with_capacity(self.length as usize);
+                                chunkstream.read_to_end(&mut values)?;
+
+                                Ok(PNGChunkData::TRNS {
+                                    data: PNGtRNSType::IndexedColour {
+                                        values,
+                                    },
+                                })
+                            },
+
+                            _ => Err(std::io::Error::other(format!("PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
+
+                        }
+                    },
+                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                }
+            },
+
             "cHRM" => {
                 let mut data = Vec::with_capacity(32);
                 chunkstream.read_to_end(&mut data)?;
