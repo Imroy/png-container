@@ -26,9 +26,29 @@ use std::str;
 use crate::chunks::*;
 use crate::crc::*;
 
+#[derive(Copy, Clone, Debug)]
+pub enum PNGFileType {
+    /// Portable Network Graphics
+    PNG,
+
+    /// Multiple-image Network Graphics
+    MNG,
+
+    /// JPEG Network Graphics
+    JNG,
+
+    /// Animated Portable Network Graphics
+    APNG
+}
+
 /// A PNG file reader
 #[derive(Debug)]
 pub struct PNGFileReader<R> {
+    /// Image file type
+    ///
+    /// PNG, MNG, JNG, or APNG
+    pub filetype: PNGFileType,
+
     /// Image width in pixels
     pub width: u32,
 
@@ -64,12 +84,27 @@ where R: Read + Seek
 {
     /// Constructor from a Read-able type
     fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
+        let mut filetype = PNGFileType::PNG;
         // First check the signature
         {
-            let mut buf = [ 0; 8 ];
-            stream.read_exact(&mut buf)?;
-            if buf != [ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] {
-                return Err(std::io::Error::new(std::io::ErrorKind::Other, "PNG: Bad signature"));
+            let mut signature = [ 0; 8 ];
+            stream.read_exact(&mut signature)?;
+            match signature {
+                [ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] => {
+                    filetype = PNGFileType::PNG;
+                },
+
+                [ 0x8a, 0x4d, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] => {
+                    filetype = PNGFileType::MNG;
+                },
+
+                [ 0x8b, 0x4a, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] => {
+                    filetype = PNGFileType::JNG;
+                },
+
+                _ => {
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, "PNG: Unrecognised signature"));
+                },
             }
         }
 
@@ -162,6 +197,13 @@ where R: Read + Seek
                     optional_chunk_idxs.insert(chunktype, idx);
                 },
             }
+
+            if (chunktypestr == "aCTL")
+                | (chunktypestr == "fcTL")
+                | (chunktypestr == "fdAT") {
+                    filetype = PNGFileType::APNG;
+                }
+
         }
 
         Ok(PNGFileReader {
