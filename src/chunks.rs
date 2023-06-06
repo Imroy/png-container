@@ -843,6 +843,27 @@ impl PNGChunk {
                 }
             },
 
+            "sRGB" => {
+                let mut buf = [ 0_u8; 1 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::SRGB {
+                    rendering_intent: buf[0].try_into()?,
+                })
+            },
+
+            "cICP" => {
+                let mut buf = [ 0_u8; 4 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::CICP {
+                    colour_primaries: buf[0],
+                    transfer_function: buf[1],
+                    matrix_coeffs: buf[2],
+                    video_full_range: buf[3] > 0,
+                })
+            }
+
             "tEXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
@@ -933,6 +954,22 @@ impl PNGChunk {
                 }
             },
 
+            "hIST" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let num_entries = self.length / 2;
+                let mut frequencies = Vec::with_capacity(num_entries as usize);
+
+                for n in 0..num_entries {
+                    let start = n as usize * 2;
+                    frequencies.push(u16_be(&data[start..start + 2]));
+                }
+
+                Ok(PNGChunkData::HIST {
+                    frequencies,
+                })
+            },
+
             "pHYs" => {
                 let mut buf = [ 0_u8; 9 ];
                 chunkstream.read_exact(&mut buf)?;
@@ -940,6 +977,15 @@ impl PNGChunk {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
                     y_pixels_per_unit: u32_be(&buf[4..8]),
                     unit: buf[8].try_into()?,
+                })
+            },
+
+            "eXIf" => {
+                let mut profile = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut profile)?;
+
+                Ok(PNGChunkData::EXIF {
+                    profile,
                 })
             },
 
