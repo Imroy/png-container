@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
+use crate::types::*;
 use crate::chunks::*;
 use crate::crc::*;
 
