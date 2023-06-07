@@ -23,3 +23,4 @@ pub mod crc;
 pub mod types;
 pub mod chunks;
 pub mod reader;
+pub mod jngreader;

@@ -23,17 +23,15 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
-use crate::types::*;
 use crate::chunks::*;
 use crate::crc::*;
+use crate::types::JNGColourType;
 
-/// A PNG/APNG file reader
+/// A JNG file reader
 #[derive(Debug)]
-pub struct PNGFileReader<R> {
-    /// Image file type
-    ///
-    /// PNG or APNG
-    pub filetype: PNGFileType,
+pub struct JNGFileReader<R> {
+    /// File stream we're reading from
+    pub stream: R,
 
     /// Image width in pixels
     pub width: u32,
@@ -41,20 +39,14 @@ pub struct PNGFileReader<R> {
     /// Image height in pixels
     pub height: u32,
 
-    /// Image bit depth per pixel component
-    pub bit_depth: u8,
-
     /// Image colour type
-    pub colour_type: PNGColourType,
-
-    /// File stream we're reading from
-    pub stream: R,
+    pub colour_type: JNGColourType,
 
     /// The list of all chunks in the file
     pub all_chunks: Vec<PNGChunk>,
 
-    /// The IHDR chunk
-    pub ihdr: PNGChunkData,
+    /// The JHDR chunk
+    pub jhdr: PNGChunkData,
 
     /// A hashmap of optional chunks that can only appear once in a file,
     /// keyed to their chunk type
@@ -65,27 +57,25 @@ pub struct PNGFileReader<R> {
     pub optional_multi_chunk_idxs: HashMap<[ u8; 4 ], Vec<usize>>,
 }
 
-impl<R> PNGFileReader<R>
+impl<R> JNGFileReader<R>
 where R: Read + Seek
 {
     /// Constructor from a Read-able type
     fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
-        let mut filetype = PNGFileType::PNG;
         // First check the signature
         {
             let mut signature = [ 0; 8 ];
             stream.read_exact(&mut signature)?;
-            if signature != [ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] {
-                return Err(std::io::Error::new(std::io::ErrorKind::Other, "PNG: Bad signature"));
+            if signature != [ 0x8b, 0x4a, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "JNG: Bad file signature"));
             }
         }
 
         let mut width = 0;
         let mut height = 0;
-        let mut bit_depth = 0;
-        let mut colour_type = PNGColourType::Greyscale;
+        let mut colour_type = JNGColourType::Greyscale;
         let mut all_chunks = Vec::new();
-        let mut ihdr = PNGChunkData::None;
+        let mut jhdr = PNGChunkData::None;
         let mut optional_chunk_idxs = HashMap::new();
         let mut optional_multi_chunk_idxs = HashMap::new();
 
@@ -101,13 +91,15 @@ where R: Read + Seek
             stream.read_exact(&mut chunktype)?;
             let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
 
-            /// Invalid chunk types for PNG files
-            if (chunktypestr == "JHDR") | (chunktypestr == "JDAT")
-                | (chunktypestr == "JDAA") | (chunktypestr == "JSEP")
+            // Invalid chunk types for JNG files
+            if (chunktypestr == "PLTE") | (chunktypestr == "hIST")
+                | (chunktypestr == "pCAL") | (chunktypestr == "sBIT")
+                | (chunktypestr == "sPLT") | (chunktypestr == "tRNS")
+                | (chunktypestr == "fRAc") | (chunktypestr == "gIFg")
+                | (chunktypestr == "gIFx") | (chunktypestr == "aCTL")
+                | (chunktypestr == "fcTL") | (chunktypestr == "fdAT")
             {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                               format!("PNG: Invalid chunk type \"{}\"",
-                                                       chunktypestr)));
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{}\"", chunktypestr)));
             }
 
             let mut data_crc = CRC::new();
@@ -117,7 +109,7 @@ where R: Read + Seek
                 let mut toread = length;
                 let mut buf = [ 0_u8; 65536 ];	// 64 KiB buffer
                 while toread > 0 {
-                    let readsize = datastream.read(&mut buf)?;
+                    let readsize = datastream.read(&mut buf).unwrap_or(0);
                     data_crc.consume(&buf[0..readsize]);
                     toread -= readsize as u32;
                 }
@@ -127,9 +119,7 @@ where R: Read + Seek
             stream.read_exact(&mut buf4)?;
             let crc = u32::from_be_bytes(buf4);
             if crc != data_crc.value() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                               format!("PNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})",
-                                                       crc, data_crc.value())));
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})", crc, data_crc.value())));
             }
 
             let chunk = PNGChunk {
@@ -142,19 +132,16 @@ where R: Read + Seek
             let idx = all_chunks.len();
 
             match chunktypestr {
-                "IHDR" => {
+                "JHDR" => {
                     let oldpos = stream.stream_position()?;
                     // Fill in image metadata
-                    ihdr = chunk.read_chunk(&mut stream, None)?;
-                    match ihdr {
-                        PNGChunkData::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                    jhdr = chunk.read_chunk(&mut stream, None)?;
+                    match jhdr {
+                        PNGChunkData::JHDR { width, height, colour_type, image_sample_depth, image_compression_method: _, image_interlace_method: _, alpha_sample_depth: _, alpha_compression_method: _, alpha_filter_method: _, alpha_interlace_method: _ } => {
                             width = width;
                             height = height;
-                            bit_depth = bit_depth;
                             colour_type = colour_type;
                         },
-
-                        _ => (),
                     }
 
                     stream.seek(SeekFrom::Start(oldpos))?;
@@ -178,22 +165,15 @@ where R: Read + Seek
                 break;
             }
 
-            if (chunktypestr == "aCTL")
-                | (chunktypestr == "fcTL")
-                | (chunktypestr == "fdAT") {
-                    filetype = PNGFileType::APNG;
-                }
-
         }
 
-        Ok(PNGFileReader {
+        Ok(JNGFileReader {
             width,
             height,
-            bit_depth,
             colour_type,
             stream,
             all_chunks,
-            ihdr,
+            jhdr,
             optional_chunk_idxs,
             optional_multi_chunk_idxs,
         })
