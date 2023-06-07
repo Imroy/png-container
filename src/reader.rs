@@ -157,10 +157,6 @@ where R: Read + Seek
                 length,
                 chunktype,
                 crc,
-                ancillary: chunktype[0] & 0x20 > 0,
-                private: chunktype[1] & 0x20 > 0,
-                reserved: chunktype[2] & 0x20 > 0,
-                safe_to_copy: chunktype[3] & 0x20 > 0,
             };
 
             let idx = all_chunks.len();

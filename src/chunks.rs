@@ -463,23 +463,6 @@ pub struct PNGChunk {
     /// Chunk CRC
     pub crc: u32,
 
-    /// Is this chunk necessary for successful display of the contents of
-    /// the datastream (false) or not (true)? Derived from the case of the
-    /// first character of the chunk type.
-    pub ancillary: bool,
-
-    /// Is this chunk defined publically (false) or privately (true)? Derived
-    /// from the case of the second character of the chunk type.
-    pub private: bool,
-
-    /// Reserved for future use. All chunks should have this set to false.
-    /// Derived from the case of the third character of the chunk type.
-    pub reserved: bool,
-
-    /// Is this chunk safe to copy to a new datastream without processing?
-    /// Derived from the case of the fourth character of the chunk type.
-    pub safe_to_copy: bool,
-
 }
 
 // because u32::from_be_bytes() only takes fixed-length arrays and it's too
@@ -508,6 +491,35 @@ impl PNGChunk {
     #[inline]
     pub fn type_str(&self) -> &str {
         str::from_utf8(&self.chunktype).unwrap_or("")
+    }
+
+    /// Is this chunk necessary for successful display of the contents of
+    /// the datastream (false) or not (true)? Derived from the case of the
+    /// first character of the chunk type.
+    #[inline]
+    pub fn is_ancillary(&self) ->  bool {
+        self.chunktype[0] & 0x20 > 0
+    }
+
+    /// Is this chunk defined publically (false) or privately (true)? Derived
+    /// from the case of the second character of the chunk type.
+    #[inline]
+    pub fn is_private(&self) -> bool {
+        self.chunktype[1] & 0x20 > 0
+    }
+
+    /// Reserved for future use. All chunks should have this set to false.
+    /// Derived from the case of the third character of the chunk type.
+    #[inline]
+    pub fn is_reserved(&self) -> bool {
+        self.chunktype[2] & 0x20 > 0
+    }
+
+    /// Is this chunk safe to copy to a new datastream without processing?
+    /// Derived from the case of the fourth character of the chunk type.
+    #[inline]
+    pub fn is_safe_to_copy(&self) -> bool {
+        self.chunktype[3] & 0x20 > 0
     }
 
     /// Read the chunk data and parse it into a PNGChunkData enum
