@@ -160,7 +160,6 @@ where R: Read + Seek
             };
 
             let idx = all_chunks.len();
-            all_chunks.push(chunk);
 
             match chunktypestr {
                 "IHDR" => {
@@ -181,10 +180,6 @@ where R: Read + Seek
                     stream.seek(SeekFrom::Start(oldpos))?;
                 },
 
-                "IEND" => {
-                    break;
-                },
-
                 "IDAT" | "fcTL" | "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
                     if !optional_multi_chunk_idxs.contains_key(&chunktype) {
                         optional_multi_chunk_idxs.insert(chunktype, Vec::new());
@@ -195,6 +190,12 @@ where R: Read + Seek
                 _ => {
                     optional_chunk_idxs.insert(chunktype, idx);
                 },
+            }
+
+            all_chunks.push(chunk);
+
+            if chunktypestr == "IEND" {
+                break;
             }
 
             if (chunktypestr == "aCTL")
@@ -217,11 +218,5 @@ where R: Read + Seek
             optional_multi_chunk_idxs,
         })
     }
-
-    /*
-    pub fn chunks(&self) -> std::slice::Iter<'_, PNGChunk> {
-        self.all_chunks.iter()
-}
-    */
 
 }
