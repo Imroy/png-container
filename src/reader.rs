@@ -147,7 +147,9 @@ where R: Read + Seek
             stream.read_exact(&mut buf4)?;
             let crc = u32::from_be_bytes(buf4);
             if crc != data_crc.value() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("PNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})", crc, data_crc.value())));
+                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
+                                               format!("PNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})",
+                                                       crc, data_crc.value())));
             }
 
             let chunk = PNGChunk {

@@ -316,11 +316,12 @@ pub enum PNGChunkData {
 }
 
 impl PNGChunkData {
-
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x, white_y, red_x: _, red_y: _, green_x: _, green_y: _, blue_x: _, blue_y: _ } => {
+            PNGChunkData::CHRM { white_x, white_y, red_x: _, red_y: _,
+                                 green_x: _, green_y: _, blue_x: _,
+                                 blue_y: _ } => {
                 Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0))
             },
 
@@ -331,7 +332,9 @@ impl PNGChunkData {
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x, red_y, green_x: _, green_y: _, blue_x: _, blue_y: _ } => {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x, red_y,
+                                 green_x: _, green_y: _, blue_x: _,
+                                 blue_y: _ } => {
                 Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0))
             },
 
@@ -342,7 +345,8 @@ impl PNGChunkData {
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _, green_x, green_y, blue_x: _, blue_y: _ } => {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _,
+                                 green_x, green_y, blue_x: _, blue_y: _ } => {
                 Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0))
             },
 
@@ -353,7 +357,8 @@ impl PNGChunkData {
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _, green_x: _, green_y: _, blue_x, blue_y } => {
+            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _,
+                                 green_x: _, green_y: _, blue_x, blue_y } => {
                 Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0))
             },
 
@@ -375,7 +380,8 @@ impl PNGChunkData {
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
         match self {
-            PNGChunkData::ICCP { name: _, compression_method, compressed_profile } => {
+            PNGChunkData::ICCP { name: _, compression_method,
+                                 compressed_profile } => {
                 match compression_method {
                     PNGCompressionType::Zlib => {
                         Ok(inflate_bytes_zlib(compressed_profile.as_slice())?)
@@ -390,7 +396,8 @@ impl PNGChunkData {
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Result<String, String> {
         match self {
-            PNGChunkData::ZTXT { keyword: _, compression_method, compressed_string } => {
+            PNGChunkData::ZTXT { keyword: _, compression_method,
+                                 compressed_string } => {
                 match compression_method {
                     PNGCompressionType::Zlib => {
                         let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
@@ -406,7 +413,9 @@ impl PNGChunkData {
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Result<String, String> {
         match self {
-            PNGChunkData::ITXT { keyword: _, compressed, compression_method, language: _, translated_keyword: _, compressed_string } => {
+            PNGChunkData::ITXT { keyword: _, compressed, compression_method,
+                                 language: _, translated_keyword: _,
+                                 compressed_string } => {
                 if *compressed {
                     match compression_method {
                         PNGCompressionType::Zlib => {
@@ -426,7 +435,9 @@ impl PNGChunkData {
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Result<f64, String> {
         match self {
-            PNGChunkData::FCTL { sequence_number: _, width: _, height: _, x_offset: _, y_offset: _, delay_num, delay_den, dispose_op: _, blend_op: _ } => {
+            PNGChunkData::FCTL { sequence_number: _, width: _, height: _,
+                                 x_offset: _, y_offset: _, delay_num,
+                                 delay_den, dispose_op: _, blend_op: _ } => {
                 Ok(*delay_num as f64 / *delay_den as f64)
             },
 
@@ -474,7 +485,8 @@ pub struct PNGChunk {
 // because u32::from_be_bytes() only takes fixed-length arrays and it's too
 // much of a PITA to convert from a slice.
 fn u32_be(bytes: &[u8]) -> u32 {
-    (bytes[3] as u32) | ((bytes[2] as u32) << 8) | ((bytes[1] as u32) << 16) | ((bytes[0] as u32) << 24)
+    (bytes[3] as u32) | ((bytes[2] as u32) << 8)
+        | ((bytes[1] as u32) << 16) | ((bytes[0] as u32) << 24)
 }
 
 fn u16_be(bytes: &[u8]) -> u16 {
@@ -499,7 +511,9 @@ impl PNGChunk {
     }
 
     /// Read the chunk data and parse it into a PNGChunkData enum
-    pub fn read_chunk<R>(&self, stream: &mut R, ihdr: Option<&PNGChunkData>) -> Result<PNGChunkData, std::io::Error>
+    pub fn read_chunk<R>(&self, stream: &mut R,
+                         ihdr: Option<&PNGChunkData>)
+                         -> Result<PNGChunkData, std::io::Error>
         where R: Read + Seek
     {
         stream.seek(SeekFrom::Start(self.position + 8))?;
@@ -552,7 +566,9 @@ impl PNGChunk {
 
             "tRNS" => {
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
+                                         colour_type, compression_method: _,
+                                         filter_method: _, interlace_method: _ } => {
                         match colour_type {
                             PNGColourType::Greyscale => {
                                 let mut buf = [ 0_u8; 2 ];
@@ -589,12 +605,14 @@ impl PNGChunk {
                                 })
                             },
 
-                            _ => Err(std::io::Error::other(format!("PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
+                            _ => Err(std::io::Error::other(format!(
+                                "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
 
                         }
                     },
 
-                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                    _ => Err(std::io::Error::other(
+                        "PNG: Wrong chunk type passed as ihdr"))
                 }
             },
 
@@ -637,7 +655,9 @@ impl PNGChunk {
 
             "sBIT" => {
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
+                                         colour_type, compression_method: _,
+                                         filter_method: _, interlace_method: _ } => {
                         match colour_type {
                             PNGColourType::Greyscale => {
                                 let mut buf = [ 0_u8; 1 ];
@@ -650,7 +670,9 @@ impl PNGChunk {
                                 })
                             },
 
-                            PNGColourType::TrueColour | PNGColourType::IndexedColour => {
+                            PNGColourType::TrueColour
+                                | PNGColourType::IndexedColour =>
+                            {
                                 let mut buf = [ 0_u8; 3 ];
                                 chunkstream.read_exact(&mut buf);
 
@@ -689,11 +711,13 @@ impl PNGChunk {
                                 })
                             },
 
-                            _ => Err(std::io::Error::other(format!("PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
+                            _ => Err(std::io::Error::other(format!(
+                                "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
                         }
                     },
 
-                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                    _ => Err(std::io::Error::other(
+                        "PNG: Wrong chunk type passed as ihdr"))
                 }
             },
 
@@ -724,8 +748,10 @@ impl PNGChunk {
                 let keyword_end = find_null(&data);
 
                 Ok(PNGChunkData::TEXT {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
-                    string: String::from_utf8(data[keyword_end + 1..].to_vec()).unwrap_or(String::new()),
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
+                        .unwrap_or(String::new()),
+                    string: String::from_utf8(data[keyword_end + 1..].to_vec())
+                        .unwrap_or(String::new()),
                 })
             },
 
@@ -735,7 +761,8 @@ impl PNGChunk {
                 let keyword_end = find_null(&data);
 
                 Ok(PNGChunkData::ZTXT {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
+                        .unwrap_or(String::new()),
                     compression_method: data[keyword_end + 1].try_into()?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
                 })
@@ -745,15 +772,20 @@ impl PNGChunk {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
                 let keyword_end = find_null(&data);
-                let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
-                let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
+                let language_end = find_null(&data[keyword_end + 3..])
+                    + keyword_end + 3;
+                let tkeyword_end = find_null(&data[language_end + 1..])
+                    + language_end + 1;
 
                 Ok(PNGChunkData::ITXT {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec()).unwrap_or(String::new()),
+                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
+                        .unwrap_or(String::new()),
                     compressed: data[keyword_end + 1] > 0,
                     compression_method: data[keyword_end + 2].try_into()?,
-                    language: String::from_utf8(data[keyword_end + 3..language_end].to_vec()).unwrap_or(String::new()),
-                    translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end].to_vec()).unwrap_or(String::new()),
+                    language: String::from_utf8(data[keyword_end + 3..language_end]
+                                                .to_vec()).unwrap_or(String::new()),
+                    translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end]
+                                                          .to_vec()).unwrap_or(String::new()),
                     compressed_string: data[tkeyword_end + 1..].to_vec(),
                 })
             },
@@ -763,11 +795,15 @@ impl PNGChunk {
                 chunkstream.read_to_end(&mut data)?;
 
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
+                                         colour_type, compression_method: _,
+                                         filter_method: _, interlace_method: _ } => {
                         match colour_type {
                             PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
                                 if self.length != 2 {
-                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                    return Err(std::io::Error::other(format!(
+                                        "PNG: Invalid length of bKGD chunk ({})",
+                                        self.length)));
                                 }
 
                                 Ok(PNGChunkData::BKGD{
@@ -777,9 +813,13 @@ impl PNGChunk {
                                 })
                             },
 
-                            PNGColourType::TrueColour | PNGColourType::TrueColourAlpha => {
+                            PNGColourType::TrueColour
+                                | PNGColourType::TrueColourAlpha =>
+                            {
                                 if self.length != 6 {
-                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                    return Err(std::io::Error::other(format!(
+                                        "PNG: Invalid length of bKGD chunk ({})",
+                                        self.length)));
                                 }
 
                                 Ok(PNGChunkData::BKGD{
@@ -793,7 +833,9 @@ impl PNGChunk {
 
                             PNGColourType::IndexedColour => {
                                 if self.length != 1 {
-                                    return Err(std::io::Error::other(format!("PNG: Invalid length of bKGD chunk ({})", self.length)));
+                                    return Err(std::io::Error::other(format!(
+                                        "PNG: Invalid length of bKGD chunk ({})",
+                                        self.length)));
                                 }
 
                                 Ok(PNGChunkData::BKGD{
@@ -805,7 +847,8 @@ impl PNGChunk {
                         }
                     },
 
-                    _ => Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
+                    _ => Err(std::io::Error::other(
+                        "PNG: Wrong chunk type passed as ihdr"))
                 }
             },
 
@@ -851,7 +894,8 @@ impl PNGChunk {
                 let name_end = find_null(&data);
                 let depth = data[name_end + 1];
                 let entry_size = ((depth / 8) * 4) + 2;
-                let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
+                let num_entries = (self.length as usize - name_end - 1)
+                    / (entry_size as usize);
                 let mut palette = Vec::with_capacity(num_entries);
 
                 for i in 0..num_entries {
@@ -876,7 +920,8 @@ impl PNGChunk {
                 }
 
                 Ok(PNGChunkData::SPLT {
-                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or(String::new()),
+                    name: String::from_utf8(data[0..name_end].to_vec())
+                        .unwrap_or(String::new()),
                     depth,
                     palette,
                 })
@@ -971,7 +1016,8 @@ impl PNGChunk {
 
             "JSEP" => Ok(PNGChunkData::JSEP),
 
-            _ => Err(std::io::Error::other(format!("PNG: Unhandled chunk type ({})", self.type_str())))
+            _ => Err(std::io::Error::other(format!(
+                "PNG: Unhandled chunk type ({})", self.type_str())))
         }
     }
 
