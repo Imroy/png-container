@@ -378,6 +378,9 @@ impl TryFrom<u8> for JNGImageSampleDepth {
 /// JNG image and alpha compression type
 #[derive(Copy, Clone, Debug)]
 pub enum JNGCompressionType {
+    /// PNG greyscale
+    PNGGreyscale = 0,
+
     /// Huffman-coded baseline JPEG
     HuffmanBaseline = 8,
 
@@ -387,6 +390,7 @@ impl TryFrom<u8> for JNGCompressionType {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
+            x if x == JNGCompressionType::PNGGreyscale as u8 => Ok(JNGCompressionType::PNGGreyscale),
             x if x == JNGCompressionType::HuffmanBaseline as u8 => Ok(JNGCompressionType::HuffmanBaseline),
 
             _ => Err(std::io::Error::other(format!("JNG: Invalid value of compression type ({})", val))),
