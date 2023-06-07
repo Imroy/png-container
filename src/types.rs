@@ -276,21 +276,21 @@ pub struct PNGSuggestedPaletteEntry {
 
 /// Disposal operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug)]
-pub enum PNGDisposalOperator {
+pub enum APNGDisposalOperator {
     None,
     Background,
     Previous,
 }
 
-impl TryFrom<u8> for PNGDisposalOperator {
+impl TryFrom<u8> for APNGDisposalOperator {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == PNGDisposalOperator::None as u8 => Ok(PNGDisposalOperator::None),
-            x if x == PNGDisposalOperator::Background as u8 => Ok(PNGDisposalOperator::Background),
-            x if x == PNGDisposalOperator::Previous as u8 => Ok(PNGDisposalOperator::Previous),
+            x if x == APNGDisposalOperator::None as u8 => Ok(APNGDisposalOperator::None),
+            x if x == APNGDisposalOperator::Background as u8 => Ok(APNGDisposalOperator::Background),
+            x if x == APNGDisposalOperator::Previous as u8 => Ok(APNGDisposalOperator::Previous),
 
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of disposal operator ({})", val))),
+            _ => Err(std::io::Error::other(format!("APNG: Invalid value of disposal operator ({})", val))),
         }
     }
 
@@ -299,19 +299,19 @@ impl TryFrom<u8> for PNGDisposalOperator {
 
 /// Blend operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug)]
-pub enum PNGBlendOperator {
+pub enum APNGBlendOperator {
     Source,
     Over,
 }
 
-impl TryFrom<u8> for PNGBlendOperator {
+impl TryFrom<u8> for APNGBlendOperator {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == PNGBlendOperator::Source as u8 => Ok(PNGBlendOperator::Source),
-            x if x == PNGBlendOperator::Over as u8 => Ok(PNGBlendOperator::Over),
+            x if x == APNGBlendOperator::Source as u8 => Ok(APNGBlendOperator::Source),
+            x if x == APNGBlendOperator::Over as u8 => Ok(APNGBlendOperator::Over),
 
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of blend operator ({})", val))),
+            _ => Err(std::io::Error::other(format!("APNG: Invalid value of blend operator ({})", val))),
         }
     }
 
