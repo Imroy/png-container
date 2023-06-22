@@ -50,11 +50,11 @@ pub struct JNGFileReader<R> {
 
     /// A hashmap of optional chunks that can only appear once in a file,
     /// keyed to their chunk type
-    pub optional_chunk_idxs: HashMap<[ u8; 4 ], usize>,
+    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunk>,
 
     /// A hashmap of optional chunks that can appear multiple times in a
     /// file, keyed to their chunk type
-    pub optional_multi_chunk_idxs: HashMap<[ u8; 4 ], Vec<usize>>,
+    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunk>>,
 }
 
 impl<R> JNGFileReader<R>
@@ -76,8 +76,8 @@ where R: Read + Seek
         let mut colour_type = JNGColourType::Greyscale;
         let mut all_chunks = Vec::new();
         let mut jhdr = PNGChunkData::None;
-        let mut optional_chunk_idxs = HashMap::new();
-        let mut optional_multi_chunk_idxs = HashMap::new();
+        let mut optional_chunks = HashMap::new();
+        let mut optional_multi_chunks = HashMap::new();
 
         // Now just loop reading chunks
         loop {
@@ -129,8 +129,6 @@ where R: Read + Seek
                 crc,
             };
 
-            let idx = all_chunks.len();
-
             match chunktypestr {
                 "JHDR" => {
                     let oldpos = stream.stream_position()?;
@@ -148,12 +146,12 @@ where R: Read + Seek
                 },
 
                 "IDAT" | "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
-                    optional_multi_chunk_idxs.entry(chunktype).or_insert_with(|| Vec::new());
-                    optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(idx);
+                    optional_multi_chunks.entry(chunktype).or_insert_with(|| Vec::new());
+                    optional_multi_chunks.get_mut(&chunktype).unwrap().push(chunk);
                 },
 
                 _ => {
-                    optional_chunk_idxs.insert(chunktype, idx);
+                    optional_chunks.insert(chunktype, chunk);
                 },
             }
 
@@ -172,8 +170,8 @@ where R: Read + Seek
             stream,
             all_chunks,
             jhdr,
-            optional_chunk_idxs,
-            optional_multi_chunk_idxs,
+            optional_chunks,
+            optional_multi_chunks,
         })
     }
 
