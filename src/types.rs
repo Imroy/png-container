@@ -105,6 +105,33 @@ impl TryFrom<u8> for PNGFilterType {
         match val {
             x if x == PNGFilterType::Adaptive as u8 => Ok(PNGFilterType::Adaptive),
 
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter type ({})", val))),
+        }
+    }
+}
+
+
+/// Filter methods
+#[derive(Copy, Clone, Debug)]
+pub enum PNGFilterMethod {
+    None = 0,
+    Sub,
+    Up,
+    Average,
+    Paeth,
+
+}
+
+impl TryFrom<u8> for PNGFilterMethod {
+    type Error = std::io::Error;
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        match val {
+            x if x == PNGFilterMethod::None as u8 => Ok(PNGFilterMethod::None),
+            x if x == PNGFilterMethod::Sub as u8 => Ok(PNGFilterMethod::Sub),
+            x if x == PNGFilterMethod::Up as u8 => Ok(PNGFilterMethod::Up),
+            x if x == PNGFilterMethod::Average as u8 => Ok(PNGFilterMethod::Average),
+            x if x == PNGFilterMethod::Paeth as u8 => Ok(PNGFilterMethod::Paeth),
+
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter method ({})", val))),
         }
     }
