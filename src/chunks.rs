@@ -475,6 +475,18 @@ fn find_null(bytes: &[u8]) -> usize {
     bytes.len()
 }
 
+impl Default for PNGChunk {
+    fn default() -> Self {
+        PNGChunk {
+            position: 0,
+            length: 0,
+            chunktype: [ 0_u8; 4 ],
+            crc: 0,
+        }
+    }
+
+}
+
 impl PNGChunk {
     /// Convert the chunk type bytes to a string that can be compared and printed much more easily
     #[inline]
