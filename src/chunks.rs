@@ -658,7 +658,7 @@ impl PNGChunk {
                         match colour_type {
                             PNGColourType::Greyscale => {
                                 let mut buf = [ 0_u8; 1 ];
-                                chunkstream.read_exact(&mut buf);
+                                chunkstream.read_exact(&mut buf)?;
 
                                 Ok(PNGChunkData::SBIT {
                                     bits: PNGsBITType::Greyscale {
@@ -671,7 +671,7 @@ impl PNGChunk {
                                 | PNGColourType::IndexedColour =>
                             {
                                 let mut buf = [ 0_u8; 3 ];
-                                chunkstream.read_exact(&mut buf);
+                                chunkstream.read_exact(&mut buf)?;
 
                                 Ok(PNGChunkData::SBIT {
                                     bits: PNGsBITType::Colour {
@@ -684,7 +684,7 @@ impl PNGChunk {
 
                             PNGColourType::GreyscaleAlpha => {
                                 let mut buf = [ 0_u8; 2 ];
-                                chunkstream.read_exact(&mut buf);
+                                chunkstream.read_exact(&mut buf)?;
 
                                 Ok(PNGChunkData::SBIT {
                                     bits: PNGsBITType::GreyscaleAlpha {
@@ -696,7 +696,7 @@ impl PNGChunk {
 
                             PNGColourType::TrueColourAlpha => {
                                 let mut buf = [ 0_u8; 4 ];
-                                chunkstream.read_exact(&mut buf);
+                                chunkstream.read_exact(&mut buf)?;
 
                                 Ok(PNGChunkData::SBIT {
                                     bits: PNGsBITType::TrueColourAlpha {
