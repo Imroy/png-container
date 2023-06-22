@@ -78,7 +78,7 @@ impl CRC {
     }
 
     pub fn value(&self) -> u32 {
-        return self.state ^ 0xffffffff;
+        self.state ^ 0xffffffff
     }
 
 }

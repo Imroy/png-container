@@ -197,9 +197,9 @@ pub enum PNGsBITType {
 #[derive(Copy, Clone, Debug)]
 pub enum PNGRenderingIntent {
     Perceptual,
-    Relative_colorimetric,
+    RelativeColorimetric,
     Saturation,
-    Absolute_colorimetric,
+    AbsoluteColorimetric,
 }
 
 impl TryFrom<u8> for PNGRenderingIntent {
@@ -207,9 +207,9 @@ impl TryFrom<u8> for PNGRenderingIntent {
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
             x if x == PNGRenderingIntent::Perceptual as u8 => Ok(PNGRenderingIntent::Perceptual),
-            x if x == PNGRenderingIntent::Relative_colorimetric as u8 => Ok(PNGRenderingIntent::Relative_colorimetric),
+            x if x == PNGRenderingIntent::RelativeColorimetric as u8 => Ok(PNGRenderingIntent::RelativeColorimetric),
             x if x == PNGRenderingIntent::Saturation as u8 => Ok(PNGRenderingIntent::Saturation),
-            x if x == PNGRenderingIntent::Absolute_colorimetric as u8 => Ok(PNGRenderingIntent::Absolute_colorimetric),
+            x if x == PNGRenderingIntent::AbsoluteColorimetric as u8 => Ok(PNGRenderingIntent::AbsoluteColorimetric),
 
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of rendering intent ({})", val))),
         }
@@ -356,7 +356,7 @@ pub enum JNGImageSampleDepth {
 
     Depth12 = 12,
 
-    Depth8_and_12 = 20,
+    Depth8And12 = 20,
 
 }
 
@@ -366,7 +366,7 @@ impl TryFrom<u8> for JNGImageSampleDepth {
         match val {
             x if x == JNGImageSampleDepth::Depth8 as u8 => Ok(JNGImageSampleDepth::Depth8),
             x if x == JNGImageSampleDepth::Depth12 as u8 => Ok(JNGImageSampleDepth::Depth12),
-            x if x == JNGImageSampleDepth::Depth8_and_12 as u8 => Ok(JNGImageSampleDepth::Depth8_and_12),
+            x if x == JNGImageSampleDepth::Depth8And12 as u8 => Ok(JNGImageSampleDepth::Depth8And12),
 
             _ => Err(std::io::Error::other(format!("JNG: Invalid value of image sample depth ({})", val))),
         }

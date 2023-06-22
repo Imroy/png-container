@@ -466,8 +466,8 @@ fn u16_be(bytes: &[u8]) -> u16 {
 }
 
 fn find_null(bytes: &[u8]) -> usize {
-    for i in 0..bytes.len() {
-        if bytes[i] == 0 {
+    for (i, byte) in bytes.iter().enumerate() {
+        if *byte == 0 {
             return i;
         }
     }
@@ -539,7 +539,7 @@ impl PNGChunk {
             "PLTE" => {
                 let num_entries = self.length / 3;
                 let mut entries = Vec::with_capacity(num_entries as usize);
-                for n in 0..num_entries {
+                for _n in 0..num_entries {
                     let mut buf = [ 0_u8; 3 ];
                     chunkstream.read_exact(&mut buf)?;
                     entries.push(PNGPaletteEntry {
@@ -708,8 +708,6 @@ impl PNGChunk {
                                 })
                             },
 
-                            _ => Err(std::io::Error::other(format!(
-                                "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
                         }
                     },
 

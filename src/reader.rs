@@ -101,7 +101,7 @@ where R: Read + Seek
             stream.read_exact(&mut chunktype)?;
             let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
 
-            /// Invalid chunk types for PNG files
+            // Invalid chunk types for PNG files
             if (chunktypestr == "JHDR") | (chunktypestr == "JDAT")
                 | (chunktypestr == "JDAA") | (chunktypestr == "JSEP")
             {
@@ -161,9 +161,7 @@ where R: Read + Seek
                 },
 
                 "IDAT" | "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
-                    if !optional_multi_chunk_idxs.contains_key(&chunktype) {
-                        optional_multi_chunk_idxs.insert(chunktype, Vec::new());
-                    }
+                    optional_multi_chunk_idxs.entry(chunktype).or_insert_with(|| Vec::new());
                     optional_multi_chunk_idxs.get_mut(&chunktype).unwrap().push(idx);
                 },
 
@@ -180,9 +178,10 @@ where R: Read + Seek
 
             if (chunktypestr == "aCTL")
                 | (chunktypestr == "fcTL")
-                | (chunktypestr == "fdAT") {
-                    filetype = PNGFileType::APNG;
-                }
+                | (chunktypestr == "fdAT")
+            {
+                filetype = PNGFileType::APNG;
+            }
 
         }
 
