@@ -437,7 +437,7 @@ impl PNGChunkData {
 }
 
 
-/// Referece to a chunk in a PNG file
+/// Reference to a chunk in a PNG file
 #[derive(Copy, Clone, Debug)]
 pub struct PNGChunk {
     /// The position in the stream/file for this chunk
