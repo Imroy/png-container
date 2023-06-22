@@ -45,8 +45,17 @@ pub struct JNGFileReader<R> {
     /// The list of all chunks in the file
     pub all_chunks: Vec<PNGChunk>,
 
-    /// The JHDR chunk
+    /// The JHDR chunk data
     pub jhdr: PNGChunkData,
+
+    /// The IDAT chunks
+    pub idats: Vec<PNGChunk>,
+
+    /// The JDAT chunks
+    pub jdats: Vec<PNGChunk>,
+
+    /// The IEND chunk
+    pub iend: PNGChunk,
 
     /// A hashmap of optional chunks that can only appear once in a file,
     /// keyed to their chunk type
@@ -76,6 +85,9 @@ where R: Read + Seek
         let mut colour_type = JNGColourType::Greyscale;
         let mut all_chunks = Vec::new();
         let mut jhdr = PNGChunkData::None;
+        let mut idats = Vec::new();
+        let mut jdats = Vec::new();
+        let mut iend = PNGChunk::default();
         let mut optional_chunks = HashMap::new();
         let mut optional_multi_chunks = HashMap::new();
 
@@ -145,7 +157,19 @@ where R: Read + Seek
                     stream.seek(SeekFrom::Start(oldpos))?;
                 },
 
-                "IDAT" | "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
+                "IDAT" => {
+                    idats.push(chunk);
+                },
+
+                "JDAT" => {
+                    jdats.push(chunk);
+                },
+
+                "IEND" => {
+                    iend = chunk;
+                },
+
+                "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
                     optional_multi_chunks.entry(chunktype).or_insert_with(|| Vec::new());
                     optional_multi_chunks.get_mut(&chunktype).unwrap().push(chunk);
                 },
@@ -170,6 +194,9 @@ where R: Read + Seek
             stream,
             all_chunks,
             jhdr,
+            idats,
+            jdats,
+            iend,
             optional_chunks,
             optional_multi_chunks,
         })
