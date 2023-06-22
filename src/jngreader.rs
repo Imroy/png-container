@@ -137,7 +137,7 @@ where R: Read + Seek
                     // Fill in image metadata
                     jhdr = chunk.read_chunk(&mut stream, None)?;
                     match jhdr {
-                        PNGChunkData::JHDR { width, height, colour_type, image_sample_depth, image_compression_method: _, image_interlace_method: _, alpha_sample_depth: _, alpha_compression_method: _, alpha_filter_method: _, alpha_interlace_method: _ } => {
+                        PNGChunkData::JHDR { width, height, colour_type, .. } => {
                             width = width;
                             height = height;
                             colour_type = colour_type;

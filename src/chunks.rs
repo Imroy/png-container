@@ -319,9 +319,7 @@ impl PNGChunkData {
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x, white_y, red_x: _, red_y: _,
-                                 green_x: _, green_y: _, blue_x: _,
-                                 blue_y: _ } => {
+            PNGChunkData::CHRM { white_x, white_y, .. } => {
                 Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0))
             },
 
@@ -332,9 +330,7 @@ impl PNGChunkData {
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x, red_y,
-                                 green_x: _, green_y: _, blue_x: _,
-                                 blue_y: _ } => {
+            PNGChunkData::CHRM { red_x, red_y, .. } => {
                 Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0))
             },
 
@@ -345,8 +341,7 @@ impl PNGChunkData {
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _,
-                                 green_x, green_y, blue_x: _, blue_y: _ } => {
+            PNGChunkData::CHRM { green_x, green_y, .. } => {
                 Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0))
             },
 
@@ -357,8 +352,7 @@ impl PNGChunkData {
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Result<(f64, f64), String> {
         match self {
-            PNGChunkData::CHRM { white_x: _, white_y: _, red_x: _, red_y: _,
-                                 green_x: _, green_y: _, blue_x, blue_y } => {
+            PNGChunkData::CHRM { blue_x, blue_y, .. } => {
                 Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0))
             },
 
@@ -380,8 +374,7 @@ impl PNGChunkData {
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
         match self {
-            PNGChunkData::ICCP { name: _, compression_method,
-                                 compressed_profile } => {
+            PNGChunkData::ICCP { compression_method, compressed_profile, .. } => {
                 match compression_method {
                     PNGCompressionType::Zlib => {
                         Ok(inflate_bytes_zlib(compressed_profile.as_slice())?)
@@ -396,8 +389,7 @@ impl PNGChunkData {
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Result<String, String> {
         match self {
-            PNGChunkData::ZTXT { keyword: _, compression_method,
-                                 compressed_string } => {
+            PNGChunkData::ZTXT { compression_method, compressed_string, .. } => {
                 match compression_method {
                     PNGCompressionType::Zlib => {
                         let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
@@ -413,9 +405,8 @@ impl PNGChunkData {
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Result<String, String> {
         match self {
-            PNGChunkData::ITXT { keyword: _, compressed, compression_method,
-                                 language: _, translated_keyword: _,
-                                 compressed_string } => {
+            PNGChunkData::ITXT { compressed, compression_method,
+                                 compressed_string, .. } => {
                 if *compressed {
                     match compression_method {
                         PNGCompressionType::Zlib => {
@@ -435,9 +426,7 @@ impl PNGChunkData {
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Result<f64, String> {
         match self {
-            PNGChunkData::FCTL { sequence_number: _, width: _, height: _,
-                                 x_offset: _, y_offset: _, delay_num,
-                                 delay_den, dispose_op: _, blend_op: _ } => {
+            PNGChunkData::FCTL { delay_num, delay_den, .. } => {
                 Ok(*delay_num as f64 / *delay_den as f64)
             },
 
@@ -578,9 +567,7 @@ impl PNGChunk {
 
             "tRNS" => {
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
-                                         colour_type, compression_method: _,
-                                         filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { colour_type, .. } => {
                         match colour_type {
                             PNGColourType::Greyscale => {
                                 let mut buf = [ 0_u8; 2 ];
@@ -667,9 +654,7 @@ impl PNGChunk {
 
             "sBIT" => {
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
-                                         colour_type, compression_method: _,
-                                         filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { colour_type, .. } => {
                         match colour_type {
                             PNGColourType::Greyscale => {
                                 let mut buf = [ 0_u8; 1 ];
@@ -807,9 +792,7 @@ impl PNGChunk {
                 chunkstream.read_to_end(&mut data)?;
 
                 match ihdr.unwrap() {
-                    PNGChunkData::IHDR { width: _, height: _, bit_depth: _,
-                                         colour_type, compression_method: _,
-                                         filter_method: _, interlace_method: _ } => {
+                    PNGChunkData::IHDR { colour_type, .. } => {
                         match colour_type {
                             PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
                                 if self.length != 2 {
