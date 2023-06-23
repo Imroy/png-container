@@ -54,6 +54,9 @@ pub struct JNGFileReader<R> {
     /// The JDAT chunks
     pub jdats: Vec<PNGChunk>,
 
+    /// The JDAA chunks
+    pub jdaas: Vec<PNGChunk>,
+
     /// The IEND chunk
     pub iend: PNGChunk,
 
@@ -87,6 +90,7 @@ where R: Read + Seek
         let mut jhdr = PNGChunkData::None;
         let mut idats = Vec::new();
         let mut jdats = Vec::new();
+        let mut jdaas = Vec::new();
         let mut iend = PNGChunk::default();
         let mut optional_chunks = HashMap::new();
         let mut optional_multi_chunks = HashMap::new();
@@ -165,6 +169,10 @@ where R: Read + Seek
                     jdats.push(chunk);
                 },
 
+                "JDAA" => {
+                    jdaas.push(chunk);
+                },
+
                 "IEND" => {
                     iend = chunk;
                 },
@@ -196,6 +204,7 @@ where R: Read + Seek
             jhdr,
             idats,
             jdats,
+            jdaas,
             iend,
             optional_chunks,
             optional_multi_chunks,
