@@ -20,6 +20,8 @@
  */
 
 use std::io::{Read, Seek, SeekFrom};
+use std::collections::VecDeque;
+use std::slice::Iter;
 use std::str;
 use inflate::inflate_bytes_zlib;
 
@@ -1044,6 +1046,65 @@ impl PNGChunk {
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({})", self.type_str())))
         }
+    }
+
+}
+
+
+/// A reader for reading data from a series of IDAT, JDAT, or JDAA chunks
+pub struct DATReader<'a, R>  {
+    /// Iterator to the IDAT/JDAT/JDAA chunk(s)
+    dat_iter: Iter<'a, PNGChunk>,
+
+    /// The stream that the chunks are read from
+    stream: &'a mut R,
+
+    /// A queue of data from the chunks
+    buffer: VecDeque<u8>,
+
+}
+
+impl<'a, R> DATReader<'a, R> {
+    /// Constructor
+    pub fn new(dats: &'a Vec<PNGChunk>, stream: &'a mut R) -> Self {
+        DATReader {
+            dat_iter: dats.iter(),
+            buffer: VecDeque::new(),
+            stream,
+        }
+    }
+
+}
+
+impl<'a, R> Read for DATReader<'a, R>
+where R: Read + Seek
+{
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        while (self.buffer.len() < buf.len()) && (self.dat_iter.size_hint().0 > 0) {
+            let chunkref = self.dat_iter.next().ok_or(std::io::Error::other("Could not get next DAT chunk"))?;
+            let chunk = chunkref.read_chunk(self.stream, None)?;
+            let data = match chunk {
+                PNGChunkData::IDAT { data } => Result::Ok(data),
+                PNGChunkData::JDAT { data } => Result::Ok(data),
+                PNGChunkData::JDAA { data } => Result::Ok(data),
+
+                _ => Result::Err(std::io::Error::other("chunk is not IDAT, JDAT, or JDAA")),
+            }?;
+            self.buffer.append(&mut (data.into()));
+        }
+
+        let mut len = 0;
+        for i in 0..buf.len() {
+            let b = self.buffer.pop_front();
+            if b.is_none() {
+                break;
+            }
+
+            buf[i] = b.unwrap();
+            len += 1;
+        }
+
+        Ok(len)
     }
 
 }
