@@ -423,6 +423,26 @@ impl PNGChunkData {
         }
     }
 
+    /// Convert the units in a pHYs chunk to pixels per inch
+    ///
+    /// Yes, it's not SI units. But it's what everyone uses.
+    pub fn phys_ppi(&self) -> Result<(f64, f64), String> {
+        match self {
+            PNGChunkData::PHYS { x_pixels_per_unit, y_pixels_per_unit, unit } => {
+                match unit {
+                    PNGUnitType::Unknown =>
+                        Err("PNG: Unknown unit.".to_string()),
+
+                    PNGUnitType::Metre =>
+                        Ok((*x_pixels_per_unit as f64 / 39.370_078_740_157_48,
+                            *y_pixels_per_unit as f64 / 39.370_078_740_157_48)),
+                }
+            },
+
+            _ => Err("PNG: Not a pHYs chunk".to_string()),
+        }
+    }
+
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Result<f64, String> {
         match self {
