@@ -50,13 +50,13 @@ pub enum PNGChunkData {
         colour_type: PNGColourType,
 
         /// Compression method
-        compression_method: PNGCompressionType,
+        compression_method: PNGCompressionMethod,
 
         /// Filter method
-        filter_method: PNGFilterType,
+        filter_method: PNGFilterMethod,
 
         /// Interlace method
-        interlace_method: PNGInterlaceType,
+        interlace_method: PNGInterlaceMethod,
     },
 
     /// Palette
@@ -105,7 +105,7 @@ pub enum PNGChunkData {
     /// Embedded ICC profile
     ICCP {
         name: String,
-        compression_method: PNGCompressionType,
+        compression_method: PNGCompressionMethod,
         compressed_profile: Vec<u8>,
     },
 
@@ -138,7 +138,7 @@ pub enum PNGChunkData {
     /// Compressed textual data
     ZTXT {
         keyword: String,
-        compression_method: PNGCompressionType,
+        compression_method: PNGCompressionMethod,
         compressed_string: Vec<u8>,
     },
 
@@ -146,7 +146,7 @@ pub enum PNGChunkData {
     ITXT {
         keyword: String,
         compressed: bool,
-        compression_method: PNGCompressionType,
+        compression_method: PNGCompressionMethod,
         language: String,
         translated_keyword: String,
         compressed_string: Vec<u8>,
@@ -287,7 +287,7 @@ pub enum PNGChunkData {
         image_compression_method: JNGCompressionType,
 
         /// Image interlace method
-        image_interlace_method: JNGInterlaceType,
+        image_interlace_method: JNGInterlaceMethod,
 
         /// Alpha sample depth
         alpha_sample_depth: JNGAlphaSampleDepth,
@@ -296,10 +296,10 @@ pub enum PNGChunkData {
         alpha_compression_method: JNGCompressionType,
 
         /// Alpha channel filter method
-        alpha_filter_method: PNGFilterType,
+        alpha_filter_method: PNGFilterMethod,
 
         /// Alpha interlace method
-        alpha_interlace_method: JNGInterlaceType,
+        alpha_interlace_method: JNGInterlaceMethod,
     },
 
     /// JNG image data
@@ -378,7 +378,7 @@ impl PNGChunkData {
         match self {
             PNGChunkData::ICCP { compression_method, compressed_profile, .. } => {
                 match compression_method {
-                    PNGCompressionType::Zlib => {
+                    PNGCompressionMethod::Zlib => {
                         Ok(inflate_bytes_zlib(compressed_profile.as_slice())?)
                     }
                 }
@@ -393,7 +393,7 @@ impl PNGChunkData {
         match self {
             PNGChunkData::ZTXT { compression_method, compressed_string, .. } => {
                 match compression_method {
-                    PNGCompressionType::Zlib => {
+                    PNGCompressionMethod::Zlib => {
                         let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
                         Ok(String::from_utf8(bytes).unwrap_or(String::new()))
                     }
@@ -411,7 +411,7 @@ impl PNGChunkData {
                                  compressed_string, .. } => {
                 if *compressed {
                     match compression_method {
-                        PNGCompressionType::Zlib => {
+                        PNGCompressionMethod::Zlib => {
                             let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
                             Ok(String::from_utf8(bytes).unwrap_or(String::new()))
                         }

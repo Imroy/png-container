@@ -71,41 +71,21 @@ impl TryFrom<u8> for PNGColourType {
 }
 
 
-/// Compression type(s)
+/// Compression method(s)
 #[derive(Copy, Clone, Debug)]
-pub enum PNGCompressionType {
+pub enum PNGCompressionMethod {
     /// DEFLATE
     Zlib = 0,
 
 }
 
-impl TryFrom<u8> for PNGCompressionType {
+impl TryFrom<u8> for PNGCompressionMethod {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == PNGCompressionType::Zlib as u8 => Ok(PNGCompressionType::Zlib),
+            x if x == PNGCompressionMethod::Zlib as u8 => Ok(PNGCompressionMethod::Zlib),
 
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of compression method ({})", val))),
-        }
-    }
-}
-
-
-/// Filter types
-#[derive(Copy, Clone, Debug)]
-pub enum PNGFilterType {
-    /// Adaptive filtering with five basic filter types
-    Adaptive = 0,
-
-}
-
-impl TryFrom<u8> for PNGFilterType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGFilterType::Adaptive as u8 => Ok(PNGFilterType::Adaptive),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter type ({})", val))),
         }
     }
 }
@@ -114,6 +94,26 @@ impl TryFrom<u8> for PNGFilterType {
 /// Filter methods
 #[derive(Copy, Clone, Debug)]
 pub enum PNGFilterMethod {
+    /// Adaptive filtering with five basic filter types
+    Adaptive = 0,
+
+}
+
+impl TryFrom<u8> for PNGFilterMethod {
+    type Error = std::io::Error;
+    fn try_from(val: u8) -> Result<Self, Self::Error> {
+        match val {
+            x if x == PNGFilterMethod::Adaptive as u8 => Ok(PNGFilterMethod::Adaptive),
+
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter method ({})", val))),
+        }
+    }
+}
+
+
+/// Filter types
+#[derive(Copy, Clone, Debug)]
+pub enum PNGFilterType {
     None = 0,
     Sub,
     Up,
@@ -122,25 +122,25 @@ pub enum PNGFilterMethod {
 
 }
 
-impl TryFrom<u8> for PNGFilterMethod {
+impl TryFrom<u8> for PNGFilterType {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == PNGFilterMethod::None as u8 => Ok(PNGFilterMethod::None),
-            x if x == PNGFilterMethod::Sub as u8 => Ok(PNGFilterMethod::Sub),
-            x if x == PNGFilterMethod::Up as u8 => Ok(PNGFilterMethod::Up),
-            x if x == PNGFilterMethod::Average as u8 => Ok(PNGFilterMethod::Average),
-            x if x == PNGFilterMethod::Paeth as u8 => Ok(PNGFilterMethod::Paeth),
+            x if x == PNGFilterType::None as u8 => Ok(PNGFilterType::None),
+            x if x == PNGFilterType::Sub as u8 => Ok(PNGFilterType::Sub),
+            x if x == PNGFilterType::Up as u8 => Ok(PNGFilterType::Up),
+            x if x == PNGFilterType::Average as u8 => Ok(PNGFilterType::Average),
+            x if x == PNGFilterType::Paeth as u8 => Ok(PNGFilterType::Paeth),
 
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter method ({})", val))),
+            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter type ({})", val))),
         }
     }
 }
 
 
-/// Interlacing types
+/// Interlacing methods
 #[derive(Copy, Clone, Debug)]
-pub enum PNGInterlaceType {
+pub enum PNGInterlaceMethod {
     /// No interlacing
     None = 0,
 
@@ -149,12 +149,12 @@ pub enum PNGInterlaceType {
 
 }
 
-impl TryFrom<u8> for PNGInterlaceType {
+impl TryFrom<u8> for PNGInterlaceMethod {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == PNGInterlaceType::None as u8 => Ok(PNGInterlaceType::None),
-            x if x == PNGInterlaceType::Adam7 as u8 => Ok(PNGInterlaceType::Adam7),
+            x if x == PNGInterlaceMethod::None as u8 => Ok(PNGInterlaceMethod::None),
+            x if x == PNGInterlaceMethod::Adam7 as u8 => Ok(PNGInterlaceMethod::Adam7),
 
             _ => Err(std::io::Error::other(format!("PNG: Invalid value of interlace method ({})", val))),
         }
@@ -459,18 +459,18 @@ impl TryFrom<u8> for JNGAlphaSampleDepth {
 
 /// JNG image and alpha interlace type
 #[derive(Copy, Clone, Debug)]
-pub enum JNGInterlaceType {
+pub enum JNGInterlaceMethod {
     SequentialJPEG = 0,
 
     ProgressiveJPEG = 8,
 }
 
-impl TryFrom<u8> for JNGInterlaceType {
+impl TryFrom<u8> for JNGInterlaceMethod {
     type Error = std::io::Error;
     fn try_from(val: u8) -> Result<Self, Self::Error> {
         match val {
-            x if x == JNGInterlaceType::SequentialJPEG as u8 => Ok(JNGInterlaceType::SequentialJPEG),
-            x if x == JNGInterlaceType::ProgressiveJPEG as u8 => Ok(JNGInterlaceType::ProgressiveJPEG),
+            x if x == JNGInterlaceMethod::SequentialJPEG as u8 => Ok(JNGInterlaceMethod::SequentialJPEG),
+            x if x == JNGInterlaceMethod::ProgressiveJPEG as u8 => Ok(JNGInterlaceMethod::ProgressiveJPEG),
 
             _ => Err(std::io::Error::other(format!("JNG: Invalid value of interlace type ({})", val))),
         }
