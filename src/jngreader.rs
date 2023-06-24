@@ -54,6 +54,10 @@ pub struct JNGFileReader<R> {
     /// The JDAT chunks
     pub jdats: Vec<PNGChunk>,
 
+    /// A second list of JDAT chunks for the 12-bit image when
+    /// image_sample_depth == Depth8And12
+    pub jdats2: Vec<PNGChunk>,
+
     /// The JDAA chunks
     pub jdaas: Vec<PNGChunk>,
 
@@ -90,6 +94,8 @@ where R: Read + Seek
         let mut jhdr = PNGChunkData::None;
         let mut idats = Vec::new();
         let mut jdats = Vec::new();
+        let mut jdats2 = Vec::new();
+        let mut first_image = true;
         let mut jdaas = Vec::new();
         let mut iend = PNGChunk::default();
         let mut optional_chunks = HashMap::new();
@@ -166,7 +172,11 @@ where R: Read + Seek
                 },
 
                 "JDAT" => {
-                    jdats.push(chunk);
+                    if first_image {
+                        jdats.push(chunk);
+                    } else {
+                        jdats2.push(chunk);
+                    }
                 },
 
                 "JDAA" => {
@@ -193,6 +203,10 @@ where R: Read + Seek
                 break;
             }
 
+            if chunktypestr == "JSEP" {
+                first_image = false;
+            }
+
         }
 
         Ok(JNGFileReader {
@@ -204,6 +218,7 @@ where R: Read + Seek
             jhdr,
             idats,
             jdats,
+            jdats2,
             jdaas,
             iend,
             optional_chunks,
