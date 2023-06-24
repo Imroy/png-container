@@ -545,6 +545,25 @@ impl PNGChunk {
         self.chunktype[3] & 0x20 > 0
     }
 
+    /// Read the sequence number of an fcTL or fdAT chunk
+    pub fn read_fctl_fdat_sequence_number<R>(&self, stream: &mut R)
+                                             -> Result<u32, std::io::Error>
+    where R: Read + Seek
+    {
+        stream.seek(SeekFrom::Start(self.position + 8))?;
+        let mut chunkstream = stream.take(self.length as u64);
+        match self.type_str() {
+            "fcTL" | "fdAT" => {
+                let mut buf4 = [ 0_u8; 4 ];
+                chunkstream.read_exact(&mut buf4)?;
+                Ok(u32::from_be_bytes(buf4))
+            },
+
+            _ => Err(std::io::Error::other(format!(
+                "PNG: Chunk type ({}) is not an fcTL or fdAT", self.type_str())))
+        }
+    }
+
     /// Read the chunk data and parse it into a PNGChunkData enum
     pub fn read_chunk<R>(&self, stream: &mut R,
                          ihdr: Option<&PNGChunkData>)
