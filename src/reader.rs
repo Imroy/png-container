@@ -27,6 +27,18 @@ use crate::types::*;
 use crate::chunks::*;
 use crate::crc::*;
 
+/// A frame in an APNG file
+#[derive(Clone, Default, Debug)]
+pub struct APNGFrame {
+    /// The fcTL chunk defining the frame
+    pub fctl: PNGChunk,
+
+    /// The fdAT chunk(s) containing the frame data
+    pub fdats: Vec<PNGChunk>,
+
+}
+
+
 /// A PNG/APNG file reader
 #[derive(Debug)]
 pub struct PNGFileReader<R> {
@@ -61,6 +73,9 @@ pub struct PNGFileReader<R> {
 
     /// The IDAT chunk(s)
     pub idats: Vec<PNGChunk>,
+
+    /// APNG: List of frames
+    pub frames: Vec<APNGFrame>,
 
     /// The IEND chunk
     pub iend: PNGChunk,
@@ -97,6 +112,7 @@ where R: Read + Seek
         let mut ihdr = PNGChunkData::None;
         let mut plte = None;
         let mut idats = Vec::new();
+        let mut fctl_fdats = Vec::new();
         let mut iend = PNGChunk::default();
         let mut optional_chunks = HashMap::new();
         let mut optional_multi_chunks = HashMap::new();
@@ -178,11 +194,15 @@ where R: Read + Seek
                     idats.push(chunk);
                 },
 
+                "fcTL" | "fdAT" => {
+                    fctl_fdats.push(chunk);
+                },
+
                 "IEND" => {
                     iend = chunk;
                 },
 
-                "tEXt" | "iTXt" | "zTXt" | "fcTL" | "fdAT" => {
+                "tEXt" | "iTXt" | "zTXt" => {
                     optional_multi_chunks.entry(chunktype).or_insert_with(|| Vec::new());
                     optional_multi_chunks.get_mut(&chunktype).unwrap().push(chunk);
                 },
@@ -207,6 +227,37 @@ where R: Read + Seek
 
         }
 
+        // Sort fcTL and fdAT chunks by their sequence number
+        fctl_fdats.sort_by_cached_key(|c| {
+            let _ = stream.seek(SeekFrom::Start(c.position + 8));
+            c.read_fctl_fdat_sequence_number(&mut stream).unwrap()
+        });
+
+        let mut frames = Vec::new();
+        let mut frame = APNGFrame::default();
+
+        // Now assemble them into frames
+        for chunk in fctl_fdats {
+            match chunk.type_str() {
+                "fcTL" => {
+                    if frame.fctl.position > 0 {
+                        frames.push(frame);
+                        frame = APNGFrame::default();
+                    }
+                    frame.fctl = chunk;
+                },
+
+                "fdAT" => {
+                    frame.fdats.push(chunk);
+                },
+
+                _ => (),
+            }
+        }
+        if frame.fctl.position > 0 {
+            frames.push(frame);
+        }
+
         Ok(PNGFileReader {
             width,
             height,
@@ -217,6 +268,7 @@ where R: Read + Seek
             ihdr,
             plte,
             idats,
+            frames,
             iend,
             optional_chunks,
             optional_multi_chunks,
