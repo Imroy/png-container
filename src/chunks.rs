@@ -1051,9 +1051,9 @@ impl PNGChunk {
 }
 
 
-/// A reader for reading data from a series of IDAT, JDAT, or JDAA chunks
+/// A reader for reading data from a series of IDAT, fdAT, JDAT, or JDAA chunks
 pub struct DATReader<'a, R>  {
-    /// Iterator to the IDAT/JDAT/JDAA chunk(s)
+    /// Iterator to the IDAT/fdAT/JDAT/JDAA chunk(s)
     dat_iter: Iter<'a, PNGChunk>,
 
     /// The stream that the chunks are read from
@@ -1085,10 +1085,11 @@ where R: Read + Seek
             let chunk = chunkref.read_chunk(self.stream, None)?;
             let data = match chunk {
                 PNGChunkData::IDAT { data } => Result::Ok(data),
+                PNGChunkData::FDAT { frame_data, .. } => Result::Ok(frame_data),
                 PNGChunkData::JDAT { data } => Result::Ok(data),
                 PNGChunkData::JDAA { data } => Result::Ok(data),
 
-                _ => Result::Err(std::io::Error::other("chunk is not IDAT, JDAT, or JDAA")),
+                _ => Result::Err(std::io::Error::other("chunk is not IDAT, fdAT, JDAT, or JDAA")),
             }?;
             self.buffer.append(&mut (data.into()));
         }
