@@ -72,7 +72,7 @@ impl TryFrom<u8> for PNGColourType {
 
 
 /// Compression method(s)
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PNGCompressionMethod {
     /// DEFLATE
     Zlib = 0,

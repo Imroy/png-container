@@ -318,140 +318,114 @@ pub enum PNGChunkData {
 impl PNGChunkData {
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Result<(f64, f64), String> {
-        match self {
-            PNGChunkData::CHRM { white_x, white_y, .. } => {
-                Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0))
-            },
-
-            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        if let PNGChunkData::CHRM { white_x, white_y, .. } = self {
+            return Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0));
         }
+
+        Err("PNG: Not a cHRM chunk".to_string())
     }
 
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Result<(f64, f64), String> {
-        match self {
-            PNGChunkData::CHRM { red_x, red_y, .. } => {
-                Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0))
-            },
-
-            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        if let PNGChunkData::CHRM { red_x, red_y, .. } = self {
+            return Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0));
         }
+
+        Err("PNG: Not a cHRM chunk".to_string())
     }
 
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Result<(f64, f64), String> {
-        match self {
-            PNGChunkData::CHRM { green_x, green_y, .. } => {
-                Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0))
-            },
-
-            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        if let PNGChunkData::CHRM { green_x, green_y, .. } = self {
+            return Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0));
         }
+
+        Err("PNG: Not a cHRM chunk".to_string())
     }
 
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Result<(f64, f64), String> {
-        match self {
-            PNGChunkData::CHRM { blue_x, blue_y, .. } => {
-                Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0))
-            },
-
-            _ => Err("PNG: Not a cHRM chunk".to_string()),
+        if let PNGChunkData::CHRM { blue_x, blue_y, .. } = self {
+            return Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0));
         }
+
+        Err("PNG: Not a cHRM chunk".to_string())
     }
 
     /// Scaled gamma value of a gAMA chunk
     pub fn gama_gamma(&self) -> Result<f64, String> {
-        match self {
-            PNGChunkData::GAMA { gamma } => {
-                Ok(*gamma as f64 / 100000.0)
-            },
-
-            _ => Err("PNG: Not a gAMA chunk".to_string()),
+        if let PNGChunkData::GAMA { gamma } = self {
+            return Ok(*gamma as f64 / 100000.0);
         }
+
+        Err("PNG: Not a gAMA chunk".to_string())
     }
 
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
-        match self {
-            PNGChunkData::ICCP { compression_method, compressed_profile, .. } => {
-                match compression_method {
-                    PNGCompressionMethod::Zlib => {
-                        Ok(inflate_bytes_zlib(compressed_profile.as_slice())?)
-                    }
-                }
-            },
-
-            _ => Err("PNG: Not a iCCP chunk".to_string()),
+        if let PNGChunkData::ICCP { compression_method, compressed_profile, .. } = self {
+            if *compression_method == PNGCompressionMethod::Zlib {
+                return Ok(inflate_bytes_zlib(compressed_profile.as_slice())?);
+            }
         }
+
+        Err("PNG: Not a iCCP chunk".to_string())
     }
 
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Result<String, String> {
-        match self {
-            PNGChunkData::ZTXT { compression_method, compressed_string, .. } => {
-                match compression_method {
-                    PNGCompressionMethod::Zlib => {
-                        let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                        Ok(String::from_utf8(bytes).unwrap_or(String::new()))
-                    }
-                }
-            },
-
-            _ => Err("PNG: Not a zTXt chunk".to_string()),
+        if let PNGChunkData::ZTXT { compression_method, compressed_string, .. } = self {
+            if *compression_method  == PNGCompressionMethod::Zlib {
+                let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
+                return Ok(String::from_utf8(bytes).unwrap_or(String::new()));
+            }
         }
+
+        Err("PNG: Not a zTXt chunk".to_string())
     }
 
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Result<String, String> {
-        match self {
-            PNGChunkData::ITXT { compressed, compression_method,
-                                 compressed_string, .. } => {
-                if *compressed {
-                    match compression_method {
-                        PNGCompressionMethod::Zlib => {
-                            let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                            Ok(String::from_utf8(bytes).unwrap_or(String::new()))
-                        }
-                    }
-                } else {
-                    Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or(String::new()))
+        if let PNGChunkData::ITXT { compressed, compression_method,
+                                    compressed_string, .. } = self {
+            if *compressed {
+                if *compression_method == PNGCompressionMethod::Zlib {
+                    let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
+                    return Ok(String::from_utf8(bytes).unwrap_or(String::new()));
                 }
-            },
-
-            _ => Err("PNG: Not an iTXt chunk".to_string()),
+            } else {
+                return Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or(String::new()));
+            }
         }
+
+        Err("PNG: Not an iTXt chunk".to_string())
     }
 
     /// Convert the units in a pHYs chunk to pixels per inch
     ///
     /// Yes, it's not SI units. But it's what everyone uses.
     pub fn phys_ppi(&self) -> Result<(f64, f64), String> {
-        match self {
-            PNGChunkData::PHYS { x_pixels_per_unit, y_pixels_per_unit, unit } => {
-                match unit {
-                    PNGUnitType::Unknown =>
-                        Err("PNG: Unknown unit.".to_string()),
+        if let PNGChunkData::PHYS { x_pixels_per_unit, y_pixels_per_unit, unit } = self {
+            return match unit {
+                PNGUnitType::Unknown =>
+                    Err("PNG: Unknown unit.".to_string()),
 
-                    PNGUnitType::Metre =>
-                        Ok((*x_pixels_per_unit as f64 / 39.370_078_740_157_48,
-                            *y_pixels_per_unit as f64 / 39.370_078_740_157_48)),
-                }
-            },
-
-            _ => Err("PNG: Not a pHYs chunk".to_string()),
+                PNGUnitType::Metre =>
+                    Ok((*x_pixels_per_unit as f64 / 39.370_078_740_157_48,
+                        *y_pixels_per_unit as f64 / 39.370_078_740_157_48)),
+            };
         }
+
+        Err("PNG: Not a pHYs chunk".to_string())
     }
 
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Result<f64, String> {
-        match self {
-            PNGChunkData::FCTL { delay_num, delay_den, .. } => {
-                Ok(*delay_num as f64 / *delay_den as f64)
-            },
-
-            _ => Err("PNG: Not an fcTL chunk".to_string()),
+        if let PNGChunkData::FCTL { delay_num, delay_den, .. } = self {
+            return Ok(*delay_num as f64 / *delay_den as f64);
         }
+
+        Err("PNG: Not an fcTL chunk".to_string())
     }
 
 }
@@ -617,53 +591,51 @@ impl PNGChunk {
             "IEND" => Ok(PNGChunkData::IEND),
 
             "tRNS" => {
-                match ihdr.unwrap() {
-                    PNGChunkData::IHDR { colour_type, .. } => {
-                        match colour_type {
-                            PNGColourType::Greyscale => {
-                                let mut buf = [ 0_u8; 2 ];
-                                chunkstream.read_exact(&mut buf)?;
+                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                    return match *colour_type {
+                        PNGColourType::Greyscale => {
+                            let mut buf = [ 0_u8; 2 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::TRNS {
-                                    data: PNGtRNSType::Greyscale {
-                                        value: u16_be(&buf),
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::TRNS {
+                                data: PNGtRNSType::Greyscale {
+                                    value: u16_be(&buf),
+                                },
+                            })
+                        },
 
-                            PNGColourType::TrueColour => {
-                                let mut buf = [ 0_u8; 6 ];
-                                chunkstream.read_exact(&mut buf)?;
+                        PNGColourType::TrueColour => {
+                            let mut buf = [ 0_u8; 6 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::TRNS {
-                                    data: PNGtRNSType::TrueColour {
-                                        red: u16_be(&buf[0..2]),
-                                        green: u16_be(&buf[2..4]),
-                                        blue: u16_be(&buf[4..6]),
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::TRNS {
+                                data: PNGtRNSType::TrueColour {
+                                    red: u16_be(&buf[0..2]),
+                                    green: u16_be(&buf[2..4]),
+                                    blue: u16_be(&buf[4..6]),
+                                },
+                            })
+                        },
 
-                            PNGColourType::IndexedColour => {
-                                let mut values = Vec::with_capacity(self.length as usize);
-                                chunkstream.read_to_end(&mut values)?;
+                        PNGColourType::IndexedColour => {
+                            let mut values = Vec::with_capacity(self.length as usize);
+                            chunkstream.read_to_end(&mut values)?;
 
-                                Ok(PNGChunkData::TRNS {
-                                    data: PNGtRNSType::IndexedColour {
-                                        values,
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::TRNS {
+                                data: PNGtRNSType::IndexedColour {
+                                    values,
+                                },
+                            })
+                        },
 
-                            _ => Err(std::io::Error::other(format!(
-                                "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
+                        _ => Err(std::io::Error::other(format!(
+                            "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
 
-                        }
-                    },
-
-                    _ => Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr"))
+                    };
                 }
+
+                Err(std::io::Error::other(
+                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "gAMA" => {
@@ -704,67 +676,65 @@ impl PNGChunk {
             },
 
             "sBIT" => {
-                match ihdr.unwrap() {
-                    PNGChunkData::IHDR { colour_type, .. } => {
-                        match colour_type {
-                            PNGColourType::Greyscale => {
-                                let mut buf = [ 0_u8; 1 ];
-                                chunkstream.read_exact(&mut buf)?;
+                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                    return match colour_type {
+                        PNGColourType::Greyscale => {
+                            let mut buf = [ 0_u8; 1 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::SBIT {
-                                    bits: PNGsBITType::Greyscale {
-                                        grey_bits: buf[0],
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::SBIT {
+                                bits: PNGsBITType::Greyscale {
+                                    grey_bits: buf[0],
+                                },
+                            })
+                        },
 
-                            PNGColourType::TrueColour
-                                | PNGColourType::IndexedColour =>
-                            {
-                                let mut buf = [ 0_u8; 3 ];
-                                chunkstream.read_exact(&mut buf)?;
+                        PNGColourType::TrueColour
+                            | PNGColourType::IndexedColour =>
+                        {
+                            let mut buf = [ 0_u8; 3 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::SBIT {
-                                    bits: PNGsBITType::Colour {
-                                        red_bits: buf[0],
-                                        green_bits: buf[1],
-                                        blue_bits: buf[2],
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::SBIT {
+                                bits: PNGsBITType::Colour {
+                                    red_bits: buf[0],
+                                    green_bits: buf[1],
+                                    blue_bits: buf[2],
+                                },
+                            })
+                        },
 
-                            PNGColourType::GreyscaleAlpha => {
-                                let mut buf = [ 0_u8; 2 ];
-                                chunkstream.read_exact(&mut buf)?;
+                        PNGColourType::GreyscaleAlpha => {
+                            let mut buf = [ 0_u8; 2 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::SBIT {
-                                    bits: PNGsBITType::GreyscaleAlpha {
-                                        grey_bits: buf[0],
-                                        alpha_bits: buf[1],
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::SBIT {
+                                bits: PNGsBITType::GreyscaleAlpha {
+                                    grey_bits: buf[0],
+                                    alpha_bits: buf[1],
+                                },
+                            })
+                        },
 
-                            PNGColourType::TrueColourAlpha => {
-                                let mut buf = [ 0_u8; 4 ];
-                                chunkstream.read_exact(&mut buf)?;
+                        PNGColourType::TrueColourAlpha => {
+                            let mut buf = [ 0_u8; 4 ];
+                            chunkstream.read_exact(&mut buf)?;
 
-                                Ok(PNGChunkData::SBIT {
-                                    bits: PNGsBITType::TrueColourAlpha {
-                                        red_bits: buf[0],
-                                        green_bits: buf[1],
-                                        blue_bits: buf[2],
-                                        alpha_bits: buf[3],
-                                    },
-                                })
-                            },
+                            Ok(PNGChunkData::SBIT {
+                                bits: PNGsBITType::TrueColourAlpha {
+                                    red_bits: buf[0],
+                                    green_bits: buf[1],
+                                    blue_bits: buf[2],
+                                    alpha_bits: buf[3],
+                                },
+                            })
+                        },
 
-                        }
-                    },
-
-                    _ => Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr"))
+                    };
                 }
+
+                Err(std::io::Error::other(
+                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "sRGB" => {
@@ -840,60 +810,58 @@ impl PNGChunk {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
 
-                match ihdr.unwrap() {
-                    PNGChunkData::IHDR { colour_type, .. } => {
-                        match colour_type {
-                            PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
-                                if self.length != 2 {
-                                    return Err(std::io::Error::other(format!(
-                                        "PNG: Invalid length of bKGD chunk ({})",
-                                        self.length)));
+                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                    return match colour_type {
+                        PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
+                            if self.length != 2 {
+                                return Err(std::io::Error::other(format!(
+                                    "PNG: Invalid length of bKGD chunk ({})",
+                                    self.length)));
+                            }
+
+                            Ok(PNGChunkData::BKGD{
+                                data: PNGbKGDType::Greyscale {
+                                    value: u16_be(&data[0..2]),
+                                },
+                            })
+                        },
+
+                        PNGColourType::TrueColour
+                            | PNGColourType::TrueColourAlpha =>
+                        {
+                            if self.length != 6 {
+                                return Err(std::io::Error::other(format!(
+                                    "PNG: Invalid length of bKGD chunk ({})",
+                                    self.length)));
+                            }
+
+                            Ok(PNGChunkData::BKGD{
+                                data: PNGbKGDType::TrueColour {
+                                    red: u16_be(&data[0..2]),
+                                    green: u16_be(&data[2..4]),
+                                    blue: u16_be(&data[4..6]),
                                 }
+                            })
+                        },
 
-                                Ok(PNGChunkData::BKGD{
-                                    data: PNGbKGDType::Greyscale {
-                                        value: u16_be(&data[0..2]),
-                                    },
-                                })
-                            },
+                        PNGColourType::IndexedColour => {
+                            if self.length != 1 {
+                                return Err(std::io::Error::other(format!(
+                                    "PNG: Invalid length of bKGD chunk ({})",
+                                    self.length)));
+                            }
 
-                            PNGColourType::TrueColour
-                                | PNGColourType::TrueColourAlpha =>
-                            {
-                                if self.length != 6 {
-                                    return Err(std::io::Error::other(format!(
-                                        "PNG: Invalid length of bKGD chunk ({})",
-                                        self.length)));
+                            Ok(PNGChunkData::BKGD{
+                                data: PNGbKGDType::IndexedColour {
+                                    index: data[0],
                                 }
-
-                                Ok(PNGChunkData::BKGD{
-                                    data: PNGbKGDType::TrueColour {
-                                        red: u16_be(&data[0..2]),
-                                        green: u16_be(&data[2..4]),
-                                        blue: u16_be(&data[4..6]),
-                                    }
-                                })
-                            },
-
-                            PNGColourType::IndexedColour => {
-                                if self.length != 1 {
-                                    return Err(std::io::Error::other(format!(
-                                        "PNG: Invalid length of bKGD chunk ({})",
-                                        self.length)));
-                                }
-
-                                Ok(PNGChunkData::BKGD{
-                                    data: PNGbKGDType::IndexedColour {
-                                        index: data[0],
-                                    }
-                                })
-                            },
-                        }
-                    },
-
-                    _ => Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr"))
+                            })
+                        },
+                    };
                 }
+
+                Err(std::io::Error::other(
+                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "hIST" => {
