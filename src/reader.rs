@@ -25,6 +25,7 @@ use std::str;
 
 use crate::types::*;
 use crate::chunks::*;
+use crate::streams::*;
 use crate::crc::*;
 
 /// A frame in an APNG file
