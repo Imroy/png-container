@@ -405,14 +405,15 @@ impl PNGChunkData {
     ///
     /// Yes, it's not SI units. But it's what everyone uses.
     pub fn phys_ppi(&self) -> Result<(f64, f64), String> {
+        const INCHES_PER_METRE: f64 = 1000.0 / 25.4;
         if let PNGChunkData::PHYS { x_pixels_per_unit, y_pixels_per_unit, unit } = self {
             return match unit {
                 PNGUnitType::Unknown =>
                     Err("PNG: Unknown unit.".to_string()),
 
                 PNGUnitType::Metre =>
-                    Ok((*x_pixels_per_unit as f64 / 39.370_078_740_157_48,
-                        *y_pixels_per_unit as f64 / 39.370_078_740_157_48)),
+                    Ok((*x_pixels_per_unit as f64 / INCHES_PER_METRE,
+                        *y_pixels_per_unit as f64 / INCHES_PER_METRE)),
             };
         }
 
