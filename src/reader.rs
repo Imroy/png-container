@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*! PNG reader
+/*! PNG/APNG reader
  */
 
 use std::collections::HashMap;

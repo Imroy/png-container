@@ -17,6 +17,10 @@
 */
 
 /*! The Portable Network Graphics format
+ *
+ * Handles [PNG](https://en.wikipedia.org/wiki/PNG), [APNG](https://en.wikipedia.org/wiki/APNG),
+ * and [JNG](https://en.wikipedia.org/wiki/JPEG_Network_Graphics) files.
+ * Maybe [MNG](https://en.wikipedia.org/wiki/Multiple-image_Network_Graphics) in the future.
  */
 
 pub mod crc;

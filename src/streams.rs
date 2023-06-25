@@ -16,6 +16,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*! Generic structs that read from something, process it, and can in turn be read
+*/
+
 use std::collections::VecDeque;
 use std::io::{Read, Seek};
 use std::slice::Iter;
