@@ -365,7 +365,7 @@ impl PNGChunkData {
     pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
         if let PNGChunkData::ICCP { compression_method, compressed_profile, .. } = self {
             if *compression_method == PNGCompressionMethod::Zlib {
-                return Ok(inflate_bytes_zlib(compressed_profile.as_slice())?);
+                return inflate_bytes_zlib(compressed_profile.as_slice());
             }
         }
 
