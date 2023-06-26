@@ -204,7 +204,7 @@ where R: Read + Seek
                 },
 
                 "tEXt" | "iTXt" | "zTXt" => {
-                    optional_multi_chunks.entry(chunktype).or_insert_with(|| Vec::new());
+                    optional_multi_chunks.entry(chunktype).or_insert_with(Vec::new);
                     optional_multi_chunks.get_mut(&chunktype).unwrap().push(chunk);
                 },
 
