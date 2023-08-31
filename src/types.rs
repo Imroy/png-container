@@ -19,6 +19,8 @@
 /*! PNG types
  */
 
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+
 /// All of the different file types based on PNG
 #[derive(Copy, Clone, Debug)]
 pub enum PNGFileType {
@@ -36,7 +38,8 @@ pub enum PNGFileType {
 }
 
 /// Colour type of image
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGColourType {
     /// Greyscale image - allowed depths of 1, 2, 4, 8, or 16 bits per component
     Greyscale = 0,
@@ -55,64 +58,27 @@ pub enum PNGColourType {
 
 }
 
-impl TryFrom<u8> for PNGColourType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGColourType::Greyscale as u8 => Ok(PNGColourType::Greyscale),
-            x if x == PNGColourType::TrueColour as u8 => Ok(PNGColourType::TrueColour),
-            x if x == PNGColourType::IndexedColour as u8 => Ok(PNGColourType::IndexedColour),
-            x if x == PNGColourType::GreyscaleAlpha as u8 => Ok(PNGColourType::GreyscaleAlpha),
-            x if x == PNGColourType::TrueColourAlpha as u8 => Ok(PNGColourType::TrueColourAlpha),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of colour type ({})", val))),
-        }
-    }
-}
-
-
 /// Compression method(s)
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGCompressionMethod {
     /// DEFLATE
     Zlib = 0,
 
 }
 
-impl TryFrom<u8> for PNGCompressionMethod {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGCompressionMethod::Zlib as u8 => Ok(PNGCompressionMethod::Zlib),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of compression method ({})", val))),
-        }
-    }
-}
-
-
 /// Filter methods
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGFilterMethod {
     /// Adaptive filtering with five basic filter types
     Adaptive = 0,
 
 }
 
-impl TryFrom<u8> for PNGFilterMethod {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGFilterMethod::Adaptive as u8 => Ok(PNGFilterMethod::Adaptive),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter method ({})", val))),
-        }
-    }
-}
-
-
 /// Filter types
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGFilterType {
     None = 0,
     Sub,
@@ -122,24 +88,9 @@ pub enum PNGFilterType {
 
 }
 
-impl TryFrom<u8> for PNGFilterType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGFilterType::None as u8 => Ok(PNGFilterType::None),
-            x if x == PNGFilterType::Sub as u8 => Ok(PNGFilterType::Sub),
-            x if x == PNGFilterType::Up as u8 => Ok(PNGFilterType::Up),
-            x if x == PNGFilterType::Average as u8 => Ok(PNGFilterType::Average),
-            x if x == PNGFilterType::Paeth as u8 => Ok(PNGFilterType::Paeth),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of filter type ({})", val))),
-        }
-    }
-}
-
-
 /// Interlacing methods
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGInterlaceMethod {
     /// No interlacing
     None = 0,
@@ -148,19 +99,6 @@ pub enum PNGInterlaceMethod {
     Adam7,
 
 }
-
-impl TryFrom<u8> for PNGInterlaceMethod {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGInterlaceMethod::None as u8 => Ok(PNGInterlaceMethod::None),
-            x if x == PNGInterlaceMethod::Adam7 as u8 => Ok(PNGInterlaceMethod::Adam7),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of interlace method ({})", val))),
-        }
-    }
-}
-
 
 /// Palette entry for for PLTE chunk
 #[derive(Clone, Debug)]
@@ -221,29 +159,14 @@ pub enum PNGsBITType {
 
 
 /// ICC rendering intent
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGRenderingIntent {
-    Perceptual,
+    Perceptual = 0,
     RelativeColorimetric,
     Saturation,
     AbsoluteColorimetric,
 }
-
-impl TryFrom<u8> for PNGRenderingIntent {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGRenderingIntent::Perceptual as u8 => Ok(PNGRenderingIntent::Perceptual),
-            x if x == PNGRenderingIntent::RelativeColorimetric as u8 => Ok(PNGRenderingIntent::RelativeColorimetric),
-            x if x == PNGRenderingIntent::Saturation as u8 => Ok(PNGRenderingIntent::Saturation),
-            x if x == PNGRenderingIntent::AbsoluteColorimetric as u8 => Ok(PNGRenderingIntent::AbsoluteColorimetric),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of rendering intent ({})", val))),
-        }
-    }
-
-}
-
 
 /// Contents of bKGD chunk
 #[derive(Copy, Clone, Debug)]
@@ -266,27 +189,14 @@ pub enum PNGbKGDType {
 
 
 /// Unit type used in several chunks
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum PNGUnitType {
     Unknown = 0,
 
     Metre = 1,
 
 }
-
-impl TryFrom<u8> for PNGUnitType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == PNGUnitType::Unknown as u8 => Ok(PNGUnitType::Unknown),
-            x if x == PNGUnitType::Metre as u8 => Ok(PNGUnitType::Metre),
-
-            _ => Err(std::io::Error::other(format!("PNG: Invalid value of unit ({})", val))),
-        }
-    }
-
-}
-
 
 /// Entry for the suggested palette "sPLT" chunk
 ///
@@ -302,51 +212,25 @@ pub struct PNGSuggestedPaletteEntry {
 
 
 /// Disposal operators in the "fcTL" chunk
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum APNGDisposalOperator {
     None,
     Background,
     Previous,
 }
 
-impl TryFrom<u8> for APNGDisposalOperator {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == APNGDisposalOperator::None as u8 => Ok(APNGDisposalOperator::None),
-            x if x == APNGDisposalOperator::Background as u8 => Ok(APNGDisposalOperator::Background),
-            x if x == APNGDisposalOperator::Previous as u8 => Ok(APNGDisposalOperator::Previous),
-
-            _ => Err(std::io::Error::other(format!("APNG: Invalid value of disposal operator ({})", val))),
-        }
-    }
-
-}
-
-
 /// Blend operators in the "fcTL" chunk
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum APNGBlendOperator {
     Source,
     Over,
 }
 
-impl TryFrom<u8> for APNGBlendOperator {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == APNGBlendOperator::Source as u8 => Ok(APNGBlendOperator::Source),
-            x if x == APNGBlendOperator::Over as u8 => Ok(APNGBlendOperator::Over),
-
-            _ => Err(std::io::Error::other(format!("APNG: Invalid value of blend operator ({})", val))),
-        }
-    }
-
-}
-
-
 /// Colour type of JNG image
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum JNGColourType {
     Greyscale = 8,
 
@@ -360,24 +244,9 @@ pub enum JNGColourType {
 
 }
 
-impl TryFrom<u8> for JNGColourType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == JNGColourType::Greyscale as u8 => Ok(JNGColourType::Greyscale),
-            x if x == JNGColourType::Colour as u8 => Ok(JNGColourType::Colour),
-            x if x == JNGColourType::GreyscaleAlpha as u8 => Ok(JNGColourType::GreyscaleAlpha),
-            x if x == JNGColourType::ColourAlpha as u8 => Ok(JNGColourType::ColourAlpha),
-
-            _ => Err(std::io::Error::other(format!("JNG: Invalid value of colour type ({})", val))),
-        }
-    }
-
-}
-
-
 /// JNG image sample depth
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum JNGImageSampleDepth {
     Depth8 = 8,
 
@@ -387,23 +256,9 @@ pub enum JNGImageSampleDepth {
 
 }
 
-impl TryFrom<u8> for JNGImageSampleDepth {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == JNGImageSampleDepth::Depth8 as u8 => Ok(JNGImageSampleDepth::Depth8),
-            x if x == JNGImageSampleDepth::Depth12 as u8 => Ok(JNGImageSampleDepth::Depth12),
-            x if x == JNGImageSampleDepth::Depth8And12 as u8 => Ok(JNGImageSampleDepth::Depth8And12),
-
-            _ => Err(std::io::Error::other(format!("JNG: Invalid value of image sample depth ({})", val))),
-        }
-    }
-
-}
-
-
 /// JNG image and alpha compression type
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum JNGCompressionType {
     /// PNG greyscale
     PNGGreyscale = 0,
@@ -413,22 +268,9 @@ pub enum JNGCompressionType {
 
 }
 
-impl TryFrom<u8> for JNGCompressionType {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == JNGCompressionType::PNGGreyscale as u8 => Ok(JNGCompressionType::PNGGreyscale),
-            x if x == JNGCompressionType::HuffmanBaseline as u8 => Ok(JNGCompressionType::HuffmanBaseline),
-
-            _ => Err(std::io::Error::other(format!("JNG: Invalid value of compression type ({})", val))),
-        }
-    }
-
-}
-
-
 /// JNG alpha sample depth
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum JNGAlphaSampleDepth {
     Depth0 = 0,
     Depth1 = 1,
@@ -439,42 +281,11 @@ pub enum JNGAlphaSampleDepth {
 
 }
 
-impl TryFrom<u8> for JNGAlphaSampleDepth {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == JNGAlphaSampleDepth::Depth0 as u8 => Ok(JNGAlphaSampleDepth::Depth0),
-            x if x == JNGAlphaSampleDepth::Depth1 as u8 => Ok(JNGAlphaSampleDepth::Depth1),
-            x if x == JNGAlphaSampleDepth::Depth2 as u8 => Ok(JNGAlphaSampleDepth::Depth2),
-            x if x == JNGAlphaSampleDepth::Depth4 as u8 => Ok(JNGAlphaSampleDepth::Depth4),
-            x if x == JNGAlphaSampleDepth::Depth8 as u8 => Ok(JNGAlphaSampleDepth::Depth8),
-            x if x == JNGAlphaSampleDepth::Depth16 as u8 => Ok(JNGAlphaSampleDepth::Depth16),
-
-            _ => Err(std::io::Error::other(format!("JNG: Invalid value of alpha sample depth ({})", val))),
-        }
-    }
-
-}
-
-
 /// JNG image and alpha interlace type
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum JNGInterlaceMethod {
     SequentialJPEG = 0,
 
     ProgressiveJPEG = 8,
 }
-
-impl TryFrom<u8> for JNGInterlaceMethod {
-    type Error = std::io::Error;
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == JNGInterlaceMethod::SequentialJPEG as u8 => Ok(JNGInterlaceMethod::SequentialJPEG),
-            x if x == JNGInterlaceMethod::ProgressiveJPEG as u8 => Ok(JNGInterlaceMethod::ProgressiveJPEG),
-
-            _ => Err(std::io::Error::other(format!("JNG: Invalid value of interlace type ({})", val))),
-        }
-    }
-
-}
-

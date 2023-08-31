@@ -555,10 +555,10 @@ impl PNGChunk {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
                     bit_depth: buf[8],
-                    colour_type: buf[9].try_into()?,
-                    compression_method: buf[10].try_into()?,
-                    filter_method: buf[11].try_into()?,
-                    interlace_method: buf[12].try_into()?,
+                    colour_type: buf[9].try_into().map_err(try_from_io_error)?,
+                    compression_method: buf[10].try_into().map_err(try_from_io_error)?,
+                    filter_method: buf[11].try_into().map_err(try_from_io_error)?,
+                    interlace_method: buf[12].try_into().map_err(try_from_io_error)?,
                 })
             },
 
@@ -671,7 +671,7 @@ impl PNGChunk {
 
                 Ok(PNGChunkData::ICCP {
                     name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or(String::new()),
-                    compression_method: data[name_end].try_into()?,
+                    compression_method: data[name_end].try_into().map_err(try_from_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
                 })
             },
@@ -743,7 +743,7 @@ impl PNGChunk {
                 chunkstream.read_exact(&mut buf)?;
 
                 Ok(PNGChunkData::SRGB {
-                    rendering_intent: buf[0].try_into()?,
+                    rendering_intent: buf[0].try_into().map_err(try_from_io_error)?,
                 })
             },
 
@@ -780,7 +780,7 @@ impl PNGChunk {
                 Ok(PNGChunkData::ZTXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .unwrap_or(String::new()),
-                    compression_method: data[keyword_end + 1].try_into()?,
+                    compression_method: data[keyword_end + 1].try_into().map_err(try_from_io_error)?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
                 })
             },
@@ -798,7 +798,7 @@ impl PNGChunk {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .unwrap_or(String::new()),
                     compressed: data[keyword_end + 1] > 0,
-                    compression_method: data[keyword_end + 2].try_into()?,
+                    compression_method: data[keyword_end + 2].try_into().map_err(try_from_io_error)?,
                     language: String::from_utf8(data[keyword_end + 3..language_end]
                                                 .to_vec()).unwrap_or(String::new()),
                     translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end]
@@ -888,7 +888,7 @@ impl PNGChunk {
                 Ok(PNGChunkData::PHYS {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
                     y_pixels_per_unit: u32_be(&buf[4..8]),
-                    unit: buf[8].try_into()?,
+                    unit: buf[8].try_into().map_err(try_from_io_error)?,
                 })
             },
 
@@ -976,8 +976,8 @@ impl PNGChunk {
                     y_offset: u32_be(&buf[16..20]),
                     delay_num: u16_be(&buf[20..22]),
                     delay_den: u16_be(&buf[22..24]),
-                    dispose_op: buf[24].try_into()?,
-                    blend_op: buf[24].try_into()?,
+                    dispose_op: buf[24].try_into().map_err(try_from_io_error)?,
+                    blend_op: buf[24].try_into().map_err(try_from_io_error)?,
                 })
             },
 
@@ -998,14 +998,14 @@ impl PNGChunk {
                 Ok(PNGChunkData::JHDR {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
-                    colour_type: buf[8].try_into()?,
-                    image_sample_depth: buf[9].try_into()?,
-                    image_compression_method: buf[10].try_into()?,
-                    image_interlace_method: buf[11].try_into()?,
-                    alpha_sample_depth: buf[12].try_into()?,
-                    alpha_compression_method: buf[13].try_into()?,
-                    alpha_filter_method: buf[14].try_into()?,
-                    alpha_interlace_method: buf[15].try_into()?,
+                    colour_type: buf[8].try_into().map_err(try_from_io_error)?,
+                    image_sample_depth: buf[9].try_into().map_err(try_from_io_error)?,
+                    image_compression_method: buf[10].try_into().map_err(try_from_io_error)?,
+                    image_interlace_method: buf[11].try_into().map_err(try_from_io_error)?,
+                    alpha_sample_depth: buf[12].try_into().map_err(try_from_io_error)?,
+                    alpha_compression_method: buf[13].try_into().map_err(try_from_io_error)?,
+                    alpha_filter_method: buf[14].try_into().map_err(try_from_io_error)?,
+                    alpha_interlace_method: buf[15].try_into().map_err(try_from_io_error)?,
                 })
             },
 

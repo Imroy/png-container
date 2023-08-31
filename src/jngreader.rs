@@ -23,16 +23,13 @@ use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
+use crate::types::*;
 use crate::chunks::*;
 use crate::crc::*;
-use crate::types::JNGColourType;
 
 /// A JNG file reader
 #[derive(Debug)]
-pub struct JNGFileReader<R> {
-    /// File stream we're reading from
-    pub stream: R,
-
+pub struct JNGSeekableReader<R> {
     /// Image width in pixels
     pub width: u32,
 
@@ -42,38 +39,41 @@ pub struct JNGFileReader<R> {
     /// Image colour type
     pub colour_type: JNGColourType,
 
+    /// File stream we're reading from
+    pub stream: R,
+
     /// The list of all chunks in the file
-    pub all_chunks: Vec<PNGChunk>,
+    pub all_chunks: Vec<PNGChunkRef>,
 
     /// The JHDR chunk data
     pub jhdr: PNGChunkData,
 
     /// The IDAT chunks
-    pub idats: Vec<PNGChunk>,
+    pub idats: Vec<PNGChunkRef>,
 
     /// The JDAT chunks
-    pub jdats: Vec<PNGChunk>,
+    pub jdats: Vec<PNGChunkRef>,
 
     /// A second list of JDAT chunks for the 12-bit image when
     /// image_sample_depth == Depth8And12
-    pub jdats2: Vec<PNGChunk>,
+    pub jdats2: Vec<PNGChunkRef>,
 
     /// The JDAA chunks
-    pub jdaas: Vec<PNGChunk>,
+    pub jdaas: Vec<PNGChunkRef>,
 
     /// The IEND chunk
-    pub iend: PNGChunk,
+    pub iend: PNGChunkRef,
 
     /// A hashmap of optional chunks that can only appear once in a file,
     /// keyed to their chunk type
-    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunk>,
+    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunkRef>,
 
     /// A hashmap of optional chunks that can appear multiple times in a
     /// file, keyed to their chunk type
-    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunk>>,
+    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunkRef>>,
 }
 
-impl<R> JNGFileReader<R>
+impl<R> JNGSeekableReader<R>
 where R: Read + Seek
 {
     /// Constructor from a Read-able type
@@ -97,7 +97,7 @@ where R: Read + Seek
         let mut jdats2 = Vec::new();
         let mut first_image = true;
         let mut jdaas = Vec::new();
-        let mut iend = PNGChunk::default();
+        let mut iend = PNGChunkRef::default();
         let mut optional_chunks = HashMap::new();
         let mut optional_multi_chunks = HashMap::new();
 
@@ -144,7 +144,7 @@ where R: Read + Seek
                 return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})", crc, data_crc.value())));
             }
 
-            let chunk = PNGChunk {
+            let chunk = PNGChunkRef {
                 position,
                 length,
                 chunktype,
@@ -209,7 +209,7 @@ where R: Read + Seek
 
         }
 
-        Ok(JNGFileReader {
+        Ok(JNGSeekableReader {
             width,
             height,
             colour_type,

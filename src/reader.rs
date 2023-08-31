@@ -32,17 +32,17 @@ use crate::crc::*;
 #[derive(Clone, Default, Debug)]
 pub struct APNGFrame {
     /// The fcTL chunk defining the frame
-    pub fctl: PNGChunk,
+    pub fctl: PNGChunkRef,
 
     /// The fdAT chunk(s) containing the frame data
-    pub fdats: Vec<PNGChunk>,
+    pub fdats: Vec<PNGChunkRef>,
 
 }
 
 
 /// A PNG/APNG file reader
 #[derive(Debug)]
-pub struct PNGFileReader<R> {
+pub struct PNGSeekableReader<R> {
     /// Image file type
     ///
     /// PNG or APNG
@@ -64,33 +64,34 @@ pub struct PNGFileReader<R> {
     pub stream: R,
 
     /// The list of all chunks in the file
-    pub all_chunks: Vec<PNGChunk>,
+    pub all_chunks: Vec<PNGChunkRef>,
 
     /// The IHDR chunk data
     pub ihdr: PNGChunkData,
 
     /// The PLTE chunk, if the file has one
-    pub plte: Option<PNGChunk>,
+    pub plte: Option<PNGChunkRef>,
 
     /// The IDAT chunk(s)
-    pub idats: Vec<PNGChunk>,
+    pub idats: Vec<PNGChunkRef>,
 
     /// APNG: List of frames
     pub frames: Vec<APNGFrame>,
 
     /// The IEND chunk
-    pub iend: PNGChunk,
+    pub iend: PNGChunkRef,
 
     /// A hashmap of optional chunks that can only appear once in a file,
     /// keyed to their chunk type
-    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunk>,
+    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunkRef>,
 
     /// A hashmap of optional chunks that can appear multiple times in a
     /// file, keyed to their chunk type
-    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunk>>,
+    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunkRef>>,
+
 }
 
-impl<R> PNGFileReader<R>
+impl<R> PNGSeekableReader<R>
 where R: Read + Seek
 {
     /// Constructor from a Read-able type
@@ -114,7 +115,7 @@ where R: Read + Seek
         let mut plte = None;
         let mut idats = Vec::new();
         let mut fctl_fdats = Vec::new();
-        let mut iend = PNGChunk::default();
+        let mut iend = PNGChunkRef::default();
         let mut optional_chunks = HashMap::new();
         let mut optional_multi_chunks = HashMap::new();
 
@@ -161,7 +162,7 @@ where R: Read + Seek
                                                        crc, data_crc.value())));
             }
 
-            let chunk = PNGChunk {
+            let chunk = PNGChunkRef {
                 position,
                 length,
                 chunktype,
@@ -174,7 +175,7 @@ where R: Read + Seek
                     // Fill in image metadata
                     ihdr = chunk.read_chunk(&mut stream, None)?;
                     match ihdr {
-                        PNGChunkData::IHDR { width, height, bit_depth, colour_type, compression_method: _, filter_method: _, interlace_method: _ } => {
+                        PNGChunkData::IHDR { width, height, colour_type, .. } => {
                             width = width;
                             height = height;
                             bit_depth = bit_depth;
