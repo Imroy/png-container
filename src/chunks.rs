@@ -23,6 +23,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::str;
 use inflate::inflate_bytes_zlib;
 
+use crate::to_io_error;
 use crate::types::*;
 
 /// Enum of PNG chunk types and the data they hold
@@ -377,7 +378,8 @@ impl PNGChunkData {
         if let PNGChunkData::ZTXT { compression_method, compressed_string, .. } = self {
             if *compression_method  == PNGCompressionMethod::Zlib {
                 let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                return Ok(String::from_utf8(bytes).unwrap_or_default());
+                return String::from_utf8(bytes)
+                    .map_err(|e| e.to_string());
             }
         }
 
@@ -391,10 +393,12 @@ impl PNGChunkData {
             if *compressed {
                 if *compression_method == PNGCompressionMethod::Zlib {
                     let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                    return Ok(String::from_utf8(bytes).unwrap_or_default());
+                    return String::from_utf8(bytes)
+                        .map_err(|e| e.to_string());
                 }
             } else {
-                return Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or_default());
+                return String::from_utf8(compressed_string.to_vec())
+                    .map_err(|e| e.to_string());
             }
         }
 
@@ -549,10 +553,14 @@ impl PNGChunkRef {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
                     bit_depth: buf[8],
-                    colour_type: buf[9].try_into().map_err(try_from_io_error)?,
-                    compression_method: buf[10].try_into().map_err(try_from_io_error)?,
-                    filter_method: buf[11].try_into().map_err(try_from_io_error)?,
-                    interlace_method: buf[12].try_into().map_err(try_from_io_error)?,
+                    colour_type: buf[9].try_into()
+                        .map_err(to_io_error)?,
+                    compression_method: buf[10].try_into()
+                        .map_err(to_io_error)?,
+                    filter_method: buf[11].try_into()
+                        .map_err(to_io_error)?,
+                    interlace_method: buf[12].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -586,6 +594,10 @@ impl PNGChunkRef {
             "IEND" => Ok(PNGChunkData::IEND),
 
             "tRNS" => {
+                if ihdr.is_none() {
+                    return Err(std::io::Error::other(format!("PNG: Unset ihdr")));
+                }
+
                 if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
                     return match *colour_type {
                         PNGColourType::Greyscale => {
@@ -664,13 +676,19 @@ impl PNGChunkRef {
                 let name_end = find_null(&data);
 
                 Ok(PNGChunkData::ICCP {
-                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or_default(),
-                    compression_method: data[name_end].try_into().map_err(try_from_io_error)?,
+                    name: String::from_utf8(data[0..name_end].to_vec())
+                        .map_err(to_io_error)?,
+                    compression_method: data[name_end].try_into()
+                        .map_err(to_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
                 })
             },
 
             "sBIT" => {
+                if ihdr.is_none() {
+                    return Err(std::io::Error::other(format!("PNG: Unset ihdr")));
+                }
+
                 if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
                     return match colour_type {
                         PNGColourType::Greyscale => {
@@ -737,7 +755,8 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
 
                 Ok(PNGChunkData::SRGB {
-                    rendering_intent: buf[0].try_into().map_err(try_from_io_error)?,
+                    rendering_intent: buf[0].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -760,9 +779,9 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::TEXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or_default(),
+                        .map_err(to_io_error)?,
                     string: String::from_utf8(data[keyword_end + 1..].to_vec())
-                        .unwrap_or_default(),
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -773,8 +792,9 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::ZTXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or_default(),
-                    compression_method: data[keyword_end + 1].try_into().map_err(try_from_io_error)?,
+                        .map_err(to_io_error)?,
+                    compression_method: data[keyword_end + 1].try_into()
+                        .map_err(to_io_error)?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
                 })
             },
@@ -790,18 +810,25 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::ITXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or_default(),
+                        .map_err(to_io_error)?,
                     compressed: data[keyword_end + 1] > 0,
-                    compression_method: data[keyword_end + 2].try_into().map_err(try_from_io_error)?,
+                    compression_method: data[keyword_end + 2].try_into()
+                        .map_err(to_io_error)?,
                     language: String::from_utf8(data[keyword_end + 3..language_end]
-                                                .to_vec()).unwrap_or_default(),
+                                                .to_vec())
+                        .map_err(to_io_error)?,
                     translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end]
-                                                          .to_vec()).unwrap_or_default(),
+                                                          .to_vec())
+                        .map_err(to_io_error)?,
                     compressed_string: data[tkeyword_end + 1..].to_vec(),
                 })
             },
 
             "bKGD" => {
+                if ihdr.is_none() {
+                    return Err(std::io::Error::other(format!("PNG: Unset ihdr")));
+                }
+
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
 
@@ -882,7 +909,8 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::PHYS {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
                     y_pixels_per_unit: u32_be(&buf[4..8]),
-                    unit: buf[8].try_into().map_err(try_from_io_error)?,
+                    unit: buf[8].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -928,7 +956,7 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::SPLT {
                     name: String::from_utf8(data[0..name_end].to_vec())
-                        .unwrap_or_default(),
+                        .map_err(to_io_error)?,
                     depth,
                     palette,
                 })
@@ -970,8 +998,10 @@ impl PNGChunkRef {
                     y_offset: u32_be(&buf[16..20]),
                     delay_num: u16_be(&buf[20..22]),
                     delay_den: u16_be(&buf[22..24]),
-                    dispose_op: buf[24].try_into().map_err(try_from_io_error)?,
-                    blend_op: buf[24].try_into().map_err(try_from_io_error)?,
+                    dispose_op: buf[24].try_into()
+                        .map_err(to_io_error)?,
+                    blend_op: buf[24].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -994,7 +1024,8 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::OFFS {
                     x: u32_be(&buf[0..4]),
                     y: u32_be(&buf[4..8]),
-                    unit: buf[8].try_into().map_err(try_from_io_error)?,
+                    unit: buf[8].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -1009,16 +1040,19 @@ impl PNGChunkRef {
                 let mut prev_end = unit_end;
                 for _ in 0..num_parameters {
                     let param_end = find_null(&data[prev_end..]) + prev_end;
-                    parameters.push(String::from_utf8(data[prev_end..param_end].to_vec()).unwrap_or_default());
+                    parameters.push(String::from_utf8(data[prev_end..param_end].to_vec())
+                                    .map_err(to_io_error)?);
                     prev_end = param_end;
                 }
 
                 Ok(PNGChunkData::PCAL {
-                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or_default(),
+                    name: String::from_utf8(data[0..name_end].to_vec())
+                        .map_err(to_io_error)?,
                     original_zero: u32_be(&data[name_end..name_end + 4]),
                     original_max: u32_be(&data[name_end + 4..name_end + 8]),
                     equation_type: data[name_end + 8],
-                    unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec()).unwrap_or_default(),
+                    unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec())
+                        .map_err(to_io_error)?,
                     parameters,
                 })
             },
@@ -1030,9 +1064,12 @@ impl PNGChunkRef {
                 let height_end = find_null(&data[width_end..]) + width_end;
 
                 Ok(PNGChunkData::SCAL {
-                    unit: data[0].try_into().map_err(try_from_io_error)?,
-                    pixel_width: String::from_utf8(data[1..width_end].to_vec()).unwrap_or_default(),
-                    pixel_height: String::from_utf8(data[width_end..height_end].to_vec()).unwrap_or_default(),
+                    unit: data[0].try_into()
+                        .map_err(to_io_error)?,
+                    pixel_width: String::from_utf8(data[1..width_end].to_vec())
+                        .map_err(to_io_error)?,
+                    pixel_height: String::from_utf8(data[width_end..height_end].to_vec())
+                        .map_err(to_io_error)?,
                 })
             },
 
@@ -1052,7 +1089,8 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
 
                 Ok(PNGChunkData::GIFX {
-                    app_id: String::from_utf8(data[0..8].to_vec()).unwrap_or_default(),
+                    app_id: String::from_utf8(data[0..8].to_vec())
+                        .map_err(to_io_error)?,
                     app_code: [ data[8], data[9], data[10] ],
                     app_data: data[11..].to_vec(),
                 })
@@ -1074,14 +1112,22 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::JHDR {
                     width: u32_be(&buf[0..4]),
                     height: u32_be(&buf[4..8]),
-                    colour_type: buf[8].try_into().map_err(try_from_io_error)?,
-                    image_sample_depth: buf[9].try_into().map_err(try_from_io_error)?,
-                    image_compression_method: buf[10].try_into().map_err(try_from_io_error)?,
-                    image_interlace_method: buf[11].try_into().map_err(try_from_io_error)?,
-                    alpha_sample_depth: buf[12].try_into().map_err(try_from_io_error)?,
-                    alpha_compression_method: buf[13].try_into().map_err(try_from_io_error)?,
-                    alpha_filter_method: buf[14].try_into().map_err(try_from_io_error)?,
-                    alpha_interlace_method: buf[15].try_into().map_err(try_from_io_error)?,
+                    colour_type: buf[8].try_into()
+                        .map_err(to_io_error)?,
+                    image_sample_depth: buf[9].try_into()
+                        .map_err(to_io_error)?,
+                    image_compression_method: buf[10].try_into()
+                        .map_err(to_io_error)?,
+                    image_interlace_method: buf[11].try_into()
+                        .map_err(to_io_error)?,
+                    alpha_sample_depth: buf[12].try_into()
+                        .map_err(to_io_error)?,
+                    alpha_compression_method: buf[13].try_into()
+                        .map_err(to_io_error)?,
+                    alpha_filter_method: buf[14].try_into()
+                        .map_err(to_io_error)?,
+                    alpha_interlace_method: buf[15].try_into()
+                        .map_err(to_io_error)?,
                 })
             },
 

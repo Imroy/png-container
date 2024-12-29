@@ -29,3 +29,9 @@ pub mod chunks;
 pub mod streams;
 pub mod reader;
 pub mod jngreader;
+
+pub fn to_io_error<T>(e: T) -> std::io::Error
+where T: ToString
+{
+    std::io::Error::other(e.to_string())
+}
