@@ -434,7 +434,7 @@ impl PNGChunkData {
 
 /// Reference to a chunk in a PNG file
 #[derive(Copy, Clone, Debug)]
-pub struct PNGChunk {
+pub struct PNGChunkRef {
     /// The position in the stream/file for this chunk
     pub position: u64,
 
@@ -470,9 +470,9 @@ fn find_null(bytes: &[u8]) -> usize {
     bytes.len()
 }
 
-impl Default for PNGChunk {
+impl Default for PNGChunkRef {
     fn default() -> Self {
-        PNGChunk {
+        PNGChunkRef {
             position: 0,
             length: 0,
             chunktype: [ 0_u8; 4 ],
@@ -482,7 +482,7 @@ impl Default for PNGChunk {
 
 }
 
-impl PNGChunk {
+impl PNGChunkRef {
     /// Convert the chunk type bytes to a string that can be compared and printed much more easily
     #[inline]
     pub fn type_str(&self) -> &str {

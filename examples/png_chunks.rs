@@ -28,7 +28,7 @@ fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let f = File::open(&args[1])?;
     let bf = BufReader::new(f);
-    let mut reader = PNGFileReader::from_stream(bf)?;
+    let mut reader = PNGSeekableReader::from_stream(bf)?;
     println!(
         "filetype={:?}, width={}, height={}, bit_depth={}, colour_type={:?}",
         reader.filetype, reader.width, reader.height, reader.bit_depth, reader.colour_type

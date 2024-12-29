@@ -23,12 +23,12 @@ use std::collections::VecDeque;
 use std::io::{Read, Seek};
 use std::slice::Iter;
 
-use crate::chunks::{PNGChunk, PNGChunkData};
+use crate::chunks::{PNGChunkRef, PNGChunkData};
 
 /// A reader for reading data from a series of IDAT, fdAT, JDAT, or JDAA chunks
 pub struct PNGDATReader<'a, R>  {
     /// Iterator to the IDAT/fdAT/JDAT/JDAA chunk(s)
-    dat_iter: Iter<'a, PNGChunk>,
+    dat_iter: Iter<'a, PNGChunkRef>,
 
     /// The stream that the chunks are read from
     stream: &'a mut R,
@@ -40,7 +40,7 @@ pub struct PNGDATReader<'a, R>  {
 
 impl<'a, R> PNGDATReader<'a, R> {
     /// Constructor
-    pub fn new(dats: &'a Vec<PNGChunk>, stream: &'a mut R) -> Self {
+    pub fn new(dats: &'a Vec<PNGChunkRef>, stream: &'a mut R) -> Self {
         PNGDATReader {
             dat_iter: dats.iter(),
             buffer: VecDeque::new(),
