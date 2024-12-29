@@ -208,7 +208,6 @@ pub enum PNGChunkData {
         original_zero: u32,
         original_max: u32,
         equation_type: u8,
-        num_parameters: u8,
         unit_name: String,
         parameters: Vec<String>,
     },
@@ -222,6 +221,7 @@ pub enum PNGChunkData {
 
     /// GIF Graphic Control Extension
     GIFG {
+        // TODO: make this an enum
         disposal_method: u8,
         user_input: bool,
         delay_time: u16,
@@ -229,7 +229,7 @@ pub enum PNGChunkData {
 
     /// GIF Application Extension
     GIFX {
-        app_id: [ u8; 8 ],
+        app_id: String,
         app_code: [ u8; 3 ],
         app_data: Vec<u8>,
     },
@@ -988,6 +988,88 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::FDAT {
                     sequence_number: u32_be(&buf[0..4]),
                     frame_data: buf[4..].to_vec(),
+                })
+            },
+
+            // Extensions
+
+            "oFFs" => {
+                let mut buf = [ 0_u8; 9 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::OFFS {
+                    x: u32_be(&buf[0..4]),
+                    y: u32_be(&buf[4..8]),
+                    unit: buf[8].try_into().map_err(try_from_io_error)?,
+                })
+            },
+
+            "pCAL" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let name_end = find_null(&data);
+                let num_parameters = data[name_end + 9];
+                let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
+                let mut parameters = Vec::with_capacity(num_parameters as usize);
+
+                let mut prev_end = unit_end;
+                for _ in 0..num_parameters {
+                    let param_end = find_null(&data[prev_end..]) + prev_end;
+                    parameters.push(String::from_utf8(data[prev_end..param_end].to_vec()).unwrap_or_default());
+                    prev_end = param_end;
+                }
+
+                Ok(PNGChunkData::PCAL {
+                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or_default(),
+                    original_zero: u32_be(&data[name_end..name_end + 4]),
+                    original_max: u32_be(&data[name_end + 4..name_end + 8]),
+                    equation_type: data[name_end + 8],
+                    unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec()).unwrap_or_default(),
+                    parameters,
+                })
+            },
+
+            "sCAL" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+                let width_end = find_null(&data[1..]) + 1;
+                let height_end = find_null(&data[width_end..]) + width_end;
+
+                Ok(PNGChunkData::SCAL {
+                    unit: data[0].try_into().map_err(try_from_io_error)?,
+                    pixel_width: String::from_utf8(data[1..width_end].to_vec()).unwrap_or_default(),
+                    pixel_height: String::from_utf8(data[width_end..height_end].to_vec()).unwrap_or_default(),
+                })
+            },
+
+            "gIFg" => {
+                let mut buf = [ 0_u8; 4 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::GIFG {
+                    disposal_method: buf[0],
+                    user_input: buf[1] > 0,
+                    delay_time: u16_be(&buf[2..]),
+                })
+            },
+
+            "gIFx" => {
+                let mut data = Vec::with_capacity(self.length as usize);
+                chunkstream.read_to_end(&mut data)?;
+
+                Ok(PNGChunkData::GIFX {
+                    app_id: String::from_utf8(data[0..8].to_vec()).unwrap_or_default(),
+                    app_code: [ data[8], data[9], data[10] ],
+                    app_data: data[11..].to_vec(),
+                })
+            },
+
+            "sTER" => {
+                let mut buf = [ 0_u8; 1 ];
+                chunkstream.read_exact(&mut buf)?;
+
+                Ok(PNGChunkData::STER {
+                    mode: buf[0],
                 })
             },
 
