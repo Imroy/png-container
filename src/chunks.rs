@@ -377,7 +377,7 @@ impl PNGChunkData {
         if let PNGChunkData::ZTXT { compression_method, compressed_string, .. } = self {
             if *compression_method  == PNGCompressionMethod::Zlib {
                 let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                return Ok(String::from_utf8(bytes).unwrap_or(String::new()));
+                return Ok(String::from_utf8(bytes).unwrap_or_default());
             }
         }
 
@@ -391,10 +391,10 @@ impl PNGChunkData {
             if *compressed {
                 if *compression_method == PNGCompressionMethod::Zlib {
                     let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                    return Ok(String::from_utf8(bytes).unwrap_or(String::new()));
+                    return Ok(String::from_utf8(bytes).unwrap_or_default());
                 }
             } else {
-                return Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or(String::new()));
+                return Ok(String::from_utf8(compressed_string.to_vec()).unwrap_or_default());
             }
         }
 
@@ -670,7 +670,7 @@ impl PNGChunkRef {
                 let name_end = find_null(&data);
 
                 Ok(PNGChunkData::ICCP {
-                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or(String::new()),
+                    name: String::from_utf8(data[0..name_end].to_vec()).unwrap_or_default(),
                     compression_method: data[name_end].try_into().map_err(try_from_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
                 })
@@ -766,9 +766,9 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::TEXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or(String::new()),
+                        .unwrap_or_default(),
                     string: String::from_utf8(data[keyword_end + 1..].to_vec())
-                        .unwrap_or(String::new()),
+                        .unwrap_or_default(),
                 })
             },
 
@@ -779,7 +779,7 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::ZTXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or(String::new()),
+                        .unwrap_or_default(),
                     compression_method: data[keyword_end + 1].try_into().map_err(try_from_io_error)?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
                 })
@@ -796,13 +796,13 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::ITXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .unwrap_or(String::new()),
+                        .unwrap_or_default(),
                     compressed: data[keyword_end + 1] > 0,
                     compression_method: data[keyword_end + 2].try_into().map_err(try_from_io_error)?,
                     language: String::from_utf8(data[keyword_end + 3..language_end]
-                                                .to_vec()).unwrap_or(String::new()),
+                                                .to_vec()).unwrap_or_default(),
                     translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end]
-                                                          .to_vec()).unwrap_or(String::new()),
+                                                          .to_vec()).unwrap_or_default(),
                     compressed_string: data[tkeyword_end + 1..].to_vec(),
                 })
             },
@@ -934,7 +934,7 @@ impl PNGChunkRef {
 
                 Ok(PNGChunkData::SPLT {
                     name: String::from_utf8(data[0..name_end].to_vec())
-                        .unwrap_or(String::new()),
+                        .unwrap_or_default(),
                     depth,
                     palette,
                 })
