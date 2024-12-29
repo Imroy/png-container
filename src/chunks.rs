@@ -461,13 +461,7 @@ fn u16_be(bytes: &[u8]) -> u16 {
 }
 
 fn find_null(bytes: &[u8]) -> usize {
-    for (i, byte) in bytes.iter().enumerate() {
-        if *byte == 0 {
-            return i;
-        }
-    }
-
-    bytes.len()
+    bytes.iter().position(|byte| *byte == 0).unwrap_or(bytes.len())
 }
 
 impl Default for PNGChunkRef {
