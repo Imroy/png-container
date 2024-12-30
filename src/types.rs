@@ -22,7 +22,7 @@
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 /// All of the different file types based on PNG
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum PNGFileType {
     /// Portable Network Graphics
     PNG,

@@ -131,6 +131,24 @@ where R: Read + Seek
         Ok(chunks)
     }
 
+    /// Scan chunks in a PNG/APNG file, returning a Vec of the chunks that match a closure
+    pub fn scan_chunks_filtered<F>(&mut self, test: F) -> Result<Vec<PNGChunkRef>, std::io::Error>
+    where F: Fn([ u8; 4 ]) -> bool
+    {
+        let mut chunks = Vec::new();
+        loop {
+            let chunk = self.scan_next_chunk()?;
+            if test(chunk.chunktype) {
+                chunks.push(chunk);
+            }
+            if chunk.chunktype == *b"IEND" {
+                break;
+            }
+        }
+
+        Ok(chunks)
+    }
+
     /// Scan the next chunk
     pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
@@ -220,6 +238,44 @@ where R: Read + Seek
     {
         self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, Some(&self.ihdr))
+    }
+
+    pub fn apng_scan_frames(&mut self) -> Result<Vec<APNGFrame>, std::io::Error> {
+        let mut fctl_fdats = self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?;
+
+        // Sort fcTL and fdAT chunks by their sequence number
+        fctl_fdats.sort_by_cached_key(|c| {
+            let _ = self.stream.seek(SeekFrom::Start(c.position + 8));
+            c.read_fctl_fdat_sequence_number(&mut self.stream).unwrap()
+        });
+
+        let mut frames = Vec::new();
+        let mut frame = APNGFrame::default();
+
+        // Now assemble them into frames
+        for chunk in fctl_fdats {
+            match chunk.type_str() {
+                "fcTL" => {
+                    if frame.fctl.position > 0 {
+                        frames.push(frame);
+                        frame = APNGFrame::default();
+                    }
+                    frame.fctl = chunk;
+                },
+
+                "fdAT" => {
+                    frame.fdats.push(chunk);
+                },
+
+                _ => (),
+            }
+        }
+
+        if frame.fctl.position > 0 {
+            frames.push(frame);
+        }
+
+        Ok(frames)
     }
 
 }
