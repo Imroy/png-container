@@ -25,7 +25,6 @@ use std::str;
 
 use crate::types::*;
 use crate::chunks::*;
-use crate::crc::*;
 
 /// A JNG file reader
 #[derive(Debug)]

@@ -24,9 +24,9 @@ use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
 use crate::types::*;
+use crate::types::*;
 use crate::chunks::*;
 use crate::streams::*;
-use crate::crc::*;
 
 /// A frame in an APNG file
 #[derive(Clone, Default, Debug)]

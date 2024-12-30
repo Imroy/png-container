@@ -30,6 +30,7 @@ use uom::si::{
 };
 
 use crate::to_io_error;
+use crate::crc::*;
 use crate::types::*;
 
 /// Enum of PNG chunk types and the data they hold
@@ -461,9 +462,6 @@ pub struct PNGChunkRef {
     /// Chunk type
     pub chunktype: [ u8; 4 ],
 
-    /// Chunk CRC
-    pub crc: u32,
-
 }
 
 // because u32::from_be_bytes() only takes fixed-length arrays and it's too
@@ -487,7 +485,6 @@ impl Default for PNGChunkRef {
             position: 0,
             length: 0,
             chunktype: [ 0_u8; 4 ],
-            crc: 0,
         }
     }
 
@@ -549,6 +546,8 @@ impl PNGChunkRef {
     }
 
     /// Read the chunk data and parse it into a PNGChunkData enum
+    ///
+    /// This also checks the chunk CRC value
     pub fn read_chunk<R>(&self, stream: &mut R,
                          ihdr: Option<&PNGChunkData>)
                          -> Result<PNGChunkData, std::io::Error>
@@ -557,10 +556,14 @@ impl PNGChunkRef {
         stream.seek(SeekFrom::Start(self.position + 8))?;
         let mut chunkstream = stream.take(self.length as u64);
 
-        match self.type_str() {
+        let mut data_crc = CRC::new();
+        data_crc.consume(&self.chunktype);
+
+        let chunk = match self.type_str() {
             "IHDR" => {
                 let mut buf = Vec::with_capacity(13);
                 chunkstream.read_to_end(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::IHDR {
                     width: u32_be(&buf[0..4]),
@@ -583,6 +586,7 @@ impl PNGChunkRef {
                 for _n in 0..num_entries {
                     let mut buf = [ 0_u8; 3 ];
                     chunkstream.read_exact(&mut buf)?;
+                    data_crc.consume(&buf);
                     entries.push(PNGPaletteEntry {
                         red: buf[0],
                         green: buf[1],
@@ -598,6 +602,7 @@ impl PNGChunkRef {
             "IDAT" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 Ok(PNGChunkData::IDAT {
                     data,
@@ -612,10 +617,11 @@ impl PNGChunkRef {
                 }
 
                 if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
-                    return match *colour_type {
+                    match *colour_type {
                         PNGColourType::Greyscale => {
                             let mut buf = [ 0_u8; 2 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::TRNS {
                                 data: PNGtRNSType::Greyscale {
@@ -627,6 +633,7 @@ impl PNGChunkRef {
                         PNGColourType::TrueColour => {
                             let mut buf = [ 0_u8; 6 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::TRNS {
                                 data: PNGtRNSType::TrueColour {
@@ -640,6 +647,7 @@ impl PNGChunkRef {
                         PNGColourType::IndexedColour => {
                             let mut values = Vec::with_capacity(self.length as usize);
                             chunkstream.read_to_end(&mut values)?;
+                            data_crc.consume(&values);
 
                             Ok(PNGChunkData::TRNS {
                                 data: PNGtRNSType::IndexedColour {
@@ -649,18 +657,18 @@ impl PNGChunkRef {
                         },
 
                         _ => Err(std::io::Error::other(format!(
-                            "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8)))
+                            "PNG: Invalid colour type ({}) in ihdr", *colour_type as u8))),
 
-                    };
+                    }
+                } else {
+                    Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
-
-                Err(std::io::Error::other(
-                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "gAMA" => {
                 let mut buf = [ 0_u8; 4 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::GAMA {
                     gamma: u32_be(&buf),
@@ -670,6 +678,7 @@ impl PNGChunkRef {
             "cHRM" => {
                 let mut data = Vec::with_capacity(32);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 Ok(PNGChunkData::CHRM {
                     white_x: u32_be(&data[0..4]),
@@ -686,8 +695,9 @@ impl PNGChunkRef {
             "iCCP" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let name_end = find_null(&data);
+                data_crc.consume(&data);
 
+                let name_end = find_null(&data);
                 Ok(PNGChunkData::ICCP {
                     name: String::from_utf8(data[0..name_end].to_vec())
                         .map_err(to_io_error)?,
@@ -703,10 +713,11 @@ impl PNGChunkRef {
                 }
 
                 if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
-                    return match colour_type {
+                    match colour_type {
                         PNGColourType::Greyscale => {
                             let mut buf = [ 0_u8; 1 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::SBIT {
                                 bits: PNGsBITType::Greyscale {
@@ -720,6 +731,7 @@ impl PNGChunkRef {
                         {
                             let mut buf = [ 0_u8; 3 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::SBIT {
                                 bits: PNGsBITType::Colour {
@@ -733,6 +745,7 @@ impl PNGChunkRef {
                         PNGColourType::GreyscaleAlpha => {
                             let mut buf = [ 0_u8; 2 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::SBIT {
                                 bits: PNGsBITType::GreyscaleAlpha {
@@ -745,6 +758,7 @@ impl PNGChunkRef {
                         PNGColourType::TrueColourAlpha => {
                             let mut buf = [ 0_u8; 4 ];
                             chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
 
                             Ok(PNGChunkData::SBIT {
                                 bits: PNGsBITType::TrueColourAlpha {
@@ -756,16 +770,16 @@ impl PNGChunkRef {
                             })
                         },
 
-                    };
+                    }
+                } else {
+                    Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
-
-                Err(std::io::Error::other(
-                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "sRGB" => {
                 let mut buf = [ 0_u8; 1 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::SRGB {
                     rendering_intent: buf[0].try_into()
@@ -776,6 +790,7 @@ impl PNGChunkRef {
             "cICP" => {
                 let mut buf = [ 0_u8; 4 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::CICP {
                     colour_primaries: buf[0],
@@ -788,8 +803,9 @@ impl PNGChunkRef {
             "tEXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let keyword_end = find_null(&data);
+                data_crc.consume(&data);
 
+                let keyword_end = find_null(&data);
                 Ok(PNGChunkData::TEXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
@@ -801,8 +817,9 @@ impl PNGChunkRef {
             "zTXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
-                let keyword_end = find_null(&data);
+                data_crc.consume(&data);
 
+                let keyword_end = find_null(&data);
                 Ok(PNGChunkData::ZTXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
@@ -815,6 +832,8 @@ impl PNGChunkRef {
             "iTXt" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
+
                 let keyword_end = find_null(&data);
                 let language_end = find_null(&data[keyword_end + 3..])
                     + keyword_end + 3;
@@ -844,9 +863,10 @@ impl PNGChunkRef {
 
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
-                    return match colour_type {
+                    match colour_type {
                         PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
                             if self.length != 2 {
                                 return Err(std::io::Error::other(format!(
@@ -892,16 +912,17 @@ impl PNGChunkRef {
                                 }
                             })
                         },
-                    };
+                    }
+                } else {
+                    Err(std::io::Error::other("PNG: Wrong chunk type passed as ihdr"))
                 }
-
-                Err(std::io::Error::other(
-                    "PNG: Wrong chunk type passed as ihdr"))
             },
 
             "hIST" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
+
                 let num_entries = self.length / 2;
                 let mut frequencies = Vec::with_capacity(num_entries as usize);
 
@@ -918,6 +939,7 @@ impl PNGChunkRef {
             "pHYs" => {
                 let mut buf = [ 0_u8; 9 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::PHYS {
                     x_pixels_per_unit: u32_be(&buf[0..4]),
@@ -930,6 +952,7 @@ impl PNGChunkRef {
             "eXIf" => {
                 let mut profile = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut profile)?;
+                data_crc.consume(&profile);
 
                 Ok(PNGChunkData::EXIF {
                     profile,
@@ -939,6 +962,8 @@ impl PNGChunkRef {
             "sPLT" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
+
                 let name_end = find_null(&data);
                 let depth = data[name_end + 1];
                 let entry_size = ((depth / 8) * 4) + 2;
@@ -978,6 +1003,7 @@ impl PNGChunkRef {
             "tIME" => {
                 let mut buf = [ 0_u8; 7 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::TIME {
                     year: u16_be(&buf[0..2]),
@@ -992,6 +1018,7 @@ impl PNGChunkRef {
             "acTL" => {
                 let mut buf = [ 0_u8; 8 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::ACTL {
                     num_frames: u32_be(&buf[0..4]),
@@ -1002,6 +1029,7 @@ impl PNGChunkRef {
             "fcTL" => {
                 let mut buf = [ 0_u8; 26 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::FCTL {
                     sequence_number: u32_be(&buf[0..4]),
@@ -1021,6 +1049,7 @@ impl PNGChunkRef {
             "fdAT" => {
                 let mut buf = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::FDAT {
                     sequence_number: u32_be(&buf[0..4]),
@@ -1033,6 +1062,7 @@ impl PNGChunkRef {
             "oFFs" => {
                 let mut buf = [ 0_u8; 9 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::OFFS {
                     x: u32_be(&buf[0..4]),
@@ -1045,6 +1075,8 @@ impl PNGChunkRef {
             "pCAL" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
+
                 let name_end = find_null(&data);
                 let num_parameters = data[name_end + 9];
                 let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
@@ -1073,6 +1105,8 @@ impl PNGChunkRef {
             "sCAL" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
+
                 let width_end = find_null(&data[1..]) + 1;
                 let height_end = find_null(&data[width_end..]) + width_end;
 
@@ -1089,6 +1123,7 @@ impl PNGChunkRef {
             "gIFg" => {
                 let mut buf = [ 0_u8; 4 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::GIFG {
                     disposal_method: buf[0],
@@ -1100,6 +1135,7 @@ impl PNGChunkRef {
             "gIFx" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 Ok(PNGChunkData::GIFX {
                     app_id: String::from_utf8(data[0..8].to_vec())
@@ -1112,6 +1148,7 @@ impl PNGChunkRef {
             "sTER" => {
                 let mut buf = [ 0_u8; 1 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::STER {
                     mode: buf[0],
@@ -1121,6 +1158,7 @@ impl PNGChunkRef {
             "JHDR" => {
                 let mut buf = [ 0_u8; 16 ];
                 chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
 
                 Ok(PNGChunkData::JHDR {
                     width: u32_be(&buf[0..4]),
@@ -1147,6 +1185,7 @@ impl PNGChunkRef {
             "JDAT" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 Ok(PNGChunkData::JDAT {
                     data,
@@ -1156,6 +1195,7 @@ impl PNGChunkRef {
             "JDAA" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
+                data_crc.consume(&data);
 
                 Ok(PNGChunkData::JDAA {
                     data,
@@ -1166,7 +1206,18 @@ impl PNGChunkRef {
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({})", self.type_str())))
+        }?;
+
+        let mut buf4 = [ 0_u8; 4 ];
+        stream.read_exact(&mut buf4)?;
+        let crc = u32::from_be_bytes(buf4);
+        if crc != data_crc.value() {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
+                                           format!("PNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})",
+                                                   crc, data_crc.value())));
         }
+
+        Ok(chunk)
     }
 
 }
