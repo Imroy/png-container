@@ -82,6 +82,14 @@ fn main() -> std::io::Result<()> {
                     }
                 },
 
+                PNGChunkData::PHYS { .. } => {
+                    if let Some((xres, yres)) = ct.phys_res() {
+                        println!("pixels per inch={} × {}",
+                                 xres.into_format_args(per_inch, Abbreviation),
+                                 yres.into_format_args(per_inch, Abbreviation));
+                    }
+                },
+
                 PNGChunkData::FCTL { .. } => {
                     if let Some(delay) = ct.fctl_delay() {
                         println!("delay={}", delay.into_format_args(second, Abbreviation));

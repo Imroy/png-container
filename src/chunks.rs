@@ -21,7 +21,12 @@
 
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
+
 use inflate::inflate_bytes_zlib;
+use uom::si::{
+    f64::{LinearNumberDensity, Time},
+    linear_number_density::per_meter,
+};
 
 use crate::to_io_error;
 use crate::types::*;
@@ -402,23 +407,20 @@ impl PNGChunkData {
         None
     }
 
-    /// Convert the units in a pHYs chunk to pixels per inch
-    ///
-    /// Yes, it's not SI units. But it's what everyone uses.
-    pub fn phys_ppi(&self) -> Result<(f64, f64), String> {
-        const INCHES_PER_METRE: f64 = 1000.0 / 25.4;
+    /// Convert the units in a pHYs chunk to a UoM type
+    pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
         if let PNGChunkData::PHYS { x_pixels_per_unit, y_pixels_per_unit, unit } = self {
             return match unit {
                 PNGUnitType::Unknown =>
-                    Err("PNG: Unknown unit.".to_string()),
+                    None,
 
                 PNGUnitType::Metre =>
-                    Ok((*x_pixels_per_unit as f64 / INCHES_PER_METRE,
-                        *y_pixels_per_unit as f64 / INCHES_PER_METRE)),
+                    Some((LinearNumberDensity::new::<per_meter>(*x_pixels_per_unit as f64),
+                       LinearNumberDensity::new::<per_meter>(*y_pixels_per_unit as f64))),
             };
         }
 
-        Err("PNG: Not a pHYs chunk".to_string())
+        None
     }
 
     /// Calculate delay from fcTL chunk in seconds
