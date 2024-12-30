@@ -19,9 +19,7 @@
 /*! JNG reader
  */
 
-use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
-use std::str;
 
 use crate::types::*;
 use crate::chunks::*;
@@ -41,35 +39,14 @@ pub struct JNGSeekableReader<R> {
     /// File stream we're reading from
     pub stream: R,
 
-    /// The list of all chunks in the file
-    pub all_chunks: Vec<PNGChunkRef>,
-
     /// The JHDR chunk data
     pub jhdr: PNGChunkData,
-
-    /// The IDAT chunks
-    pub idats: Vec<PNGChunkRef>,
-
-    /// The JDAT chunks
-    pub jdats: Vec<PNGChunkRef>,
-
-    /// A second list of JDAT chunks for the 12-bit image when
-    /// image_sample_depth == Depth8And12
-    pub jdats2: Vec<PNGChunkRef>,
-
-    /// The JDAA chunks
-    pub jdaas: Vec<PNGChunkRef>,
 
     /// The IEND chunk
     pub iend: PNGChunkRef,
 
-    /// A hashmap of optional chunks that can only appear once in a file,
-    /// keyed to their chunk type
-    pub optional_chunks: HashMap<[ u8; 4 ], PNGChunkRef>,
+    next_chunk_pos: u64,
 
-    /// A hashmap of optional chunks that can appear multiple times in a
-    /// file, keyed to their chunk type
-    pub optional_multi_chunks: HashMap<[ u8; 4 ], Vec<PNGChunkRef>>,
 }
 
 impl<R> JNGSeekableReader<R>
@@ -86,143 +63,117 @@ where R: Read + Seek
             }
         }
 
-        let mut width = 0;
-        let mut height = 0;
-        let mut colour_type = JNGColourType::Greyscale;
-        let mut all_chunks = Vec::new();
-        let mut jhdr = PNGChunkData::None;
-        let mut idats = Vec::new();
-        let mut jdats = Vec::new();
-        let mut jdats2 = Vec::new();
-        let mut first_image = true;
-        let mut jdaas = Vec::new();
-        let mut iend = PNGChunkRef::default();
-        let mut optional_chunks = HashMap::new();
-        let mut optional_multi_chunks = HashMap::new();
+        Ok(JNGSeekableReader {
+            width: 0,
+            height: 0,
+            colour_type: JNGColourType::Greyscale,
+            stream,
+            jhdr: PNGChunkData::None,
+            iend: PNGChunkRef::default(),
+            next_chunk_pos: 8,
+        })
+    }
 
-        // Now just loop reading chunks
+    /// Scan all of the chunks in a JNG file
+    pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+        let mut chunks = Vec::new();
         loop {
-            let position = stream.stream_position()?;
-
-            let mut buf4 = [ 0_u8; 4 ];
-            stream.read_exact(&mut buf4)?;
-            let length = u32::from_be_bytes(buf4);
-
-            let mut chunktype = [ 0_u8; 4 ];
-            stream.read_exact(&mut chunktype)?;
-            let chunktypestr = str::from_utf8(&chunktype).unwrap_or("");
-
-            // Invalid chunk types for JNG files
-            if (chunktypestr == "PLTE") | (chunktypestr == "hIST")
-                | (chunktypestr == "pCAL") | (chunktypestr == "sBIT")
-                | (chunktypestr == "sPLT") | (chunktypestr == "tRNS")
-                | (chunktypestr == "fRAc") | (chunktypestr == "gIFg")
-                | (chunktypestr == "gIFx") | (chunktypestr == "aCTL")
-                | (chunktypestr == "fcTL") | (chunktypestr == "fdAT")
-            {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{}\"", chunktypestr)));
+            let chunk = self.scan_next_chunk()?;
+            chunks.push(chunk);
+            if chunk.chunktype == *b"IEND" {
+                break;
             }
+        }
 
-            let mut data_crc = CRC::new();
-            data_crc.consume(&chunktype);
-            {
-                let mut datastream = stream.take(length as u64);
-                let mut toread = length;
-                let mut buf = [ 0_u8; 65536 ];	// 64 KiB buffer
-                while toread > 0 {
-                    let readsize = datastream.read(&mut buf).unwrap_or(0);
-                    data_crc.consume(&buf[0..readsize]);
-                    toread -= readsize as u32;
-                }
+        Ok(chunks)
+    }
 
-                stream = datastream.into_inner();
+    /// Scan chunks in a JNG file until the first IDAT or JDAT chunk
+    pub fn scan_header_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+        let mut chunks = Vec::new();
+        loop {
+            let chunk = self.scan_next_chunk()?;
+            if chunk.chunktype == *b"IDAT" || chunk.chunktype == *b"JDAT" {
+                self.next_chunk_pos = chunk.position;
+                break;
             }
-            stream.read_exact(&mut buf4)?;
-            let crc = u32::from_be_bytes(buf4);
-            if crc != data_crc.value() {
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Read CRC ({:#x}) doesn't match the computed one ({:#x})", crc, data_crc.value())));
-            }
+            chunks.push(chunk);
+        }
+
 
             let chunk = PNGChunkRef {
                 position,
                 length,
                 chunktype,
-                crc,
             };
 
-            match chunktypestr {
-                "JHDR" => {
-                    let oldpos = stream.stream_position()?;
-                    // Fill in image metadata
-                    jhdr = chunk.read_chunk(&mut stream, None)?;
-                    match jhdr {
-                        PNGChunkData::JHDR { width, height, colour_type, .. } => {
-                            width = width;
-                            height = height;
-                            colour_type = colour_type;
-                        },
-                    }
+        let mut buf4 = [ 0_u8; 4 ];
+        self.stream.read_exact(&mut buf4)?;
+        let length = u32::from_be_bytes(buf4);
 
-                    stream.seek(SeekFrom::Start(oldpos))?;
-                },
+        let mut chunktype = [ 0_u8; 4 ];
+        self.stream.read_exact(&mut chunktype)?;
 
-                "IDAT" => {
-                    idats.push(chunk);
-                },
-
-                "JDAT" => {
-                    if first_image {
-                        jdats.push(chunk);
-                    } else {
-                        jdats2.push(chunk);
-                    }
-                },
-
-                "JDAA" => {
-                    jdaas.push(chunk);
-                },
-
-                "IEND" => {
-                    iend = chunk;
-                },
-
-                "tEXt" | "iTXt" | "zTXt" => {
-                    optional_multi_chunks.entry(chunktype).or_insert_with(Vec::new);
-                    optional_multi_chunks.get_mut(&chunktype).unwrap().push(chunk);
-                },
-
-                _ => {
-                    optional_chunks.insert(chunktype, chunk);
-                },
-            }
-
-            all_chunks.push(chunk);
-
-            if chunktypestr == "IEND" {
-                break;
-            }
-
-            if chunktypestr == "JSEP" {
-                first_image = false;
-            }
-
+        // Invalid chunk types for JNG files
+        if (chunktype == *b"PLTE") | (chunktype == *b"hIST")
+            | (chunktype == *b"pCAL") | (chunktype == *b"sBIT")
+            | (chunktype == *b"sPLT") | (chunktype == *b"tRNS")
+            | (chunktype == *b"fRAc") | (chunktype == *b"gIFg")
+            | (chunktype == *b"gIFx") | (chunktype == *b"aCTL")
+            | (chunktype == *b"fcTL") | (chunktype == *b"fdAT")
+        {
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{:?}\"", chunktype)));
         }
 
-        Ok(JNGSeekableReader {
-            width,
-            height,
-            colour_type,
-            stream,
-            all_chunks,
-            jhdr,
-            idats,
-            jdats,
-            jdats2,
-            jdaas,
-            iend,
-            optional_chunks,
-            optional_multi_chunks,
-        })
+        let chunk = PNGChunkRef {
+            position: self.next_chunk_pos,
+            length,
+            chunktype,
+        };
+
+        self.next_chunk_pos += 4 + 4 + length as u64 + 4;
+
+        match &chunktype {
+            b"JHDR" => {
+                let oldpos = self.stream.stream_position()?;
+                // Fill in image metadata
+                self.jhdr = chunk.read_chunk(&mut self.stream, None)?;
+                match self.jhdr {
+                    PNGChunkData::JHDR { width, height, colour_type, .. } => {
+                        self.width = width;
+                        self.height = height;
+                        self.colour_type = colour_type;
+                    },
+
+                    _ => (),
+                }
+
+                self.stream.seek(SeekFrom::Start(oldpos))?;
+            },
+
+            b"IEND" => {
+                self.iend = chunk;
+            },
+
+            _ => (),
+        }
+
+        Ok(chunk)
+    }
+
+    /// Reset the position of the next chunk to scan back to the start of the file
+    pub fn reset_next_chunk_position(&mut self) {
+        self.next_chunk_pos = 8;
+    }
+
+    /// Set the position of the next chunk to scan to a given chunk
+    pub fn set_next_chunk_position(&mut self, chunkref: &PNGChunkRef) {
+        self.next_chunk_pos = chunkref.position;
+    }
+
+    /// Set the position of the next chunk to scan to after a given chunk
+    pub fn set_next_chunk_position_after(&mut self, chunkref: &PNGChunkRef) {
+        self.next_chunk_pos = chunkref.position + 4 + 4 + chunkref.length as u64 + 4;
     }
 
     /// Read the chunk data after seeking to the start of its data

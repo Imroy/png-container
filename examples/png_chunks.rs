@@ -37,31 +37,23 @@ fn main() -> std::io::Result<()> {
     let f = File::open(&args[1])?;
     let bf = BufReader::new(f);
     let mut reader = PNGSeekableReader::from_stream(bf)?;
+    let header_chunks = reader.scan_header_chunks()?;
     println!(
         "filetype={:?}, width={}, height={}, bit_depth={}, colour_type={:?}",
         reader.filetype, reader.width, reader.height, reader.bit_depth, reader.colour_type
     );
 
-    println!("{} chunks.", reader.all_chunks.len());
+    println!("{} header chunks.", header_chunks.len());
     if reader.plte.is_some() {
         println!("\tPLTE chunk");
     } else {
         println!("\tNo PLTE chunk");
     }
-    println!("\t{} IDAT chunks", reader.idats.len());
-    println!("\t{} frames", reader.frames.len());
-    for chunktype in reader.optional_multi_chunks.keys() {
-        println!("\t{} {} chunk(s).",
-                 reader.optional_multi_chunks[chunktype].len(),
-                 str::from_utf8(chunktype).unwrap_or("")
-        );
-    }
-    println!("");
 
-    for c in &reader.all_chunks {
+    for c in &header_chunks {
         println!("type_str={}, chunk={:?}", c.type_str(), c);
 
-        let ct = c.read_chunk(&mut reader.stream, Some(&reader.ihdr));
+        let ct = reader.read_chunk(c);
         if let Ok(ct) = ct {
             println!("data={:?}", &ct);
             match ct {
