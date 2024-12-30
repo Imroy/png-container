@@ -21,6 +21,14 @@ use std::fs::File;
 use std::io::BufReader;
 use std::str;
 
+use uom::{
+    fmt::DisplayStyle::Abbreviation,
+    si::{
+        linear_number_density::per_inch,
+        time::second,
+    },
+};
+
 use png_container::reader::*;
 use png_container::chunks::*;
 
@@ -87,6 +95,12 @@ fn main() -> std::io::Result<()> {
                         println!("pixels per inch={} × {}",
                                  xres.into_format_args(per_inch, Abbreviation),
                                  yres.into_format_args(per_inch, Abbreviation));
+                    }
+                },
+
+                PNGChunkData::TIME { .. } => {
+                    if let Some(time) = ct.time() {
+                        println!("time={}", time);
                     }
                 },
 

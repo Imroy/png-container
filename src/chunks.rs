@@ -22,6 +22,7 @@
 use std::io::{Read, Seek, SeekFrom};
 use std::str;
 
+use chrono::{DateTime, NaiveDate, NaiveTime, NaiveDateTime, Utc};
 use inflate::inflate_bytes_zlib;
 use uom::si::{
     f64::{LinearNumberDensity, Time},
@@ -418,6 +419,19 @@ impl PNGChunkData {
                     Some((LinearNumberDensity::new::<per_meter>(*x_pixels_per_unit as f64),
                        LinearNumberDensity::new::<per_meter>(*y_pixels_per_unit as f64))),
             };
+        }
+
+        None
+    }
+
+    pub fn time(&self) -> Option<DateTime<Utc>> {
+        if let PNGChunkData::TIME { year, month, day, hour, minute, second } = self {
+            return Some(DateTime::from_utc(
+                NaiveDateTime::new(
+                    NaiveDate::from_ymd_opt(*year as i32, *month as u32, *day as u32)?,
+                    NaiveTime::from_hms_opt(*hour as u32, *minute as u32, *second as u32)?
+                ),
+                Utc));
         }
 
         None
