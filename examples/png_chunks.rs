@@ -48,6 +48,10 @@ fn print_chunk(cd: &PNGChunkData) {
             }
         },
 
+        PNGChunkData::ICCP { .. } => {
+            println!("profile={:?}", cd.iccp_profile());
+        },
+
         PNGChunkData::ZTXT { .. } => {
             if let Some(string) = cd.ztxt_string() {
                 println!("string=\"{}\"", string);
