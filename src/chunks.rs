@@ -318,91 +318,88 @@ pub enum PNGChunkData {
 
 impl PNGChunkData {
     /// Scaled white coordinates of the cHRM chunk
-    pub fn chrm_white_coords(&self) -> Result<(f64, f64), String> {
+    pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
         if let PNGChunkData::CHRM { white_x, white_y, .. } = self {
-            return Ok((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0));
+            return Some((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0));
         }
 
-        Err("PNG: Not a cHRM chunk".to_string())
+        None
     }
 
     /// Scaled red coordinates of the cHRM chunk
-    pub fn chrm_red_coords(&self) -> Result<(f64, f64), String> {
+    pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
         if let PNGChunkData::CHRM { red_x, red_y, .. } = self {
-            return Ok((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0));
+            return Some((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0));
         }
 
-        Err("PNG: Not a cHRM chunk".to_string())
+        None
     }
 
     /// Scaled green coordinates of the cHRM chunk
-    pub fn chrm_green_coords(&self) -> Result<(f64, f64), String> {
+    pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
         if let PNGChunkData::CHRM { green_x, green_y, .. } = self {
-            return Ok((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0));
+            return Some((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0));
         }
 
-        Err("PNG: Not a cHRM chunk".to_string())
+        None
     }
 
     /// Scaled blue coordinates of the cHRM chunk
-    pub fn chrm_blue_coords(&self) -> Result<(f64, f64), String> {
+    pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
         if let PNGChunkData::CHRM { blue_x, blue_y, .. } = self {
-            return Ok((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0));
+            return Some((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0));
         }
 
-        Err("PNG: Not a cHRM chunk".to_string())
+        None
     }
 
     /// Scaled gamma value of a gAMA chunk
-    pub fn gama_gamma(&self) -> Result<f64, String> {
+    pub fn gama_gamma(&self) -> Option<f64> {
         if let PNGChunkData::GAMA { gamma } = self {
-            return Ok(*gamma as f64 / 100000.0);
+            return Some(*gamma as f64 / 100000.0);
         }
 
-        Err("PNG: Not a gAMA chunk".to_string())
+        None
     }
 
     /// Decompress the compressed profile in a iCCP chunk
-    pub fn iccp_profile(&self) -> Result<Vec<u8>, String> {
+    pub fn iccp_profile(&self) -> Option<Vec<u8>> {
         if let PNGChunkData::ICCP { compression_method, compressed_profile, .. } = self {
             if *compression_method == PNGCompressionMethod::Zlib {
-                return inflate_bytes_zlib(compressed_profile.as_slice());
+                return inflate_bytes_zlib(compressed_profile.as_slice()).ok();
             }
         }
 
-        Err("PNG: Not a iCCP chunk".to_string())
+        None
     }
 
     /// Decompress the compressed string in a zTXt chunk
-    pub fn ztxt_string(&self) -> Result<String, String> {
+    pub fn ztxt_string(&self) -> Option<String> {
         if let PNGChunkData::ZTXT { compression_method, compressed_string, .. } = self {
             if *compression_method  == PNGCompressionMethod::Zlib {
-                let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                return String::from_utf8(bytes)
-                    .map_err(|e| e.to_string());
+                let bytes = inflate_bytes_zlib(compressed_string.as_slice()).ok()?;
+                return String::from_utf8(bytes).ok();
             }
         }
 
-        Err("PNG: Not a zTXt chunk".to_string())
+        None
     }
 
     /// Decompress the compressed string in an iTXt chunk
-    pub fn itxt_string(&self) -> Result<String, String> {
+    pub fn itxt_string(&self) -> Option<String> {
         if let PNGChunkData::ITXT { compressed, compression_method,
                                     compressed_string, .. } = self {
             if *compressed {
                 if *compression_method == PNGCompressionMethod::Zlib {
-                    let bytes = inflate_bytes_zlib(compressed_string.as_slice())?;
-                    return String::from_utf8(bytes)
-                        .map_err(|e| e.to_string());
+                    let bytes = inflate_bytes_zlib(compressed_string.as_slice()).ok()?;
+                    return String::from_utf8(bytes).ok();
                 }
             } else {
-                return String::from_utf8(compressed_string.to_vec())
-                    .map_err(|e| e.to_string());
+                return String::from_utf8(compressed_string.to_vec()).ok();
             }
         }
 
-        Err("PNG: Not an iTXt chunk".to_string())
+        None
     }
 
     /// Convert the units in a pHYs chunk to pixels per inch
@@ -425,12 +422,12 @@ impl PNGChunkData {
     }
 
     /// Calculate delay from fcTL chunk in seconds
-    pub fn fctl_delay(&self) -> Result<f64, String> {
+    pub fn fctl_delay(&self) -> Option<Time> {
         if let PNGChunkData::FCTL { delay_num, delay_den, .. } = self {
-            return Ok(*delay_num as f64 / *delay_den as f64);
+            return Some(Time::new::<uom::si::time::second>(*delay_num as f64 / *delay_den as f64));
         }
 
-        Err("PNG: Not an fcTL chunk".to_string())
+        None
     }
 
 }

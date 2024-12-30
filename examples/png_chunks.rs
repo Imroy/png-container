@@ -54,42 +54,37 @@ fn main() -> std::io::Result<()> {
         println!("type_str={}, chunk={:?}", c.type_str(), c);
 
         let ct = c.read_chunk(&mut reader.stream, Some(&reader.ihdr));
-        if ct.is_ok() {
-            let ct2 = ct.unwrap();
-            println!("data={:?}", &ct2);
-            match ct2 {
+        if let Ok(ct) = ct {
+            println!("data={:?}", &ct);
+            match ct {
                 PNGChunkData::CHRM { .. } => {
-                    println!("white_coords={:?}", ct2.chrm_white_coords());
-                    println!("  red_coords={:?}", ct2.chrm_red_coords());
-                    println!("green_coords={:?}", ct2.chrm_green_coords());
-                    println!( "blue_coords={:?}", ct2.chrm_blue_coords());
+                    println!("white_coords={:?}", ct.chrm_white_coords());
+                    println!("  red_coords={:?}", ct.chrm_red_coords());
+                    println!("green_coords={:?}", ct.chrm_green_coords());
+                    println!( "blue_coords={:?}", ct.chrm_blue_coords());
                 },
 
                 PNGChunkData::GAMA { .. } => {
-                    let gamma = ct2.gama_gamma();
-                    if gamma.is_ok() {
-                        println!("gamma={}", gamma.unwrap());
+                    if let Some(gamma) = ct.gama_gamma() {
+                        println!("gamma={}", gamma);
                     }
                 },
 
                 PNGChunkData::ZTXT { .. } => {
-                    let string = ct2.ztxt_string();
-                    if string.is_ok() {
-                        println!("string=\"{}\"", string.unwrap());
+                    if let Some(string) = ct.ztxt_string() {
+                        println!("string=\"{}\"", string);
                     }
                 },
 
                 PNGChunkData::ITXT { .. } => {
-                    let string = ct2.itxt_string();
-                    if string.is_ok() {
-                        println!("string=\"{}\"", string.unwrap());
+                    if let Some(string) = ct.itxt_string() {
+                        println!("string=\"{}\"", string);
                     }
                 },
 
                 PNGChunkData::FCTL { .. } => {
-                    let delay = ct2.fctl_delay();
-                    if delay.is_ok() {
-                        println!("delay={}", delay.unwrap());
+                    if let Some(delay) = ct.fctl_delay() {
+                        println!("delay={}", delay.into_format_args(second, Abbreviation));
                     }
                 },
 
