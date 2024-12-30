@@ -427,7 +427,7 @@ impl PNGChunkData {
 
     pub fn time(&self) -> Option<DateTime<Utc>> {
         if let PNGChunkData::TIME { year, month, day, hour, minute, second } = self {
-            return Some(DateTime::from_utc(
+            return Some(DateTime::from_naive_utc_and_offset(
                 NaiveDateTime::new(
                     NaiveDate::from_ymd_opt(*year as i32, *month as u32, *day as u32)?,
                     NaiveTime::from_hms_opt(*hour as u32, *minute as u32, *second as u32)?
