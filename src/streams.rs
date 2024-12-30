@@ -20,7 +20,7 @@
 */
 
 use std::collections::VecDeque;
-use std::io::{Read, Seek};
+use std::io::Read;
 use std::slice::Iter;
 
 use crate::chunks::{PNGChunkRef, PNGChunkData};
@@ -51,7 +51,7 @@ impl<'a, R> PNGDATReader<'a, R> {
 }
 
 impl<'a, R> Read for PNGDATReader<'a, R>
-where R: Read + Seek
+where R: Read
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         while (self.buffer.len() < buf.len()) && (self.dat_iter.size_hint().0 > 0) {
@@ -65,6 +65,7 @@ where R: Read + Seek
 
                 _ => Result::Err(std::io::Error::other("chunk is not IDAT, fdAT, JDAT, or JDAA")),
             }?;
+
             self.buffer.append(&mut (data.into()));
         }
 
