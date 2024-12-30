@@ -425,6 +425,7 @@ impl PNGChunkData {
         None
     }
 
+    /// Convert the timestamp in a tIME chunk to a chrono DateTime object
     pub fn time(&self) -> Option<DateTime<Utc>> {
         if let PNGChunkData::TIME { year, month, day, hour, minute, second } = self {
             return Some(DateTime::from_naive_utc_and_offset(
@@ -526,7 +527,7 @@ impl PNGChunkRef {
         self.chunktype[3] & 0x20 > 0
     }
 
-    /// Read the sequence number of an fcTL or fdAT chunk
+    /// Read just the sequence number of an fcTL or fdAT chunk
     pub fn read_fctl_fdat_sequence_number<R>(&self, stream: &mut R)
                                              -> Result<u32, std::io::Error>
     where R: Read

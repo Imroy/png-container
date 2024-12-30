@@ -40,6 +40,9 @@ pub struct PNGDATReader<'a, R>  {
 
 impl<'a, R> PNGDATReader<'a, R> {
     /// Constructor
+    ///
+    /// `dats`: a vector of IDAT, fdAT, JDAT, or JDAA chunks.\
+    /// `stream`: the file/whatever to read the chunks from (must implement [Read].
     pub fn new(dats: &'a Vec<PNGChunkRef>, stream: &'a mut R) -> Self {
         PNGDATReader {
             dat_iter: dats.iter(),

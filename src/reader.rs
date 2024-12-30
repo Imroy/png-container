@@ -103,6 +103,8 @@ where R: Read + Seek
     }
 
     /// Scan all of the chunks in a PNG/APNG file
+    ///
+    /// If this is called after scan_header_chunks(), it will only return the following chunks.
     pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
         let mut chunks = Vec::with_capacity(4);
         loop {
