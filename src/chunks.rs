@@ -19,7 +19,7 @@
 /*! PNG chunks
  */
 
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::str;
 
 use chrono::{DateTime, NaiveDate, NaiveTime, NaiveDateTime, Utc};
@@ -529,9 +529,8 @@ impl PNGChunkRef {
     /// Read the sequence number of an fcTL or fdAT chunk
     pub fn read_fctl_fdat_sequence_number<R>(&self, stream: &mut R)
                                              -> Result<u32, std::io::Error>
-    where R: Read + Seek
+    where R: Read
     {
-        stream.seek(SeekFrom::Start(self.position + 8))?;
         let mut chunkstream = stream.take(self.length as u64);
         match self.type_str() {
             "fcTL" | "fdAT" => {
@@ -551,9 +550,8 @@ impl PNGChunkRef {
     pub fn read_chunk<R>(&self, stream: &mut R,
                          ihdr: Option<&PNGChunkData>)
                          -> Result<PNGChunkData, std::io::Error>
-        where R: Read + Seek
+        where R: Read
     {
-        stream.seek(SeekFrom::Start(self.position + 8))?;
         let mut chunkstream = stream.take(self.length as u64);
 
         let mut data_crc = CRC::new();
