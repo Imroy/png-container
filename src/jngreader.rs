@@ -100,40 +100,29 @@ where R: Read + Seek
             chunks.push(chunk);
         }
 
+        Ok(chunks)
+    }
 
-            let chunk = PNGChunkRef {
-                position,
-                length,
-                chunktype,
-            };
-
-        let mut buf4 = [ 0_u8; 4 ];
-        self.stream.read_exact(&mut buf4)?;
-        let length = u32::from_be_bytes(buf4);
-
-        let mut chunktype = [ 0_u8; 4 ];
-        self.stream.read_exact(&mut chunktype)?;
+    /// Scan the next chunk
+    pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
+        self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
+        let position = self.stream.stream_position()?;
+        let chunk = PNGChunkRef::new(&mut self.stream, position)?;
 
         // Invalid chunk types for JNG files
-        if (chunktype == *b"PLTE") | (chunktype == *b"hIST")
-            | (chunktype == *b"pCAL") | (chunktype == *b"sBIT")
-            | (chunktype == *b"sPLT") | (chunktype == *b"tRNS")
-            | (chunktype == *b"fRAc") | (chunktype == *b"gIFg")
-            | (chunktype == *b"gIFx") | (chunktype == *b"aCTL")
-            | (chunktype == *b"fcTL") | (chunktype == *b"fdAT")
+        if (chunk.chunktype == *b"PLTE") | (chunk.chunktype == *b"hIST")
+            | (chunk.chunktype == *b"pCAL") | (chunk.chunktype == *b"sBIT")
+            | (chunk.chunktype == *b"sPLT") | (chunk.chunktype == *b"tRNS")
+            | (chunk.chunktype == *b"fRAc") | (chunk.chunktype == *b"gIFg")
+            | (chunk.chunktype == *b"gIFx") | (chunk.chunktype == *b"aCTL")
+            | (chunk.chunktype == *b"fcTL") | (chunk.chunktype == *b"fdAT")
         {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{:?}\"", chunktype)));
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{:?}\"", chunk.chunktype)));
         }
 
-        let chunk = PNGChunkRef {
-            position: self.next_chunk_pos,
-            length,
-            chunktype,
-        };
+        self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
 
-        self.next_chunk_pos += 4 + 4 + length as u64 + 4;
-
-        match &chunktype {
+        match &chunk.chunktype {
             b"JHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata

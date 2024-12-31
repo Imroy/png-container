@@ -154,32 +154,21 @@ where R: Read + Seek
     /// Scan the next chunk
     pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
+        let position = self.stream.stream_position()?;
+        let chunk = PNGChunkRef::new(&mut self.stream, position)?;
 
-        let mut buf4 = [ 0_u8; 4 ];
-        self.stream.read_exact(&mut buf4)?;
-        let length = u32::from_be_bytes(buf4);
-
-        let mut chunktype = [ 0_u8; 4 ];
-        self.stream.read_exact(&mut chunktype)?;
-
-        // Invalid chunk types for PNG files
-        if (chunktype == *b"JHDR") | (chunktype == *b"JDAT")
-            | (chunktype == *b"JDAA") | (chunktype == *b"JSEP")
+        // Invalid chunk types for PNG/APNG files
+        if (chunk.chunktype == *b"JHDR") | (chunk.chunktype == *b"JDAT")
+            | (chunk.chunktype == *b"JDAA") | (chunk.chunktype == *b"JSEP")
         {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
                                            format!("PNG: Invalid chunk type \"{:?}\"",
-                                                   chunktype)));
+                                                   chunk.chunktype)));
         }
 
-        let chunk = PNGChunkRef {
-            position: self.next_chunk_pos,
-            length,
-            chunktype,
-        };
+        self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
 
-        self.next_chunk_pos += 4 + 4 + length as u64 + 4;
-
-        match &chunktype {
+        match &chunk.chunktype {
             b"IHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
@@ -209,9 +198,9 @@ where R: Read + Seek
             _ => (),
         }
 
-        if (chunktype == *b"aCTL")
-            | (chunktype == *b"fcTL")
-            | (chunktype == *b"fdAT")
+        if (chunk.chunktype == *b"aCTL")
+            | (chunk.chunktype == *b"fcTL")
+            | (chunk.chunktype == *b"fdAT")
         {
             self.filetype = PNGFileType::APNG;
         }

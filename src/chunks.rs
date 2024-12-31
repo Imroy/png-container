@@ -492,6 +492,26 @@ impl Default for PNGChunkRef {
 }
 
 impl PNGChunkRef {
+    /// Read the length and type of a chunk from a [Read]'able stream to make a chunk reference
+    ///
+    /// This leaves the stream at the start of chunk data.
+    pub fn new<R>(stream: &mut R, position: u64) -> Result<Self, std::io::Error>
+    where R: Read
+    {
+        let mut buf4 = [ 0_u8; 4 ];
+        stream.read_exact(&mut buf4)?;
+        let length = u32::from_be_bytes(buf4);
+
+        let mut chunktype = [ 0_u8; 4 ];
+        stream.read_exact(&mut chunktype)?;
+
+        Ok(Self {
+            position,
+            length,
+            chunktype,
+        })
+    }
+
     /// Convert the chunk type bytes to a string that can be compared and printed much more easily
     #[inline]
     pub fn type_str(&self) -> &str {
