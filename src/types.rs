@@ -38,7 +38,7 @@ pub enum PNGFileType {
 }
 
 /// Colour type of image
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGColourType {
     /// Greyscale image - allowed depths of 1, 2, 4, 8, or 16 bits per component
@@ -59,7 +59,7 @@ pub enum PNGColourType {
 }
 
 /// Compression method(s)
-#[derive(Copy, Clone, PartialEq, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGCompressionMethod {
     /// DEFLATE
@@ -68,7 +68,7 @@ pub enum PNGCompressionMethod {
 }
 
 /// Filter methods
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGFilterMethod {
     /// Adaptive filtering with five basic filter types
@@ -77,7 +77,7 @@ pub enum PNGFilterMethod {
 }
 
 /// Filter types
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGFilterType {
     None = 0,
@@ -89,7 +89,7 @@ pub enum PNGFilterType {
 }
 
 /// Interlacing methods
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGInterlaceMethod {
     /// No interlacing
@@ -159,7 +159,7 @@ pub enum PNGsBITType {
 
 
 /// ICC rendering intent
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGRenderingIntent {
     Perceptual = 0,
@@ -189,7 +189,7 @@ pub enum PNGbKGDType {
 
 
 /// Unit type used in several chunks
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGUnitType {
     Unknown = 0,
@@ -212,7 +212,7 @@ pub struct PNGSuggestedPaletteEntry {
 
 
 /// Disposal operators in the "fcTL" chunk
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum APNGDisposalOperator {
     None,
@@ -221,7 +221,7 @@ pub enum APNGDisposalOperator {
 }
 
 /// Blend operators in the "fcTL" chunk
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum APNGBlendOperator {
     Source,
@@ -229,7 +229,7 @@ pub enum APNGBlendOperator {
 }
 
 /// Colour type of JNG image
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum JNGColourType {
     Greyscale = 8,
@@ -245,7 +245,7 @@ pub enum JNGColourType {
 }
 
 /// JNG image sample depth
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum JNGImageSampleDepth {
     Depth8 = 8,
@@ -257,7 +257,7 @@ pub enum JNGImageSampleDepth {
 }
 
 /// JNG image and alpha compression type
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum JNGCompressionType {
     /// PNG greyscale
@@ -269,7 +269,7 @@ pub enum JNGCompressionType {
 }
 
 /// JNG alpha sample depth
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum JNGAlphaSampleDepth {
     Depth0 = 0,
@@ -282,7 +282,7 @@ pub enum JNGAlphaSampleDepth {
 }
 
 /// JNG image and alpha interlace type
-#[derive(Copy, Clone, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum JNGInterlaceMethod {
     SequentialJPEG = 0,
