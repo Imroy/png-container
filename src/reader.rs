@@ -227,9 +227,7 @@ where R: Read + Seek
     }
 
     /// Read the chunk data after seeking to the start of its data
-    pub fn read_chunk(&mut self, chunkref: &PNGChunkRef) -> Result<PNGChunkData, std::io::Error>
-    where R: Read + Seek
-    {
+    pub fn read_chunk(&mut self, chunkref: &PNGChunkRef) -> Result<PNGChunkData, std::io::Error> {
         self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, Some(&self.ihdr))
     }
