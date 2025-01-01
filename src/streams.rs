@@ -21,17 +21,13 @@
 
 use std::collections::VecDeque;
 use std::io::Read;
-use std::slice::Iter;
 
-use crate::chunks::{PNGChunkRef, PNGChunkData};
+use crate::chunks::PNGDATChunkIter;
 
 /// A reader for reading data from a series of IDAT, fdAT, JDAT, or JDAA chunks
 pub struct PNGDATReader<'a, R>  {
     /// Iterator to the IDAT/fdAT/JDAT/JDAA chunk(s)
-    dat_iter: Iter<'a, PNGChunkRef>,
-
-    /// The stream that the chunks are read from
-    stream: &'a mut R,
+    dat_iter: PNGDATChunkIter<'a, R>,
 
     /// A queue of data from the chunks
     buffer: VecDeque<u8>,
@@ -41,13 +37,11 @@ pub struct PNGDATReader<'a, R>  {
 impl<'a, R> PNGDATReader<'a, R> {
     /// Constructor
     ///
-    /// `dats`: a vector of IDAT, fdAT, JDAT, or JDAA chunks.\
-    /// `stream`: the file/whatever to read the chunks from (must implement [Read].
-    pub fn new(dats: &'a Vec<PNGChunkRef>, stream: &'a mut R) -> Self {
-        PNGDATReader {
-            dat_iter: dats.iter(),
+    /// `dat_iter`: an iterator over IDAT, fdAT, JDAT, or JDAA chunks.
+    pub fn new(dat_iter: PNGDATChunkIter<'a, R>) -> Self {
+        Self {
+            dat_iter,
             buffer: VecDeque::new(),
-            stream,
         }
     }
 
@@ -57,31 +51,30 @@ impl<'a, R> Read for PNGDATReader<'a, R>
 where R: Read
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        while (self.buffer.len() < buf.len()) && (self.dat_iter.size_hint().0 > 0) {
-            let chunkref = self.dat_iter.next().ok_or(std::io::Error::other("Could not get next DAT chunk"))?;
-            let chunk = chunkref.read_chunk(self.stream, None)?;
-            let data = match chunk {
-                PNGChunkData::IDAT { data } => Result::Ok(data),
-                PNGChunkData::FDAT { frame_data, .. } => Result::Ok(frame_data),
-                PNGChunkData::JDAT { data } => Result::Ok(data),
-                PNGChunkData::JDAA { data } => Result::Ok(data),
-
-                _ => Result::Err(std::io::Error::other("chunk is not IDAT, fdAT, JDAT, or JDAA")),
-            }?;
-
-            self.buffer.append(&mut (data.into()));
-        }
-
-        let mut len = 0;
-        for i in 0..buf.len() {
-            let b = self.buffer.pop_front();
-            if b.is_none() {
+        while self.buffer.len() < buf.len() {
+            let chunk = self.dat_iter.next();
+            if let Some(chunk) = chunk {
+                let data_iter = chunk.dat_data_iter();
+                if let Some(data_iter) = data_iter {
+                    self.buffer.extend(data_iter);
+                } else {
+                    break;
+                }
+            } else {
                 break;
             }
-
-            buf[i] = b.unwrap();
-            len += 1;
         }
+
+        let len = if self.buffer.len() >= buf.len() {
+            buf.len()
+        } else {
+            self.buffer.len()
+        };
+
+        self.buffer
+            .drain(0..len)
+            .enumerate()
+            .for_each(|(i, b)| buf[i] = b);
 
         Ok(len)
     }

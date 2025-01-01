@@ -21,6 +21,7 @@
 
 use std::io::Read;
 use std::str;
+use std::slice::Iter;
 
 use chrono::{DateTime, NaiveDate, NaiveTime, NaiveDateTime, Utc};
 use inflate::inflate_bytes_zlib;
@@ -324,6 +325,25 @@ pub enum PNGChunkData {
 }
 
 impl PNGChunkData {
+    /// Return an iterator into the data of IDAT/fdAT/JDAT/JDAA chunks
+    pub fn dat_data_iter(&self) -> Option<Iter<'_, u8>> {
+        match self {
+            PNGChunkData::IDAT { data } =>
+                Some(data.iter()),
+
+            PNGChunkData::FDAT { frame_data, .. } =>
+                Some(frame_data.iter()),
+
+            PNGChunkData::JDAT { data } =>
+                Some(data.iter()),
+
+            PNGChunkData::JDAA { data } =>
+                Some(data.iter()),
+
+            _ => None,
+        }
+    }
+
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
         if let PNGChunkData::CHRM { white_x, white_y, .. } = self {
@@ -1237,6 +1257,53 @@ impl PNGChunkRef {
         }
 
         Ok(chunk)
+    }
+
+}
+
+
+/// An iterator for reading IDAT/fdAT/JDAT/JDAA chunks from a PNG/APNG/JNG image
+pub struct PNGDATChunkIter<'a, R> {
+    stream: &'a mut R,
+
+    position: u64,
+}
+
+impl<'a, R> PNGDATChunkIter<'a, R>
+where R: Read
+{
+    /// Constructor
+    ///
+    /// `stream`: anything that implements [Read].\
+    /// `position`: The current stream position, at the start of a chunk.
+    pub fn new(stream: &'a mut R, position: u64) -> Self {
+        Self {
+            stream,
+            position,
+        }
+    }
+
+}
+
+impl<'a, R> Iterator for PNGDATChunkIter<'a, R>
+where R: Read
+{
+    type Item = PNGChunkData;
+
+    /// Get the next IDAT/fdAT/JDAT/JDAA chunk
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+        let mut chunk = chunkref.read_chunk(self.stream, None).ok()?;
+        self.position += 4 + 4 + chunkref.length as u64 + 4;
+
+        while chunkref.chunktype != *b"IDAT" && chunkref.chunktype != *b"fdAT"
+            && chunkref.chunktype != *b"JDAT" && chunkref.chunktype != *b"JDAA" {
+                chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+                chunk = chunkref.read_chunk(self.stream, None).ok()?;
+                self.position += 4 + 4 + chunkref.length as u64 + 4;
+            }
+
+        Some(chunk)
     }
 
 }
