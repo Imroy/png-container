@@ -30,7 +30,7 @@ pub struct PNGDATReader<'a, R>  {
     dat_iter: PNGDATChunkIter<'a, R>,
 
     /// A queue of data from the chunks
-    buffer: VecDeque<u8>,
+    queue: VecDeque<u8>,
 
 }
 
@@ -41,7 +41,24 @@ impl<'a, R> PNGDATReader<'a, R> {
     pub fn new(dat_iter: PNGDATChunkIter<'a, R>) -> Self {
         Self {
             dat_iter,
-            buffer: VecDeque::new(),
+            queue: VecDeque::new(),
+        }
+    }
+
+    fn get_next_chunk(&mut self) -> bool
+    where R: Read
+    {
+        let chunk = self.dat_iter.next();
+        if let Some(chunk) = chunk {
+            let data_iter = chunk.dat_data_iter();
+            if let Some(data_iter) = data_iter {
+                self.queue.extend(data_iter);
+                true
+            } else {
+                false
+            }
+        } else {
+            false
         }
     }
 
@@ -51,27 +68,19 @@ impl<'a, R> Read for PNGDATReader<'a, R>
 where R: Read
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        while self.buffer.len() < buf.len() {
-            let chunk = self.dat_iter.next();
-            if let Some(chunk) = chunk {
-                let data_iter = chunk.dat_data_iter();
-                if let Some(data_iter) = data_iter {
-                    self.buffer.extend(data_iter);
-                } else {
-                    break;
-                }
-            } else {
+        while self.queue.len() < buf.len() {
+            if ! self.get_next_chunk() {
                 break;
             }
         }
 
-        let len = if self.buffer.len() >= buf.len() {
+        let len = if self.queue.len() >= buf.len() {
             buf.len()
         } else {
-            self.buffer.len()
+            self.queue.len()
         };
 
-        self.buffer
+        self.queue
             .drain(0..len)
             .enumerate()
             .for_each(|(i, b)| buf[i] = b);
