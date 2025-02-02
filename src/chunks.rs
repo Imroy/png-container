@@ -1044,6 +1044,8 @@ impl PNGChunkRef {
                 })
             },
 
+            // Animation information
+
             b"acTL" => {
                 let mut buf = [ 0_u8; 8 ];
                 chunkstream.read_exact(&mut buf)?;
@@ -1183,6 +1185,8 @@ impl PNGChunkRef {
                     mode: buf[0],
                 })
             },
+
+            // JNG chunks
 
             b"JHDR" => {
                 let mut buf = [ 0_u8; 16 ];
