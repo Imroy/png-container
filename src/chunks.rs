@@ -576,7 +576,8 @@ impl PNGChunkRef {
 
     /// Read the chunk data and parse it into a PNGChunkData enum
     ///
-    /// This also checks the chunk CRC value
+    /// Stream must be at the start of chunk data after the length and type fields.
+    /// This also checks the chunk CRC value.
     pub fn read_chunk<R>(&self, stream: &mut R,
                          ihdr: Option<&PNGChunkData>)
                          -> Result<PNGChunkData, std::io::Error>
