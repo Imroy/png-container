@@ -485,17 +485,6 @@ pub struct PNGChunkRef {
 
 }
 
-// because u32::from_be_bytes() only takes fixed-length arrays and it's too
-// much of a PITA to convert from a slice.
-fn u32_be(bytes: &[u8]) -> u32 {
-    (bytes[3] as u32) | ((bytes[2] as u32) << 8)
-        | ((bytes[1] as u32) << 16) | ((bytes[0] as u32) << 24)
-}
-
-fn u16_be(bytes: &[u8]) -> u16 {
-    (bytes[1] as u16) | ((bytes[0] as u16) << 8)
-}
-
 fn find_null(bytes: &[u8]) -> usize {
     bytes.iter().position(|byte| *byte == 0).unwrap_or(bytes.len())
 }
@@ -605,8 +594,8 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::IHDR {
-                    width: u32_be(&buf[0..4]),
-                    height: u32_be(&buf[4..8]),
+                    width: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    height: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
                     bit_depth: buf[8],
                     colour_type: buf[9].try_into()
                         .map_err(to_io_error)?,
@@ -664,7 +653,7 @@ impl PNGChunkRef {
 
                             Ok(PNGChunkData::TRNS {
                                 data: PNGtRNSType::Greyscale {
-                                    value: u16_be(&buf),
+                                    value: u16::from_be_bytes(buf),
                                 },
                             })
                         },
@@ -676,9 +665,9 @@ impl PNGChunkRef {
 
                             Ok(PNGChunkData::TRNS {
                                 data: PNGtRNSType::TrueColour {
-                                    red: u16_be(&buf[0..2]),
-                                    green: u16_be(&buf[2..4]),
-                                    blue: u16_be(&buf[4..6]),
+                                    red: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+                                    green: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+                                    blue: u16::from_be_bytes(buf[4..6].try_into().unwrap()),
                                 },
                             })
                         },
@@ -710,7 +699,7 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::GAMA {
-                    gamma: u32_be(&buf),
+                    gamma: u32::from_be_bytes(buf),
                 })
             },
 
@@ -720,14 +709,14 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 Ok(PNGChunkData::CHRM {
-                    white_x: u32_be(&data[0..4]),
-                    white_y: u32_be(&data[4..8]),
-                    red_x: u32_be(&data[8..12]),
-                    red_y: u32_be(&data[12..16]),
-                    green_x: u32_be(&data[16..20]),
-                    green_y: u32_be(&data[20..24]),
-                    blue_x: u32_be(&data[24..28]),
-                    blue_y: u32_be(&data[28..32]),
+                    white_x: u32::from_be_bytes(data[0..4].try_into().unwrap()),
+                    white_y: u32::from_be_bytes(data[4..8].try_into().unwrap()),
+                    red_x: u32::from_be_bytes(data[8..12].try_into().unwrap()),
+                    red_y: u32::from_be_bytes(data[12..16].try_into().unwrap()),
+                    green_x: u32::from_be_bytes(data[16..20].try_into().unwrap()),
+                    green_y: u32::from_be_bytes(data[20..24].try_into().unwrap()),
+                    blue_x: u32::from_be_bytes(data[24..28].try_into().unwrap()),
+                    blue_y: u32::from_be_bytes(data[28..32].try_into().unwrap()),
                 })
             },
 
@@ -915,7 +904,7 @@ impl PNGChunkRef {
 
                             Ok(PNGChunkData::BKGD{
                                 data: PNGbKGDType::Greyscale {
-                                    value: u16_be(&data[0..2]),
+                                    value: u16::from_be_bytes(data[0..2].try_into().unwrap()),
                                 },
                             })
                         },
@@ -931,9 +920,9 @@ impl PNGChunkRef {
 
                             Ok(PNGChunkData::BKGD{
                                 data: PNGbKGDType::TrueColour {
-                                    red: u16_be(&data[0..2]),
-                                    green: u16_be(&data[2..4]),
-                                    blue: u16_be(&data[4..6]),
+                                    red: u16::from_be_bytes(data[0..2].try_into().unwrap()),
+                                    green: u16::from_be_bytes(data[2..4].try_into().unwrap()),
+                                    blue: u16::from_be_bytes(data[4..6].try_into().unwrap()),
                                 }
                             })
                         },
@@ -967,7 +956,7 @@ impl PNGChunkRef {
 
                 for n in 0..num_entries {
                     let start = n as usize * 2;
-                    frequencies.push(u16_be(&data[start..start + 2]));
+                    frequencies.push(u16::from_be_bytes(data[start..start + 2].try_into().unwrap()));
                 }
 
                 Ok(PNGChunkData::HIST {
@@ -981,8 +970,8 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::PHYS {
-                    x_pixels_per_unit: u32_be(&buf[0..4]),
-                    y_pixels_per_unit: u32_be(&buf[4..8]),
+                    x_pixels_per_unit: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    y_pixels_per_unit: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
                     unit: buf[8].try_into()
                         .map_err(to_io_error)?,
                 })
@@ -1018,15 +1007,15 @@ impl PNGChunkRef {
                             green: data[start + 1] as u16,
                             blue: data[start + 2] as u16,
                             alpha: data[start + 3] as u16,
-                            frequency: u16_be(&data[start + 4..start + 6]),
+                            frequency: u16::from_be_bytes(data[start + 4..start + 6].try_into().unwrap()),
                         });
                     } else {
                         palette.push(PNGSuggestedPaletteEntry {
-                            red: u16_be(&data[start..start + 2]),
-                            green: u16_be(&data[start + 2..start + 4]),
-                            blue: u16_be(&data[start + 4..start + 6]),
-                            alpha: u16_be(&data[start + 6..start + 8]),
-                            frequency: u16_be(&data[start + 8..start + 10]),
+                            red: u16::from_be_bytes(data[start..start + 2].try_into().unwrap()),
+                            green: u16::from_be_bytes(data[start + 2..start + 4].try_into().unwrap()),
+                            blue: u16::from_be_bytes(data[start + 4..start + 6].try_into().unwrap()),
+                            alpha: u16::from_be_bytes(data[start + 6..start + 8].try_into().unwrap()),
+                            frequency: u16::from_be_bytes(data[start + 8..start + 10].try_into().unwrap()),
                         });
                     }
                 }
@@ -1045,7 +1034,7 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::TIME {
-                    year: u16_be(&buf[0..2]),
+                    year: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
                     month: buf[2],
                     day: buf[3],
                     hour: buf[4],
@@ -1060,8 +1049,8 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::ACTL {
-                    num_frames: u32_be(&buf[0..4]),
-                    num_plays: u32_be(&buf[4..8]),
+                    num_frames: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    num_plays: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
                 })
             },
 
@@ -1071,13 +1060,13 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::FCTL {
-                    sequence_number: u32_be(&buf[0..4]),
-                    width: u32_be(&buf[4..8]),
-                    height: u32_be(&buf[8..12]),
-                    x_offset: u32_be(&buf[12..16]),
-                    y_offset: u32_be(&buf[16..20]),
-                    delay_num: u16_be(&buf[20..22]),
-                    delay_den: u16_be(&buf[22..24]),
+                    sequence_number: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    width: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
+                    height: u32::from_be_bytes(buf[8..12].try_into().unwrap()),
+                    x_offset: u32::from_be_bytes(buf[12..16].try_into().unwrap()),
+                    y_offset: u32::from_be_bytes(buf[16..20].try_into().unwrap()),
+                    delay_num: u16::from_be_bytes(buf[20..22].try_into().unwrap()),
+                    delay_den: u16::from_be_bytes(buf[22..24].try_into().unwrap()),
                     dispose_op: buf[24].try_into()
                         .map_err(to_io_error)?,
                     blend_op: buf[24].try_into()
@@ -1091,7 +1080,7 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::FDAT {
-                    sequence_number: u32_be(&buf[0..4]),
+                    sequence_number: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
                     frame_data: buf[4..].to_vec(),
                 })
             },
@@ -1104,8 +1093,8 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::OFFS {
-                    x: u32_be(&buf[0..4]),
-                    y: u32_be(&buf[4..8]),
+                    x: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    y: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
                     unit: buf[8].try_into()
                         .map_err(to_io_error)?,
                 })
@@ -1132,8 +1121,8 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::PCAL {
                     name: String::from_utf8(data[0..name_end].to_vec())
                         .map_err(to_io_error)?,
-                    original_zero: u32_be(&data[name_end..name_end + 4]),
-                    original_max: u32_be(&data[name_end + 4..name_end + 8]),
+                    original_zero: u32::from_be_bytes(data[name_end..name_end + 4].try_into().unwrap()),
+                    original_max: u32::from_be_bytes(data[name_end + 4..name_end + 8].try_into().unwrap()),
                     equation_type: data[name_end + 8],
                     unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec())
                         .map_err(to_io_error)?,
@@ -1167,7 +1156,7 @@ impl PNGChunkRef {
                 Ok(PNGChunkData::GIFG {
                     disposal_method: buf[0],
                     user_input: buf[1] > 0,
-                    delay_time: u16_be(&buf[2..]),
+                    delay_time: u16::from_be_bytes(buf[2..].try_into().unwrap()),
                 })
             },
 
@@ -1200,8 +1189,8 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::JHDR {
-                    width: u32_be(&buf[0..4]),
-                    height: u32_be(&buf[4..8]),
+                    width: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+                    height: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
                     colour_type: buf[8].try_into()
                         .map_err(to_io_error)?,
                     image_sample_depth: buf[9].try_into()
