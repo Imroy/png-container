@@ -34,7 +34,7 @@ pub enum PNGFileType {
     JNG,
 
     /// Animated Portable Network Graphics
-    APNG
+    APNG,
 }
 
 /// Colour type of image
@@ -55,7 +55,6 @@ pub enum PNGColourType {
 
     /// RGB colour image with alpha - allowed depths of 8 or 16 bits per component
     TrueColourAlpha = 6,
-
 }
 
 /// Compression method(s)
@@ -64,7 +63,6 @@ pub enum PNGColourType {
 pub enum PNGCompressionMethod {
     /// DEFLATE
     Zlib = 0,
-
 }
 
 /// Filter methods
@@ -73,7 +71,6 @@ pub enum PNGCompressionMethod {
 pub enum PNGFilterMethod {
     /// Adaptive filtering with five basic filter types
     Adaptive = 0,
-
 }
 
 /// Filter types
@@ -85,7 +82,6 @@ pub enum PNGFilterType {
     Up,
     Average,
     Paeth,
-
 }
 
 /// Interlacing methods
@@ -97,7 +93,6 @@ pub enum PNGInterlaceMethod {
 
     /// Adam7 interlacing
     Adam7,
-
 }
 
 /// Palette entry for for PLTE chunk
@@ -106,29 +101,17 @@ pub struct PNGPaletteEntry {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
-
 }
-
 
 /// Contents of tRNS chunk
 #[derive(Clone, Debug)]
 pub enum PNGtRNSType {
-    Greyscale {
-        value: u16,
-    },
+    Greyscale { value: u16 },
 
-    TrueColour {
-        red: u16,
-        green: u16,
-        blue: u16,
-    },
+    TrueColour { red: u16, green: u16, blue: u16 },
 
-    IndexedColour {
-        values: Vec<u8>,
-    },
-
+    IndexedColour { values: Vec<u8> },
 }
-
 
 /// Contents of sBIT chunk
 #[derive(Copy, Clone, Debug)]
@@ -154,9 +137,7 @@ pub enum PNGsBITType {
         blue_bits: u8,
         alpha_bits: u8,
     },
-
 }
-
 
 /// ICC rendering intent
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
@@ -171,22 +152,12 @@ pub enum PNGRenderingIntent {
 /// Contents of bKGD chunk
 #[derive(Copy, Clone, Debug)]
 pub enum PNGbKGDType {
-    Greyscale {
-        value: u16,
-    },
+    Greyscale { value: u16 },
 
-    TrueColour {
-        red: u16,
-        green: u16,
-        blue: u16,
-    },
+    TrueColour { red: u16, green: u16, blue: u16 },
 
-    IndexedColour {
-        index: u8,
-    },
-
+    IndexedColour { index: u8 },
 }
-
 
 /// Unit type used in several chunks
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
@@ -195,7 +166,6 @@ pub enum PNGUnitType {
     Unknown = 0,
 
     Metre = 1,
-
 }
 
 /// Entry for the suggested palette "sPLT" chunk
@@ -209,7 +179,6 @@ pub struct PNGSuggestedPaletteEntry {
     pub alpha: u16,
     pub frequency: u16,
 }
-
 
 /// Disposal operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
@@ -241,7 +210,6 @@ pub enum JNGColourType {
 
     /// Colour with alpha channel
     ColourAlpha = 14,
-
 }
 
 /// JNG image sample depth
@@ -253,7 +221,6 @@ pub enum JNGImageSampleDepth {
     Depth12 = 12,
 
     Depth8And12 = 20,
-
 }
 
 /// JNG image and alpha compression type
@@ -265,7 +232,6 @@ pub enum JNGCompressionType {
 
     /// Huffman-coded baseline JPEG
     HuffmanBaseline = 8,
-
 }
 
 /// JNG alpha sample depth
@@ -278,7 +244,6 @@ pub enum JNGAlphaSampleDepth {
     Depth4 = 4,
     Depth8 = 8,
     Depth16 = 16,
-
 }
 
 /// JNG image and alpha interlace type

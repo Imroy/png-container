@@ -28,8 +28,8 @@ use uom::{
     },
 };
 
-use png_container::reader::*;
 use png_container::chunks::*;
+use png_container::reader::*;
 use png_container::types::*;
 
 fn print_chunk(cd: &PNGChunkData) {
@@ -39,52 +39,54 @@ fn print_chunk(cd: &PNGChunkData) {
             println!("white_coords={:?}", cd.chrm_white_coords());
             println!("  red_coords={:?}", cd.chrm_red_coords());
             println!("green_coords={:?}", cd.chrm_green_coords());
-            println!( "blue_coords={:?}", cd.chrm_blue_coords());
-        },
+            println!(" blue_coords={:?}", cd.chrm_blue_coords());
+        }
 
         PNGChunkData::GAMA { .. } => {
             if let Some(gamma) = cd.gama_gamma() {
                 println!("gamma={}", gamma);
             }
-        },
+        }
 
         PNGChunkData::ICCP { .. } => {
             println!("profile={:?}", cd.iccp_profile());
-        },
+        }
 
         PNGChunkData::ZTXT { .. } => {
             if let Some(string) = cd.ztxt_string() {
                 println!("string=\"{}\"", string);
             }
-        },
+        }
 
         PNGChunkData::ITXT { .. } => {
             if let Some(string) = cd.itxt_string() {
                 println!("string=\"{}\"", string);
             }
-        },
+        }
 
         PNGChunkData::PHYS { .. } => {
             if let Some((xres, yres)) = cd.phys_res() {
-                println!("pixels per inch={} × {}",
-                         xres.into_format_args(per_inch, Abbreviation),
-                         yres.into_format_args(per_inch, Abbreviation));
+                println!(
+                    "pixels per inch={} × {}",
+                    xres.into_format_args(per_inch, Abbreviation),
+                    yres.into_format_args(per_inch, Abbreviation)
+                );
             }
-        },
+        }
 
         PNGChunkData::TIME { .. } => {
             if let Some(time) = cd.time() {
                 println!("time={}", time);
             }
-        },
+        }
 
         PNGChunkData::FCTL { .. } => {
             if let Some(delay) = cd.fctl_delay() {
                 println!("delay={}", delay.into_format_args(second, Abbreviation));
             }
-        },
+        }
 
-        _ => ()
+        _ => (),
     }
 }
 
@@ -121,13 +123,16 @@ fn main() -> std::io::Result<()> {
         for f in reader.apng_scan_frames()? {
             println!("frame");
             println!("\t{:?}", reader.read_chunk(&f.fctl)?);
-            let fdats = f.fdats.iter().map(|cr| reader.read_chunk(cr).unwrap()).collect::<Vec<_>>();
+            let fdats = f
+                .fdats
+                .iter()
+                .map(|cr| reader.read_chunk(cr).unwrap())
+                .collect::<Vec<_>>();
             println!("\tdata:");
             for fd in fdats {
                 println!("\t\t{:?}", fd);
             }
         }
-
     } else {
         for c in reader.scan_all_chunks()? {
             println!("type_str={}, ref={:?}", c.type_str(), c);

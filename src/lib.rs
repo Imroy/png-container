@@ -23,15 +23,16 @@
  * Maybe [MNG](https://en.wikipedia.org/wiki/Multiple-image_Network_Graphics) in the future.
  */
 
-pub mod crc;
-pub mod types;
 pub mod chunks;
-pub mod streams;
-pub mod reader;
+pub mod crc;
 pub mod jngreader;
+pub mod reader;
+pub mod streams;
+pub mod types;
 
 pub fn to_io_error<T>(e: T) -> std::io::Error
-where T: ToString
+where
+    T: ToString,
 {
     std::io::Error::other(e.to_string())
 }

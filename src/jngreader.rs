@@ -21,8 +21,8 @@
 
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::types::*;
 use crate::chunks::*;
+use crate::types::*;
 
 /// A JNG file reader
 #[derive(Debug)]
@@ -46,20 +46,23 @@ pub struct JNGSeekableReader<R> {
     pub iend: PNGChunkRef,
 
     next_chunk_pos: u64,
-
 }
 
 impl<R> JNGSeekableReader<R>
-where R: Read + Seek
+where
+    R: Read + Seek,
 {
     /// Constructor from a Read-able type
     fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
         // First check the signature
         {
-            let mut signature = [ 0; 8 ];
+            let mut signature = [0; 8];
             stream.read_exact(&mut signature)?;
-            if signature != [ 0x8b, 0x4a, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] {
-                return Err(std::io::Error::new(std::io::ErrorKind::Other, "JNG: Bad file signature"));
+            if signature != [0x8b, 0x4a, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "JNG: Bad file signature",
+                ));
             }
         }
 
@@ -110,14 +113,23 @@ where R: Read + Seek
         let chunk = PNGChunkRef::new(&mut self.stream, position)?;
 
         // Invalid chunk types for JNG files
-        if (chunk.chunktype == *b"PLTE") | (chunk.chunktype == *b"hIST")
-            | (chunk.chunktype == *b"pCAL") | (chunk.chunktype == *b"sBIT")
-            | (chunk.chunktype == *b"sPLT") | (chunk.chunktype == *b"tRNS")
-            | (chunk.chunktype == *b"fRAc") | (chunk.chunktype == *b"gIFg")
-            | (chunk.chunktype == *b"gIFx") | (chunk.chunktype == *b"aCTL")
-            | (chunk.chunktype == *b"fcTL") | (chunk.chunktype == *b"fdAT")
+        if (chunk.chunktype == *b"PLTE")
+            | (chunk.chunktype == *b"hIST")
+            | (chunk.chunktype == *b"pCAL")
+            | (chunk.chunktype == *b"sBIT")
+            | (chunk.chunktype == *b"sPLT")
+            | (chunk.chunktype == *b"tRNS")
+            | (chunk.chunktype == *b"fRAc")
+            | (chunk.chunktype == *b"gIFg")
+            | (chunk.chunktype == *b"gIFx")
+            | (chunk.chunktype == *b"aCTL")
+            | (chunk.chunktype == *b"fcTL")
+            | (chunk.chunktype == *b"fdAT")
         {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, format!("JNG: Invalid chunk type \"{:?}\"", chunk.chunktype)));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("JNG: Invalid chunk type \"{:?}\"", chunk.chunktype),
+            ));
         }
 
         self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
@@ -127,22 +139,24 @@ where R: Read + Seek
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
                 self.jhdr = chunk.read_chunk(&mut self.stream, None)?;
-                match self.jhdr {
-                    PNGChunkData::JHDR { width, height, colour_type, .. } => {
-                        self.width = width;
-                        self.height = height;
-                        self.colour_type = colour_type;
-                    },
-
-                    _ => (),
+                if let PNGChunkData::JHDR {
+                    width,
+                    height,
+                    colour_type,
+                    ..
+                } = self.jhdr
+                {
+                    self.width = width;
+                    self.height = height;
+                    self.colour_type = colour_type;
                 }
 
                 self.stream.seek(SeekFrom::Start(oldpos))?;
-            },
+            }
 
             b"IEND" => {
                 self.iend = chunk;
-            },
+            }
 
             _ => (),
         }
@@ -167,10 +181,10 @@ where R: Read + Seek
 
     /// Read the chunk data after seeking to the start of its data
     pub fn read_chunk(&mut self, chunkref: &PNGChunkRef) -> Result<PNGChunkData, std::io::Error>
-    where R: Read + Seek
+    where
+        R: Read + Seek,
     {
         self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, None)
     }
-
 }

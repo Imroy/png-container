@@ -21,8 +21,8 @@
 
 use std::io::{Read, Seek, SeekFrom};
 
-use crate::types::*;
 use crate::chunks::*;
+use crate::types::*;
 
 /// A frame in an APNG file
 #[derive(Clone, Default, Debug)]
@@ -32,9 +32,7 @@ pub struct APNGFrame {
 
     /// The fdAT chunk(s) containing the frame data
     pub fdats: Vec<PNGChunkRef>,
-
 }
-
 
 /// A PNG/APNG file reader
 #[derive(Debug)]
@@ -69,22 +67,25 @@ pub struct PNGSeekableReader<R> {
     pub iend: PNGChunkRef,
 
     next_chunk_pos: u64,
-
 }
 
 impl<R> PNGSeekableReader<R>
-where R: Read + Seek
+where
+    R: Read + Seek,
 {
     /// Constructor from a Read-able and Seek-able type
     ///
     /// This just checks the file signature. Use any of the scan_*() methods to read chunks.
-    fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
+    pub fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
         // First check the signature
         {
-            let mut signature = [ 0; 8 ];
+            let mut signature = [0; 8];
             stream.read_exact(&mut signature)?;
-            if signature != [ 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a ] {
-                return Err(std::io::Error::new(std::io::ErrorKind::Other, "PNG: Bad signature"));
+            if signature != [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "PNG: Bad signature",
+                ));
             }
         }
 
@@ -135,7 +136,8 @@ where R: Read + Seek
 
     /// Scan chunks in a PNG/APNG file, returning a Vec of the chunks that match a closure
     pub fn scan_chunks_filtered<F>(&mut self, test: F) -> Result<Vec<PNGChunkRef>, std::io::Error>
-    where F: Fn([ u8; 4 ]) -> bool
+    where
+        F: Fn([u8; 4]) -> bool,
     {
         let mut chunks = Vec::new();
         loop {
@@ -158,12 +160,15 @@ where R: Read + Seek
         let chunk = PNGChunkRef::new(&mut self.stream, position)?;
 
         // Invalid chunk types for PNG/APNG files
-        if (chunk.chunktype == *b"JHDR") | (chunk.chunktype == *b"JDAT")
-            | (chunk.chunktype == *b"JDAA") | (chunk.chunktype == *b"JSEP")
+        if (chunk.chunktype == *b"JHDR")
+            | (chunk.chunktype == *b"JDAT")
+            | (chunk.chunktype == *b"JDAA")
+            | (chunk.chunktype == *b"JSEP")
         {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                           format!("PNG: Invalid chunk type \"{:?}\"",
-                                                   chunk.chunktype)));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("PNG: Invalid chunk type \"{:?}\"", chunk.chunktype),
+            ));
         }
 
         self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
@@ -173,27 +178,30 @@ where R: Read + Seek
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
                 self.ihdr = chunk.read_chunk(&mut self.stream, None)?;
-                match self.ihdr {
-                    PNGChunkData::IHDR { width, height, bit_depth, colour_type, .. } => {
-                        self.width = width;
-                        self.height = height;
-                        self.bit_depth = bit_depth;
-                        self.colour_type = colour_type;
-                    },
-
-                     _ => (),
+                if let PNGChunkData::IHDR {
+                    width,
+                    height,
+                    bit_depth,
+                    colour_type,
+                    ..
+                } = self.ihdr
+                {
+                    self.width = width;
+                    self.height = height;
+                    self.bit_depth = bit_depth;
+                    self.colour_type = colour_type;
                 }
 
                 self.stream.seek(SeekFrom::Start(oldpos))?;
-            },
+            }
 
             b"PLTE" => {
                 self.plte = Some(chunk);
-            },
+            }
 
             b"IEND" => {
                 self.iend = chunk;
-            },
+            }
 
             _ => (),
         }
@@ -253,11 +261,11 @@ where R: Read + Seek
                         frame = APNGFrame::default();
                     }
                     frame.fctl = chunk;
-                },
+                }
 
                 "fdAT" => {
                     frame.fdats.push(chunk);
-                },
+                }
 
                 _ => (),
             }
@@ -275,5 +283,4 @@ where R: Read + Seek
         let position = self.stream.stream_position()?;
         Ok(PNGDATChunkIter::new(&mut self.stream, position))
     }
-
 }
