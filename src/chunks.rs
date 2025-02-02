@@ -610,21 +610,19 @@ impl PNGChunkRef {
             },
 
             b"PLTE" => {
-                let num_entries = self.length / 3;
-                let mut entries = Vec::with_capacity(num_entries as usize);
-                for _n in 0..num_entries {
-                    let mut buf = [ 0_u8; 3 ];
-                    chunkstream.read_exact(&mut buf)?;
-                    data_crc.consume(&buf);
-                    entries.push(PNGPaletteEntry {
-                        red: buf[0],
-                        green: buf[1],
-                        blue: buf[2],
-                    });
-                }
-
                 Ok(PNGChunkData::PLTE {
-                    entries,
+                    entries: (0..self.length / 3)
+                        .map(|_| {
+                            let mut buf = [ 0_u8; 3 ];
+                            chunkstream.read_exact(&mut buf)?;
+                            data_crc.consume(&buf);
+                            Ok(PNGPaletteEntry {
+                                red: buf[0],
+                                green: buf[1],
+                                blue: buf[2],
+                            })
+                        })
+                        .collect::<Result<Vec<_>, std::io::Error>>()?,
                 })
             },
 
@@ -952,16 +950,13 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                let num_entries = self.length / 2;
-                let mut frequencies = Vec::with_capacity(num_entries as usize);
-
-                for n in 0..num_entries {
-                    let start = n as usize * 2;
-                    frequencies.push(u16::from_be_bytes(data[start..start + 2].try_into().map_err(to_io_error)?));
-                }
-
                 Ok(PNGChunkData::HIST {
-                    frequencies,
+                    frequencies: (0..self.length / 2)
+                        .map(|n| {
+                            let start = n as usize * 2;
+                            Ok(u16::from_be_bytes(data[start..start + 2].try_into().map_err(to_io_error)?))
+                        })
+                        .collect::<Result<Vec<_>, std::io::Error>>()?,
                 })
             },
 
@@ -996,36 +991,34 @@ impl PNGChunkRef {
                 let name_end = find_null(&data);
                 let depth = data[name_end + 1];
                 let entry_size = ((depth / 8) * 4) + 2;
-                let num_entries = (self.length as usize - name_end - 1)
-                    / (entry_size as usize);
-                let mut palette = Vec::with_capacity(num_entries);
-
-                for i in 0..num_entries {
-                    let start = name_end + 2 + (i * entry_size as usize);
-                    if depth == 8 {
-                        palette.push(PNGSuggestedPaletteEntry {
-                            red: data[start] as u16,
-                            green: data[start + 1] as u16,
-                            blue: data[start + 2] as u16,
-                            alpha: data[start + 3] as u16,
-                            frequency: u16::from_be_bytes(data[start + 4..start + 6].try_into().map_err(to_io_error)?),
-                        });
-                    } else {
-                        palette.push(PNGSuggestedPaletteEntry {
-                            red: u16::from_be_bytes(data[start..start + 2].try_into().map_err(to_io_error)?),
-                            green: u16::from_be_bytes(data[start + 2..start + 4].try_into().map_err(to_io_error)?),
-                            blue: u16::from_be_bytes(data[start + 4..start + 6].try_into().map_err(to_io_error)?),
-                            alpha: u16::from_be_bytes(data[start + 6..start + 8].try_into().map_err(to_io_error)?),
-                            frequency: u16::from_be_bytes(data[start + 8..start + 10].try_into().map_err(to_io_error)?),
-                        });
-                    }
-                }
+                let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
 
                 Ok(PNGChunkData::SPLT {
                     name: String::from_utf8(data[0..name_end].to_vec())
                         .map_err(to_io_error)?,
                     depth,
-                    palette,
+                    palette: (0..num_entries)
+                        .map(|i| {
+                            let start = name_end + 2 + (i * entry_size as usize);
+                            if depth == 8 {
+                                Ok(PNGSuggestedPaletteEntry {
+                                    red: data[start] as u16,
+                                    green: data[start + 1] as u16,
+                                    blue: data[start + 2] as u16,
+                                    alpha: data[start + 3] as u16,
+                                    frequency: u16::from_be_bytes(data[start + 4..start + 6].try_into().map_err(to_io_error)?),
+                                })
+                            } else {
+                                Ok(PNGSuggestedPaletteEntry {
+                                    red: u16::from_be_bytes(data[start..start + 2].try_into().map_err(to_io_error)?),
+                                    green: u16::from_be_bytes(data[start + 2..start + 4].try_into().map_err(to_io_error)?),
+                                    blue: u16::from_be_bytes(data[start + 4..start + 6].try_into().map_err(to_io_error)?),
+                                    alpha: u16::from_be_bytes(data[start + 6..start + 8].try_into().map_err(to_io_error)?),
+                                    frequency: u16::from_be_bytes(data[start + 8..start + 10].try_into().map_err(to_io_error)?),
+                                })
+                            }
+                        })
+                        .collect::<Result<Vec<_>, std::io::Error>>()?,
                 })
             },
 
@@ -1113,6 +1106,7 @@ impl PNGChunkRef {
                 let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
                 let mut parameters = Vec::with_capacity(num_parameters as usize);
 
+                // TODO: can this be done with an iterator?
                 let mut prev_end = unit_end;
                 for _ in 0..num_parameters {
                     let param_end = find_null(&data[prev_end..]) + prev_end;
