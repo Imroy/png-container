@@ -1282,12 +1282,20 @@ where R: Read
     /// Get the next IDAT/fdAT/JDAT/JDAA chunk
     fn next(&mut self) -> Option<Self::Item> {
         let mut chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+        if chunkref.chunktype == *b"IEND" {
+            return None;
+        }
+
         let mut chunk = chunkref.read_chunk(self.stream, None).ok()?;
         self.position += 4 + 4 + chunkref.length as u64 + 4;
 
         while chunkref.chunktype != *b"IDAT" && chunkref.chunktype != *b"fdAT"
             && chunkref.chunktype != *b"JDAT" && chunkref.chunktype != *b"JDAA" {
                 chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+                if chunkref.chunktype == *b"IEND" {
+                    return None;
+                }
+
                 chunk = chunkref.read_chunk(self.stream, None).ok()?;
                 self.position += 4 + 4 + chunkref.length as u64 + 4;
             }
