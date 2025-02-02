@@ -58,18 +58,20 @@ pub enum PNGColourType {
 }
 
 /// Compression method(s)
-#[derive(Copy, Clone, PartialEq, Eq, Debug, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGCompressionMethod {
     /// DEFLATE
+    #[default]
     Zlib = 0,
 }
 
 /// Filter methods
-#[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PNGFilterMethod {
     /// Adaptive filtering with five basic filter types
+    #[default]
     Adaptive = 0,
 }
 
