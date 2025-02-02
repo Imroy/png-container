@@ -92,6 +92,10 @@ fn print_chunk(cd: &PNGChunkData) {
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        return Ok(());
+    }
+
     let f = File::open(&args[1])?;
     let bf = BufReader::new(f);
 
