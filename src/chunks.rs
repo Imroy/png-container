@@ -41,6 +41,7 @@ pub enum PNGChunkData {
     None,
 
     // Critical chunks
+
     /// Image header
     IHDR {
         /// Width of image in pixels
@@ -66,32 +67,23 @@ pub enum PNGChunkData {
     },
 
     /// Palette
-    PLTE { entries: Vec<PNGPaletteEntry> },
+    PLTE(Box<Vec<PNGPaletteEntry>>),
 
     /// Image data
-    IDAT { data: Vec<u8> },
+    IDAT(Box<Vec<u8>>),
 
     /// Image end
     IEND,
 
     // Transparency information
+
     /// Transparency
     TRNS { data: PNGtRNSType },
 
     // Colour space information
+
     /// Primary chromaticities and white point
-    ///
-    /// Values are scaled by 100000
-    CHRM {
-        white_x: u32,
-        white_y: u32,
-        red_x: u32,
-        red_y: u32,
-        green_x: u32,
-        green_y: u32,
-        blue_x: u32,
-        blue_y: u32,
-    },
+    CHRM(Box<CHRM>),
 
     /// Image gamma
     ///
@@ -99,11 +91,7 @@ pub enum PNGChunkData {
     GAMA { gamma: u32 },
 
     /// Embedded ICC profile
-    ICCP {
-        name: String,
-        compression_method: PNGCompressionMethod,
-        compressed_profile: Vec<u8>,
-    },
+    ICCP(Box<ICCP>),
 
     /// Significant bits
     SBIT { bits: PNGsBITType },
@@ -122,32 +110,23 @@ pub enum PNGChunkData {
     },
 
     // Textual information
+
     /// Textual data
-    TEXT { keyword: String, string: String },
+    TEXT(Box<TEXT>),
 
     /// Compressed textual data
-    ZTXT {
-        keyword: String,
-        compression_method: PNGCompressionMethod,
-        compressed_string: Vec<u8>,
-    },
+    ZTXT(Box<ZTXT>),
 
     /// International textual data
-    ITXT {
-        keyword: String,
-        compressed: bool,
-        compression_method: PNGCompressionMethod,
-        language: String,
-        translated_keyword: String,
-        compressed_string: Vec<u8>,
-    },
+    ITXT(Box<ITXT>),
 
     // Miscellaneous information
+
     /// Background colour
     BKGD { data: PNGbKGDType },
 
     /// Image histogram
-    HIST { frequencies: Vec<u16> },
+    HIST(Box<Vec<u16>>),
 
     /// Physical pixel dimensions
     PHYS {
@@ -157,16 +136,13 @@ pub enum PNGChunkData {
     },
 
     /// Suggested palette
-    SPLT {
-        name: String,
-        depth: u8,
-        palette: Vec<PNGSuggestedPaletteEntry>,
-    },
+    SPLT(Box<SPLT>),
 
     /// Exchangeable Image File (Exif) Profile
-    EXIF { profile: Vec<u8> },
+    EXIF(Box<Vec<u8>>),
 
     // Time stamp information
+
     /// Image last-modification time
     TIME {
         year: u16,
@@ -178,25 +154,15 @@ pub enum PNGChunkData {
     },
 
     // Extensions
+
     /// Image offset
     OFFS { x: u32, y: u32, unit: PNGUnitType },
 
     /// Calibration of pixel values
-    PCAL {
-        name: String,
-        original_zero: u32,
-        original_max: u32,
-        equation_type: u8,
-        unit_name: String,
-        parameters: Vec<String>,
-    },
+    PCAL(Box<PCAL>),
 
     /// Physical scale of image subject
-    SCAL {
-        unit: PNGUnitType,
-        pixel_width: String,
-        pixel_height: String,
-    },
+    SCAL(Box<SCAL>),
 
     /// GIF Graphic Control Extension
     GIFG {
@@ -207,38 +173,24 @@ pub enum PNGChunkData {
     },
 
     /// GIF Application Extension
-    GIFX {
-        app_id: String,
-        app_code: [u8; 3],
-        app_data: Vec<u8>,
-    },
+    GIFX(Box<GIFX>),
 
     /// Indicator of Stereo Image
     STER { mode: u8 },
 
     // Animation information
+
     /// Animation control
     ACTL { num_frames: u32, num_plays: u32 },
 
     /// Frame control
-    FCTL {
-        sequence_number: u32,
-        width: u32,
-        height: u32,
-        x_offset: u32,
-        y_offset: u32,
-        delay_num: u16,
-        delay_den: u16,
-        dispose_op: APNGDisposalOperator,
-        blend_op: APNGBlendOperator,
-    },
+    FCTL(Box<FCTL>),
 
-    FDAT {
-        sequence_number: u32,
-        frame_data: Vec<u8>,
-    },
+    /// Frame data
+    FDAT(Box<FDAT>),
 
     // JNG chunks
+
     /// JNG header
     JHDR {
         /// Width of image in pixels
@@ -273,10 +225,10 @@ pub enum PNGChunkData {
     },
 
     /// JNG image data
-    JDAT { data: Vec<u8> },
+    JDAT(Box<Vec<u8>>),
 
     /// JNG alpha data
-    JDAA { data: Vec<u8> },
+    JDAA(Box<Vec<u8>>),
 
     /// JNG image separator
     JSEP,
@@ -286,13 +238,13 @@ impl PNGChunkData {
     /// Return an iterator into the data of IDAT/fdAT/JDAT/JDAA chunks
     pub fn dat_data_iter(&self) -> Option<Iter<'_, u8>> {
         match self {
-            PNGChunkData::IDAT { data } => Some(data.iter()),
+            PNGChunkData::IDAT(data) => Some(data.iter()),
 
-            PNGChunkData::FDAT { frame_data, .. } => Some(frame_data.iter()),
+            PNGChunkData::FDAT(fdat) => Some(fdat.frame_data.iter()),
 
-            PNGChunkData::JDAT { data } => Some(data.iter()),
+            PNGChunkData::JDAT(data) => Some(data.iter()),
 
-            PNGChunkData::JDAA { data } => Some(data.iter()),
+            PNGChunkData::JDAA(data) => Some(data.iter()),
 
             _ => None,
         }
@@ -300,11 +252,8 @@ impl PNGChunkData {
 
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM {
-            white_x, white_y, ..
-        } = self
-        {
-            return Some((*white_x as f64 / 100000.0, *white_y as f64 / 100000.0));
+        if let PNGChunkData::CHRM(chrm) = self {
+            return Some(chrm.white_coords());
         }
 
         None
@@ -312,8 +261,8 @@ impl PNGChunkData {
 
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM { red_x, red_y, .. } = self {
-            return Some((*red_x as f64 / 100000.0, *red_y as f64 / 100000.0));
+        if let PNGChunkData::CHRM(chrm) = self {
+            return Some(chrm.red_coords());
         }
 
         None
@@ -321,11 +270,8 @@ impl PNGChunkData {
 
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM {
-            green_x, green_y, ..
-        } = self
-        {
-            return Some((*green_x as f64 / 100000.0, *green_y as f64 / 100000.0));
+        if let PNGChunkData::CHRM(chrm) = self {
+            return Some(chrm.green_coords());
         }
 
         None
@@ -333,8 +279,8 @@ impl PNGChunkData {
 
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM { blue_x, blue_y, .. } = self {
-            return Some((*blue_x as f64 / 100000.0, *blue_y as f64 / 100000.0));
+        if let PNGChunkData::CHRM(chrm) = self {
+            return Some(chrm.blue_coords());
         }
 
         None
@@ -351,32 +297,17 @@ impl PNGChunkData {
 
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Option<Vec<u8>> {
-        if let PNGChunkData::ICCP {
-            compression_method,
-            compressed_profile,
-            ..
-        } = self
-        {
-            if *compression_method == PNGCompressionMethod::Zlib {
-                return inflate_bytes_zlib(compressed_profile.as_slice()).ok();
-            }
+        if let PNGChunkData::ICCP(iccp) = self {
+            return iccp.profile();
+        } else {
+            None
         }
-
-        None
     }
 
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Option<String> {
-        if let PNGChunkData::ZTXT {
-            compression_method,
-            compressed_string,
-            ..
-        } = self
-        {
-            if *compression_method == PNGCompressionMethod::Zlib {
-                let bytes = inflate_bytes_zlib(compressed_string.as_slice()).ok()?;
-                return String::from_utf8(bytes).ok();
-            }
+        if let PNGChunkData::ZTXT(ztxt) = self {
+            return ztxt.string();
         }
 
         None
@@ -384,21 +315,8 @@ impl PNGChunkData {
 
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Option<String> {
-        if let PNGChunkData::ITXT {
-            compressed,
-            compression_method,
-            compressed_string,
-            ..
-        } = self
-        {
-            if *compressed {
-                if *compression_method == PNGCompressionMethod::Zlib {
-                    let bytes = inflate_bytes_zlib(compressed_string.as_slice()).ok()?;
-                    return String::from_utf8(bytes).ok();
-                }
-            } else {
-                return String::from_utf8(compressed_string.to_vec()).ok();
-            }
+        if let PNGChunkData::ITXT(itxt) = self {
+            return itxt.string();
         }
 
         None
@@ -450,19 +368,190 @@ impl PNGChunkData {
 
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Option<Time> {
-        if let PNGChunkData::FCTL {
-            delay_num,
-            delay_den,
-            ..
-        } = self
-        {
-            return Some(Time::new::<uom::si::time::second>(
-                *delay_num as f64 / *delay_den as f64,
-            ));
+        if let PNGChunkData::FCTL(fctl) = self {
+            return Some(fctl.delay());
         }
 
         None
     }
+}
+
+/// Primary chromaticities and white point
+///
+/// Values are scaled by 100000
+#[derive(Clone, Debug, Default)]
+pub struct CHRM {
+    pub white_x: u32,
+    pub white_y: u32,
+    pub red_x: u32,
+    pub red_y: u32,
+    pub green_x: u32,
+    pub green_y: u32,
+    pub blue_x: u32,
+    pub blue_y: u32,
+}
+
+impl CHRM {
+    /// Scaled white coordinates of the cHRM chunk
+    pub fn white_coords(&self) -> (f64, f64) {
+        (
+            self.white_x as f64 / 100000.0,
+            self.white_y as f64 / 100000.0,
+        )
+    }
+
+    /// Scaled red coordinates of the cHRM chunk
+    pub fn red_coords(&self) -> (f64, f64) {
+        (self.red_x as f64 / 100000.0, self.red_y as f64 / 100000.0)
+    }
+
+    /// Scaled green coordinates of the cHRM chunk
+    pub fn green_coords(&self) -> (f64, f64) {
+        (
+            self.green_x as f64 / 100000.0,
+            self.green_y as f64 / 100000.0,
+        )
+    }
+
+    /// Scaled blue coordinates of the cHRM chunk
+    pub fn blue_coords(&self) -> (f64, f64) {
+        (self.blue_x as f64 / 100000.0, self.blue_y as f64 / 100000.0)
+    }
+}
+
+/// Embedded ICC profile
+#[derive(Clone, Debug, Default)]
+pub struct ICCP {
+    pub name: String,
+    pub compression_method: PNGCompressionMethod,
+    pub compressed_profile: Vec<u8>,
+}
+
+impl ICCP {
+    pub fn profile(&self) -> Option<Vec<u8>> {
+        if self.compression_method == PNGCompressionMethod::Zlib {
+            inflate_bytes_zlib(self.compressed_profile.as_slice()).ok()
+        } else {
+            None
+        }
+    }
+}
+
+/// Textual data
+#[derive(Clone, Debug)]
+pub struct TEXT {
+    pub keyword: String,
+    pub string: String,
+}
+
+/// Compressed textual data
+#[derive(Clone, Debug, Default)]
+pub struct ZTXT {
+    pub keyword: String,
+    pub compression_method: PNGCompressionMethod,
+    pub compressed_string: Vec<u8>,
+}
+
+impl ZTXT {
+    /// Decompress the compressed string in a zTXt chunk
+    pub fn string(&self) -> Option<String> {
+        if self.compression_method == PNGCompressionMethod::Zlib {
+            let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
+            return String::from_utf8(bytes).ok();
+        }
+
+        None
+    }
+}
+
+/// International textual data
+#[derive(Clone, Debug, Default)]
+pub struct ITXT {
+    pub keyword: String,
+    pub compressed: bool,
+    pub compression_method: PNGCompressionMethod,
+    pub language: String,
+    pub translated_keyword: String,
+    pub compressed_string: Vec<u8>,
+}
+
+impl ITXT {
+    /// Decompress the compressed string in an iTXt chunk
+    pub fn string(&self) -> Option<String> {
+        if self.compressed {
+            if self.compression_method == PNGCompressionMethod::Zlib {
+                let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
+                String::from_utf8(bytes).ok()
+            } else {
+                None
+            }
+        } else {
+            String::from_utf8(self.compressed_string.to_vec()).ok()
+        }
+    }
+}
+
+/// Suggested palette
+#[derive(Clone, Debug, Default)]
+pub struct SPLT {
+    pub name: String,
+    pub depth: u8,
+    pub palette: Vec<PNGSuggestedPaletteEntry>,
+}
+
+/// Calibration of pixel values
+#[derive(Clone, Debug, Default)]
+pub struct PCAL {
+    pub name: String,
+    pub original_zero: u32,
+    pub original_max: u32,
+    pub equation_type: u8,
+    pub unit_name: String,
+    pub parameters: Vec<String>,
+}
+
+/// Physical scale of image subject
+#[derive(Clone, Debug)]
+pub struct SCAL {
+    pub unit: PNGUnitType,
+    pub pixel_width: String,
+    pub pixel_height: String,
+}
+
+/// GIF Application Extension
+#[derive(Clone, Debug)]
+pub struct GIFX {
+    pub app_id: String,
+    pub app_code: [u8; 3],
+    pub app_data: Vec<u8>,
+}
+
+/// Frame control
+#[derive(Clone, Debug)]
+pub struct FCTL {
+    pub sequence_number: u32,
+    pub width: u32,
+    pub height: u32,
+    pub x_offset: u32,
+    pub y_offset: u32,
+    pub delay_num: u16,
+    pub delay_den: u16,
+    pub dispose_op: APNGDisposalOperator,
+    pub blend_op: APNGBlendOperator,
+}
+
+impl FCTL {
+    /// Calculate delay from fcTL chunk in seconds
+    pub fn delay(&self) -> Time {
+        Time::new::<uom::si::time::second>(self.delay_num as f64 / self.delay_den as f64)
+    }
+}
+
+/// Frame data
+#[derive(Clone, Debug)]
+pub struct FDAT {
+    pub sequence_number: u32,
+    pub frame_data: Vec<u8>,
 }
 
 /// Reference to a chunk in a PNG file
@@ -596,8 +685,8 @@ impl PNGChunkRef {
                 })
             }
 
-            b"PLTE" => Ok(PNGChunkData::PLTE {
-                entries: (0..self.length / 3)
+            b"PLTE" => Ok(PNGChunkData::PLTE(Box::new(
+                (0..self.length / 3)
                     .map(|_| {
                         let mut buf = [0_u8; 3];
                         chunkstream.read_exact(&mut buf)?;
@@ -609,14 +698,14 @@ impl PNGChunkRef {
                         })
                     })
                     .collect::<Result<Vec<_>, std::io::Error>>()?,
-            }),
+            ))),
 
             b"IDAT" => {
                 let mut data = Vec::with_capacity(self.length as usize);
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::IDAT { data })
+                Ok(PNGChunkData::IDAT(Box::new(data)))
             }
 
             b"IEND" => Ok(PNGChunkData::IEND),
@@ -697,7 +786,7 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::CHRM {
+                Ok(PNGChunkData::CHRM(Box::new(CHRM {
                     white_x: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
                     white_y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
                     red_x: u32::from_be_bytes(data[8..12].try_into().map_err(to_io_error)?),
@@ -706,7 +795,7 @@ impl PNGChunkRef {
                     green_y: u32::from_be_bytes(data[20..24].try_into().map_err(to_io_error)?),
                     blue_x: u32::from_be_bytes(data[24..28].try_into().map_err(to_io_error)?),
                     blue_y: u32::from_be_bytes(data[28..32].try_into().map_err(to_io_error)?),
-                })
+                })))
             }
 
             b"iCCP" => {
@@ -715,11 +804,11 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let name_end = find_null(&data);
-                Ok(PNGChunkData::ICCP {
+                Ok(PNGChunkData::ICCP(Box::new(ICCP {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     compression_method: data[name_end].try_into().map_err(to_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
-                })
+                })))
             }
 
             b"sBIT" => {
@@ -817,12 +906,12 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let keyword_end = find_null(&data);
-                Ok(PNGChunkData::TEXT {
+                Ok(PNGChunkData::TEXT(Box::new(TEXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     string: String::from_utf8(data[keyword_end + 1..].to_vec())
                         .map_err(to_io_error)?,
-                })
+                })))
             }
 
             b"zTXt" => {
@@ -831,12 +920,12 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let keyword_end = find_null(&data);
-                Ok(PNGChunkData::ZTXT {
+                Ok(PNGChunkData::ZTXT(Box::new(ZTXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
-                })
+                })))
             }
 
             b"iTXt" => {
@@ -848,7 +937,7 @@ impl PNGChunkRef {
                 let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
                 let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
 
-                Ok(PNGChunkData::ITXT {
+                Ok(PNGChunkData::ITXT(Box::new(ITXT {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     compressed: data[keyword_end + 1] > 0,
@@ -860,7 +949,7 @@ impl PNGChunkRef {
                     )
                     .map_err(to_io_error)?,
                     compressed_string: data[tkeyword_end + 1..].to_vec(),
-                })
+                })))
             }
 
             b"bKGD" => {
@@ -939,8 +1028,8 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::HIST {
-                    frequencies: (0..self.length / 2)
+                Ok(PNGChunkData::HIST(Box::new(
+                    (0..self.length / 2)
                         .map(|n| {
                             let start = n as usize * 2;
                             Ok(u16::from_be_bytes(
@@ -948,7 +1037,7 @@ impl PNGChunkRef {
                             ))
                         })
                         .collect::<Result<Vec<_>, std::io::Error>>()?,
-                })
+                )))
             }
 
             b"pHYs" => {
@@ -972,7 +1061,7 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut profile)?;
                 data_crc.consume(&profile);
 
-                Ok(PNGChunkData::EXIF { profile })
+                Ok(PNGChunkData::EXIF(Box::new(profile)))
             }
 
             b"sPLT" => {
@@ -985,7 +1074,7 @@ impl PNGChunkRef {
                 let entry_size = ((depth / 8) * 4) + 2;
                 let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
 
-                Ok(PNGChunkData::SPLT {
+                Ok(PNGChunkData::SPLT(Box::new(SPLT {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     depth,
                     palette: (0..num_entries)
@@ -1032,7 +1121,7 @@ impl PNGChunkRef {
                             }
                         })
                         .collect::<Result<Vec<_>, std::io::Error>>()?,
-                })
+                })))
             }
 
             b"tIME" => {
@@ -1067,7 +1156,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::FCTL {
+                Ok(PNGChunkData::FCTL(Box::new(FCTL {
                     sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     width: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                     height: u32::from_be_bytes(buf[8..12].try_into().map_err(to_io_error)?),
@@ -1077,7 +1166,7 @@ impl PNGChunkRef {
                     delay_den: u16::from_be_bytes(buf[22..24].try_into().map_err(to_io_error)?),
                     dispose_op: buf[24].try_into().map_err(to_io_error)?,
                     blend_op: buf[24].try_into().map_err(to_io_error)?,
-                })
+                })))
             }
 
             b"fdAT" => {
@@ -1085,10 +1174,10 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::FDAT {
+                Ok(PNGChunkData::FDAT(Box::new(FDAT {
                     sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     frame_data: buf[4..].to_vec(),
-                })
+                })))
             }
 
             // Extensions
@@ -1125,7 +1214,7 @@ impl PNGChunkRef {
                     prev_end = param_end;
                 }
 
-                Ok(PNGChunkData::PCAL {
+                Ok(PNGChunkData::PCAL(Box::new(PCAL {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     original_zero: u32::from_be_bytes(
                         data[name_end..name_end + 4]
@@ -1141,7 +1230,7 @@ impl PNGChunkRef {
                     unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec())
                         .map_err(to_io_error)?,
                     parameters,
-                })
+                })))
             }
 
             b"sCAL" => {
@@ -1152,13 +1241,13 @@ impl PNGChunkRef {
                 let width_end = find_null(&data[1..]) + 1;
                 let height_end = find_null(&data[width_end..]) + width_end;
 
-                Ok(PNGChunkData::SCAL {
+                Ok(PNGChunkData::SCAL(Box::new(SCAL {
                     unit: data[0].try_into().map_err(to_io_error)?,
                     pixel_width: String::from_utf8(data[1..width_end].to_vec())
                         .map_err(to_io_error)?,
                     pixel_height: String::from_utf8(data[width_end..height_end].to_vec())
                         .map_err(to_io_error)?,
-                })
+                })))
             }
 
             b"gIFg" => {
@@ -1178,11 +1267,11 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::GIFX {
+                Ok(PNGChunkData::GIFX(Box::new(GIFX {
                     app_id: String::from_utf8(data[0..8].to_vec()).map_err(to_io_error)?,
                     app_code: [data[8], data[9], data[10]],
                     app_data: data[11..].to_vec(),
-                })
+                })))
             }
 
             b"sTER" => {
@@ -1218,7 +1307,7 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::JDAT { data })
+                Ok(PNGChunkData::JDAT(Box::new(data)))
             }
 
             b"JDAA" => {
@@ -1226,7 +1315,7 @@ impl PNGChunkRef {
                 chunkstream.read_to_end(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::JDAA { data })
+                Ok(PNGChunkData::JDAA(Box::new(data)))
             }
 
             b"JSEP" => Ok(PNGChunkData::JSEP),
