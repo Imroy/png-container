@@ -103,9 +103,9 @@ pub enum PNGChunkData {
 
     /// Coding-independent code points for video signal type identification
     CICP {
-        colour_primaries: u8,
-        transfer_function: u8,
-        matrix_coeffs: u8,
+        colour_primaries: ColourPrimaries,
+        transfer_function: TransferFunction,
+        matrix_coeffs: MatrixCoefficients,
         video_full_range: bool,
     },
 
@@ -893,9 +893,9 @@ impl PNGChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PNGChunkData::CICP {
-                    colour_primaries: buf[0],
-                    transfer_function: buf[1],
-                    matrix_coeffs: buf[2],
+                    colour_primaries: buf[0].into(),
+                    transfer_function: buf[1].into(),
+                    matrix_coeffs: buf[2].into(),
                     video_full_range: buf[3] > 0,
                 })
             }

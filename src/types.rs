@@ -19,7 +19,7 @@
 /*! PNG types
  */
 
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 
 /// All of the different file types based on PNG
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -180,6 +180,298 @@ pub struct PNGSuggestedPaletteEntry {
     pub blue: u16,
     pub alpha: u16,
     pub frequency: u16,
+}
+
+/// H.273 colour primaries
+#[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive)]
+#[repr(u8)]
+pub enum ColourPrimaries {
+    /// Rec. ITU-R BT.709-6\
+    /// Rec. ITU-R BT.1361-0 conventional colour gamut\
+    /// system and extended colour gamut system (historical)\
+    /// IEC 61966-2-1 sRGB or sYCC\
+    /// IEC 61966-2-4\
+    /// SMPTE RP 177 Annex B
+    BT709 = 1,
+
+    /// Image characteristics are unknown or are determined by the application.
+    Unspecified = 2,
+
+    /// Rec. ITU-R BT.470-6 System M (historical)\
+    /// United States National Television System Committee\
+    /// 1953 Recommendation for transmission standards for color television\
+    /// United States Federal Communications Commission (2003) Title 47 Code of Federal Regulations 73.682 (a) (20)
+    SystemM = 4,
+
+    /// Rec. ITU-R BT.470-6 System B, G (historical)\
+    /// Rec. ITU-R BT.601-7 625\
+    /// Rec. ITU-R BT.1358-0 625 (historical)\
+    /// Rec. ITU-R BT.1700-0 625 PAL and 625 SECAM
+    SystemBG = 5,
+
+    /// Rec. ITU-R BT.601-7 525\
+    /// Rec. ITU-R BT.1358-1 525 or 625 (historical)\
+    /// Rec. ITU-R BT.1700-0 NTSC\
+    /// SMPTE ST 170\
+    /// (functionally the same as the value 7)
+    BT601 = 6,
+
+    /// SMPTE ST 240\
+    /// (functionally the same as the value 6)
+    ST240 = 7,
+
+    /// Generic film (colour filters using Illuminant C)
+    GenericFilm = 8,
+
+    /// Rec. ITU-R BT.2020-2\
+    /// Rec. ITU-R BT.2100-2
+    BT2020 = 9,
+
+    /// SMPTE ST 428-1\
+    /// (CIE 1931 XYZ as in ISO/CIE 11664-1)
+    ST428 = 10,
+
+    /// SMPTE RP 431-2
+    RP431 = 11,
+
+    /// SMPTE EG 432-1
+    EG432 = 12,
+
+    /// No corresponding industry specification identified
+    NoSpec = 22,
+
+    /// For future use by ITU-T | ISO/IEC
+    #[num_enum(catch_all)]
+    Reserved(u8),
+}
+
+impl ColourPrimaries {
+    /// Scaled red coordinates of the primary
+    pub fn red_coords(self) -> (f64, f64) {
+        match self {
+            ColourPrimaries::BT709 => (0.64, 0.33),
+            ColourPrimaries::SystemM => (0.67, 0.33),
+            ColourPrimaries::SystemBG => (0.64, 0.33),
+            ColourPrimaries::BT601 => (0.63, 0.34),
+            ColourPrimaries::ST240 => (0.63, 0.34),
+            ColourPrimaries::GenericFilm => (0.681, 0.319),
+            ColourPrimaries::BT2020 => (0.708, 0.292),
+            ColourPrimaries::ST428 => (1.0, 0.0),
+            ColourPrimaries::RP431 => (0.68, 0.32),
+            ColourPrimaries::EG432 => (0.68, 0.32),
+            ColourPrimaries::NoSpec => (0.63, 0.34),
+
+            ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
+        }
+    }
+
+    /// Scaled green coordinates of the primary
+    pub fn green_coords(self) -> (f64, f64) {
+        match self {
+            ColourPrimaries::BT709 => (0.3, 0.6),
+            ColourPrimaries::SystemM => (0.21, 0.71),
+            ColourPrimaries::SystemBG => (0.29, 0.60),
+            ColourPrimaries::BT601 => (0.31, 0.595),
+            ColourPrimaries::ST240 => (0.31, 0.595),
+            ColourPrimaries::GenericFilm => (0.243, 0.692),
+            ColourPrimaries::BT2020 => (0.17, 0.797),
+            ColourPrimaries::ST428 => (0.0, 1.0),
+            ColourPrimaries::RP431 => (0.265, 0.69),
+            ColourPrimaries::EG432 => (0.265, 0.69),
+            ColourPrimaries::NoSpec => (0.295, 0.605),
+
+            ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
+        }
+    }
+
+    /// Scaled blue coordinates of the primary
+    pub fn blue_coords(self) -> (f64, f64) {
+        match self {
+            ColourPrimaries::BT709 => (0.15, 0.06),
+            ColourPrimaries::SystemM => (0.14, 0.08),
+            ColourPrimaries::SystemBG => (0.15, 0.06),
+            ColourPrimaries::BT601 => (0.155, 0.07),
+            ColourPrimaries::ST240 => (0.155, 0.07),
+            ColourPrimaries::GenericFilm => (0.145, 0.049),
+            ColourPrimaries::BT2020 => (0.131, 0.046),
+            ColourPrimaries::ST428 => (0.0, 0.0),
+            ColourPrimaries::RP431 => (0.15, 0.06),
+            ColourPrimaries::EG432 => (0.15, 0.06),
+            ColourPrimaries::NoSpec => (0.155, 0.077),
+
+            ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
+        }
+    }
+
+    /// Scaled white coordinates of the primary
+    pub fn white_coords(self) -> (f64, f64) {
+        match self {
+            ColourPrimaries::BT709 => (0.3127, 0.329),
+            ColourPrimaries::SystemM => (0.31, 0.316),
+            ColourPrimaries::SystemBG => (0.3127, 0.329),
+            ColourPrimaries::BT601 => (0.3127, 0.329),
+            ColourPrimaries::ST240 => (0.3127, 0.329),
+            ColourPrimaries::GenericFilm => (0.31, 0.316),
+            ColourPrimaries::BT2020 => (0.3127, 0.329),
+            ColourPrimaries::ST428 => (1.0/3.0, 1.0/3.0),
+            ColourPrimaries::RP431 => (0.314, 0.351),
+            ColourPrimaries::EG432 => (0.3127, 0.329),
+            ColourPrimaries::NoSpec => (0.3127, 0.329),
+
+            ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
+        }
+    }
+
+}
+
+/// H.273 transfer functions
+#[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive)]
+#[repr(u8)]
+pub enum TransferFunction {
+    /// Rec. ITU-R BT.709-6\
+    /// Rec. ITU-R BT.1361-0 conventional colour gamut system (historical)\
+    /// (functionally the same as the values 6, 14 and 15)
+    BT709 = 1,
+
+    /// Image characteristics are unknown or are determined by the application.
+    Unspecified = 2,
+
+    /// Rec. ITU-R BT.470-6 System M (historical)\
+    /// United States National Television System Committee 1953\
+    /// Recommendation for transmission standards for color television\
+    /// United States Federal Communications Commission (2003) Title 47 Code of\
+    /// Federal Regulations 73.682 (a) (20) Rec. ITU-R BT.1700-0 625 PAL and 625 SECAM
+    SystemM = 4,
+
+    /// Rec. ITU-R BT.470-6 System B, G (historical)
+    SystemBG = 5,
+
+    /// Rec. ITU-R BT.601-7 525 or 625\
+    /// Rec. ITU-R BT.1358-1 525 or 625 (historical)\
+    /// Rec. ITU-R BT.1700-0 NTSC\
+    /// SMPTE ST 170\
+    /// (functionally the same as the values 1, 14 and 15)
+    BT601 = 6,
+
+    /// SMPTE ST 240
+    ST240 = 7,
+
+    /// Linear transfer characteristics
+    Linear = 8,
+
+    /// Logarithmic transfer characteristic (100:1 range)
+    Log100 = 9,
+
+    /// Logarithmic transfer characteristic (100 * Sqrt( 10 ) : 1 range)
+    Log316 = 10,
+
+    /// IEC 61966-2-4
+    IEC61966 = 11,
+
+    /// Rec. ITU-R BT.1361-0 extended colour gamut system (historical)
+    BT1361 = 12,
+
+    /// IEC 61966-2-1 sRGB (with MatrixCoefficients equal to 0)\
+    /// IEC 61966-2-1 sYCC (with MatrixCoefficients equal to 5)
+    SrgbSycc = 13,
+
+    /// Rec. ITU-R BT.2020-2 (10-bit system)\
+    /// (functionally the same as the values 1, 6 and 15)
+    BT2020_10b = 14,
+
+    /// Rec. ITU-R BT.2020-2 (12-bit system)\
+    /// (functionally the same as the values 1, 6 and 14)
+    BT2020_12b = 15,
+
+    /// SMPTE ST 2084 for 10-, 12-, 14- and 16-bit systems\
+    /// Rec. ITU-R BT.2100-2 perceptual quantization (PQ) system
+    ST2084 = 16,
+
+    /// SMPTE ST 428-1
+    ST428 = 17,
+
+    /// ARIB STD-B67\
+    /// Rec. ITU-R BT.2100-2 hybrid log-gamma (HLG) system
+    HLG = 18,
+
+    /// For future use by ITU-T | ISO/IEC
+    #[num_enum(catch_all)]
+    Reserved(u8),
+}
+
+/// H.273 matrix coefficients
+#[derive(Clone, Copy, Debug, IntoPrimitive, FromPrimitive)]
+#[repr(u8)]
+pub enum MatrixCoefficients {
+    /// The identity matrix.\
+    /// Typically used for GBR (often referred to as RGB); however, may also be used for YZX (often referred to as XYZ);\
+    /// IEC 61966-2-1 sRGB\
+    /// SMPTE ST 428-1
+    Identity = 0,
+
+    /// Rec. ITU-R BT.709-6\
+    /// Rec. ITU-R BT.1361-0 conventional colour gamut system and extended colour gamut system (historical)\
+    /// IEC 61966-2-4 xvYCC709\
+    /// SMPTE RP 177 Annex B
+    BT709 = 1,
+
+    /// Image characteristics are unknown or are determined by the application
+    Unspecified = 2,
+
+    /// United States Federal Communications Commission (2003) Title 47 Code of
+    /// Federal Regulations 73.682 (a) (20)
+    Title47 = 4,
+
+    /// Rec. ITU-R BT.470-6 System B, G (historical)\
+    /// Rec. ITU-R BT.601-7 625\
+    /// Rec. ITU-R BT.1358-0 625 (historical)\
+    /// Rec. ITU-R BT.1700-0 625 PAL and 625 SECAM\
+    /// IEC 61966-2-1 sYCC\
+    /// IEC 61966-2-4 xvYCC601\
+    /// (functionally the same as the value 6)
+    SystemBG = 5,
+
+    /// Rec. ITU-R BT.601-7 525\
+    /// Rec. ITU-R BT.1358-1 525 or 625 (historical)\
+    /// Rec. ITU-R BT.1700-0 NTSC\
+    /// SMPTE ST 170\
+    /// (functionally the same as the value 5)
+    BT601 = 6,
+
+    /// SMPTE ST 240
+    ST240 = 7,
+
+    YCgCo = 8,
+
+    /// Rec. ITU-R BT.2020-2 (non-constant luminance)\
+    /// Rec. ITU-R BT.2100-2 Y′CbCr
+    Bt2020NonConstLum = 9,
+
+    /// Rec. ITU-R BT.2020-2 (constant luminance)
+    Bt2020ConstLum = 10,
+
+    /// SMPTE ST 2085
+    ST2085 = 11,
+
+    /// Chromaticity-derived non-constant luminance system
+    ChromaNonConstLum = 12,
+
+    /// Chromaticity-derived constant luminance system
+    ChromaConstLum = 13,
+
+    /// Rec. ITU-R BT.2100-2 ICTCP
+    BT2100 = 14,
+
+    /// Colour representation developed in SMPTE as IPT-PQ-C2.
+    IptPqC2 = 15,
+
+    YCgCoRe = 16,
+
+    YCgCoRo = 17,
+
+    /// For future use by ITU-T | ISO/IEC
+    #[num_enum(catch_all)]
+    Reserved(u8),
 }
 
 /// Disposal operators in the "fcTL" chunk
