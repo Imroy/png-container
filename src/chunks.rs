@@ -26,8 +26,9 @@ use std::str;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use inflate::inflate_bytes_zlib;
 use uom::si::{
-    f64::{LinearNumberDensity, Time},
+    f64::{LinearNumberDensity, Luminance, Time},
     linear_number_density::per_meter,
+    luminance::candela_per_square_meter,
 };
 
 use crate::crc::*;
@@ -109,8 +110,13 @@ pub enum PNGChunkData {
         video_full_range: bool,
     },
 
-    // Textual information
+    /// Mastering Display Color Volume
+    MDCV(Box<MDCV>),
 
+    /// Content Light Level Information
+    CLLI(Box<CLLI>),
+
+    // Textual information
     /// Textual data
     TEXT(Box<TEXT>),
 
@@ -416,6 +422,75 @@ impl CHRM {
     /// Scaled blue coordinates of the cHRM chunk
     pub fn blue_coords(&self) -> (f64, f64) {
         (self.blue_x as f64 / 100000.0, self.blue_y as f64 / 100000.0)
+    }
+}
+
+/// Mastering Display Color Volume
+#[derive(Clone, Copy, Debug, Default)]
+pub struct MDCV {
+    pub red_x: u16,
+    pub red_y: u16,
+    pub green_x: u16,
+    pub green_y: u16,
+    pub blue_x: u16,
+    pub blue_y: u16,
+    pub white_x: u16,
+    pub white_y: u16,
+    pub max_lum: u32,
+    pub min_lum: u32,
+}
+
+impl MDCV {
+    /// Scaled red coordinates of the mDCV chunk
+    pub fn red_coords(&self) -> (f64, f64) {
+        (self.red_x as f64 / 50000.0, self.red_y as f64 / 50000.0)
+    }
+
+    /// Scaled green coordinates of the mDCV chunk
+    pub fn green_coords(&self) -> (f64, f64) {
+        (self.green_x as f64 / 50000.0, self.green_y as f64 / 50000.0)
+    }
+
+    /// Scaled blue coordinates of the mDCV chunk
+    pub fn blue_coords(&self) -> (f64, f64) {
+        (self.blue_x as f64 / 50000.0, self.blue_y as f64 / 50000.0)
+    }
+
+    /// Scaled white coordinates of the mDCV chunk
+    pub fn white_coords(&self) -> (f64, f64) {
+        (self.white_x as f64 / 50000.0, self.white_y as f64 / 50000.0)
+    }
+
+    /// Scaled mastering display maximum luminance of the mDCV chunk
+    pub fn max_lum(&self) -> Luminance {
+        Luminance::new::<candela_per_square_meter>(self.max_lum as f64 / 10000.0)
+    }
+
+    /// Scaled mastering display minimum luminance of the mDCV chunk
+    pub fn min_lum(&self) -> Luminance {
+        Luminance::new::<candela_per_square_meter>(self.min_lum as f64 / 10000.0)
+    }
+}
+
+/// Content Light Level Information
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CLLI {
+    /// Maximum Content Light Level
+    pub max_cll: u32,
+
+    /// Maximum Frame-Average Light Level
+    pub max_fall: u32,
+}
+
+impl CLLI {
+    /// Scaled maximum content light level
+    pub fn max_cll(&self) -> Luminance {
+        Luminance::new::<candela_per_square_meter>(self.max_cll as f64 / 10000.0)
+    }
+
+    /// Scaled maximum frame-average Light Level
+    pub fn max_fall(&self) -> Luminance {
+        Luminance::new::<candela_per_square_meter>(self.max_fall as f64 / 10000.0)
     }
 }
 
@@ -898,6 +973,36 @@ impl PNGChunkRef {
                     matrix_coeffs: buf[2].into(),
                     video_full_range: buf[3] > 0,
                 })
+            }
+
+            b"mDCV" => {
+                let mut buf = [0_u8; 24];
+                chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
+
+                Ok(PNGChunkData::MDCV(Box::new(MDCV {
+                    red_x: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
+                    red_y: u16::from_be_bytes(buf[2..4].try_into().map_err(to_io_error)?),
+                    green_x: u16::from_be_bytes(buf[4..6].try_into().map_err(to_io_error)?),
+                    green_y: u16::from_be_bytes(buf[6..8].try_into().map_err(to_io_error)?),
+                    blue_x: u16::from_be_bytes(buf[8..10].try_into().map_err(to_io_error)?),
+                    blue_y: u16::from_be_bytes(buf[10..12].try_into().map_err(to_io_error)?),
+                    white_x: u16::from_be_bytes(buf[12..14].try_into().map_err(to_io_error)?),
+                    white_y: u16::from_be_bytes(buf[14..16].try_into().map_err(to_io_error)?),
+                    max_lum: u32::from_be_bytes(buf[16..20].try_into().map_err(to_io_error)?),
+                    min_lum: u32::from_be_bytes(buf[20..24].try_into().map_err(to_io_error)?),
+                })))
+            }
+
+            b"cLLI" => {
+                let mut buf = [0_u8; 8];
+                chunkstream.read_exact(&mut buf)?;
+                data_crc.consume(&buf);
+
+                Ok(PNGChunkData::CLLI(Box::new(CLLI {
+                    max_cll: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
+                    max_fall: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
+                })))
             }
 
             b"tEXt" => {
