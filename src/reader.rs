@@ -25,7 +25,7 @@ use crate::chunks::*;
 use crate::types::*;
 
 /// A PNG/APNG file reader
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PNGSeekableReader<R> {
     /// Image file type
     ///

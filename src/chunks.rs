@@ -381,7 +381,7 @@ impl PNGChunkData {
 /// Primary chromaticities and white point
 ///
 /// Values are scaled by 100000
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct CHRM {
     pub white_x: u32,
     pub white_y: u32,
