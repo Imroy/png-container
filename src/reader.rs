@@ -45,7 +45,7 @@ pub struct PNGSeekableReader<R> {
     pub colour_type: PNGColourType,
 
     /// File stream we're reading from
-    pub stream: R,
+    stream: R,
 
     /// The IHDR chunk data
     pub ihdr: PNGChunkData,
