@@ -37,14 +37,14 @@ use crate::types::*;
 
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
-pub enum PNGChunkData {
+pub enum PngChunkData {
     /// Empty type
     None,
 
     // Critical chunks
 
     /// Image header
-    IHDR {
+    Ihdr {
         /// Width of image in pixels
         width: u32,
 
@@ -55,55 +55,53 @@ pub enum PNGChunkData {
         bit_depth: u8,
 
         /// Colour type
-        colour_type: PNGColourType,
+        colour_type: PngColourType,
 
         /// Compression method
-        compression_method: PNGCompressionMethod,
+        compression_method: PngCompressionMethod,
 
         /// Filter method
-        filter_method: PNGFilterMethod,
+        filter_method: PngFilterMethod,
 
         /// Interlace method
-        interlace_method: PNGInterlaceMethod,
+        interlace_method: PngInterlaceMethod,
     },
 
     /// Palette
-    PLTE(Box<Vec<PNGPaletteEntry>>),
+    Plte(Box<Vec<PngPaletteEntry>>),
 
     /// Image data
-    IDAT(Box<Vec<u8>>),
+    Idat(Box<Vec<u8>>),
 
     /// Image end
-    IEND,
+    Iend,
 
     // Transparency information
-
     /// Transparency
-    TRNS { data: PNGtRNSType },
+    Trns { data: PngTrnsType },
 
     // Colour space information
-
     /// Primary chromaticities and white point
-    CHRM(Box<CHRM>),
+    Chrm(Box<Chrm>),
 
     /// Image gamma
     ///
     /// Value is scaled by 100000
-    GAMA { gamma: u32 },
+    Gama { gamma: u32 },
 
     /// Embedded ICC profile
-    ICCP(Box<ICCP>),
+    Iccp(Box<Iccp>),
 
     /// Significant bits
-    SBIT { bits: PNGsBITType },
+    Sbit { bits: PngSbitType },
 
     /// Standard RGB colour space
-    SRGB {
-        rendering_intent: PNGRenderingIntent,
+    Srgb {
+        rendering_intent: PngRenderingIntent,
     },
 
     /// Coding-independent code points for video signal type identification
-    CICP {
+    Cicp {
         colour_primaries: ColourPrimaries,
         transfer_function: TransferFunction,
         matrix_coeffs: MatrixCoefficients,
@@ -111,46 +109,44 @@ pub enum PNGChunkData {
     },
 
     /// Mastering Display Color Volume
-    MDCV(Box<MDCV>),
+    Mdcv(Box<Mdcv>),
 
     /// Content Light Level Information
-    CLLI(Box<CLLI>),
+    Clli(Box<Clli>),
 
     // Textual information
     /// Textual data
-    TEXT(Box<TEXT>),
+    Text(Box<Text>),
 
     /// Compressed textual data
-    ZTXT(Box<ZTXT>),
+    Ztxt(Box<Ztxt>),
 
     /// International textual data
-    ITXT(Box<ITXT>),
+    Itxt(Box<Itxt>),
 
     // Miscellaneous information
-
     /// Background colour
-    BKGD { data: PNGbKGDType },
+    Bkgd { data: PngBkgdType },
 
     /// Image histogram
-    HIST(Box<Vec<u16>>),
+    Hist(Box<Vec<u16>>),
 
     /// Physical pixel dimensions
-    PHYS {
+    Phys {
         x_pixels_per_unit: u32,
         y_pixels_per_unit: u32,
-        unit: PNGUnitType,
+        unit: PngUnitType,
     },
 
     /// Suggested palette
-    SPLT(Box<SPLT>),
+    Splt(Box<Splt>),
 
     /// Exchangeable Image File (Exif) Profile
-    EXIF(Box<Vec<u8>>),
+    Exif(Box<Vec<u8>>),
 
     // Time stamp information
-
     /// Image last-modification time
-    TIME {
+    Time {
         year: u16,
         month: u8,
         day: u8,
@@ -160,26 +156,26 @@ pub enum PNGChunkData {
     },
 
     /// Animation control
-    ACTL { num_frames: u32, num_plays: u32 },
+    Actl { num_frames: u32, num_plays: u32 },
 
     /// Frame control
-    FCTL(Box<FCTL>),
+    Fctl(Box<Fctl>),
 
     /// Frame data
-    FDAT(Box<FDAT>),
+    Fdat(Box<Fdat>),
 
     // Extensions
     /// Image offset
-    OFFS { x: u32, y: u32, unit: PNGUnitType },
+    Offs { x: u32, y: u32, unit: PngUnitType },
 
     /// Calibration of pixel values
-    PCAL(Box<PCAL>),
+    Pcal(Box<Pcal>),
 
     /// Physical scale of image subject
-    SCAL(Box<SCAL>),
+    Scal(Box<Scal>),
 
     /// GIF Graphic Control Extension
-    GIFG {
+    Gifg {
         // TODO: make this an enum
         disposal_method: u8,
         user_input: bool,
@@ -187,14 +183,14 @@ pub enum PNGChunkData {
     },
 
     /// GIF Application Extension
-    GIFX(Box<GIFX>),
+    Gifx(Box<Gifx>),
 
     /// Indicator of Stereo Image
-    STER { mode: u8 },
+    Ster { mode: u8 },
 
     // JNG chunks
     /// JNG header
-    JHDR {
+    Jhdr {
         /// Width of image in pixels
         width: u32,
 
@@ -202,51 +198,51 @@ pub enum PNGChunkData {
         height: u32,
 
         /// Colour type
-        colour_type: JNGColourType,
+        colour_type: JngColourType,
 
         /// Image sample depth
-        image_sample_depth: JNGImageSampleDepth,
+        image_sample_depth: JngImageSampleDepth,
 
         /// Image compression method
-        image_compression_method: JNGCompressionType,
+        image_compression_method: JngCompressionType,
 
         /// Image interlace method
-        image_interlace_method: JNGInterlaceMethod,
+        image_interlace_method: JngInterlaceMethod,
 
         /// Alpha sample depth
-        alpha_sample_depth: JNGAlphaSampleDepth,
+        alpha_sample_depth: JngAlphaSampleDepth,
 
         /// Alpha compression method
-        alpha_compression_method: JNGCompressionType,
+        alpha_compression_method: JngCompressionType,
 
         /// Alpha channel filter method
-        alpha_filter_method: PNGFilterMethod,
+        alpha_filter_method: PngFilterMethod,
 
         /// Alpha interlace method
-        alpha_interlace_method: JNGInterlaceMethod,
+        alpha_interlace_method: JngInterlaceMethod,
     },
 
     /// JNG image data
-    JDAT(Box<Vec<u8>>),
+    Jdat(Box<Vec<u8>>),
 
     /// JNG alpha data
-    JDAA(Box<Vec<u8>>),
+    Jdaa(Box<Vec<u8>>),
 
     /// JNG image separator
-    JSEP,
+    Jsep,
 }
 
-impl PNGChunkData {
+impl PngChunkData {
     /// Return an iterator into the data of IDAT/fdAT/JDAT/JDAA chunks
     pub fn dat_data_iter(&self) -> Option<Iter<'_, u8>> {
         match self {
-            PNGChunkData::IDAT(data) => Some(data.iter()),
+            PngChunkData::Idat(data) => Some(data.iter()),
 
-            PNGChunkData::FDAT(fdat) => Some(fdat.frame_data.iter()),
+            PngChunkData::Fdat(fdat) => Some(fdat.frame_data.iter()),
 
-            PNGChunkData::JDAT(data) => Some(data.iter()),
+            PngChunkData::Jdat(data) => Some(data.iter()),
 
-            PNGChunkData::JDAA(data) => Some(data.iter()),
+            PngChunkData::Jdaa(data) => Some(data.iter()),
 
             _ => None,
         }
@@ -254,7 +250,7 @@ impl PNGChunkData {
 
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM(chrm) = self {
+        if let PngChunkData::Chrm(chrm) = self {
             return Some(chrm.white_coords());
         }
 
@@ -263,7 +259,7 @@ impl PNGChunkData {
 
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM(chrm) = self {
+        if let PngChunkData::Chrm(chrm) = self {
             return Some(chrm.red_coords());
         }
 
@@ -272,7 +268,7 @@ impl PNGChunkData {
 
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM(chrm) = self {
+        if let PngChunkData::Chrm(chrm) = self {
             return Some(chrm.green_coords());
         }
 
@@ -281,7 +277,7 @@ impl PNGChunkData {
 
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
-        if let PNGChunkData::CHRM(chrm) = self {
+        if let PngChunkData::Chrm(chrm) = self {
             return Some(chrm.blue_coords());
         }
 
@@ -290,7 +286,7 @@ impl PNGChunkData {
 
     /// Scaled gamma value of a gAMA chunk
     pub fn gama_gamma(&self) -> Option<f64> {
-        if let PNGChunkData::GAMA { gamma } = self {
+        if let PngChunkData::Gama { gamma } = self {
             return Some(*gamma as f64 / 100000.0);
         }
 
@@ -299,7 +295,7 @@ impl PNGChunkData {
 
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Option<Vec<u8>> {
-        if let PNGChunkData::ICCP(iccp) = self {
+        if let PngChunkData::Iccp(iccp) = self {
             iccp.profile()
         } else {
             None
@@ -308,7 +304,7 @@ impl PNGChunkData {
 
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Option<String> {
-        if let PNGChunkData::ZTXT(ztxt) = self {
+        if let PngChunkData::Ztxt(ztxt) = self {
             return ztxt.string();
         }
 
@@ -317,7 +313,7 @@ impl PNGChunkData {
 
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Option<String> {
-        if let PNGChunkData::ITXT(itxt) = self {
+        if let PngChunkData::Itxt(itxt) = self {
             return itxt.string();
         }
 
@@ -326,16 +322,16 @@ impl PNGChunkData {
 
     /// Convert the units in a pHYs chunk to a UoM type
     pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
-        if let PNGChunkData::PHYS {
+        if let PngChunkData::Phys {
             x_pixels_per_unit,
             y_pixels_per_unit,
             unit,
         } = self
         {
             return match unit {
-                PNGUnitType::Unknown => None,
+                PngUnitType::Unknown => None,
 
-                PNGUnitType::Metre => Some((
+                PngUnitType::Metre => Some((
                     LinearNumberDensity::new::<per_meter>(*x_pixels_per_unit as f64),
                     LinearNumberDensity::new::<per_meter>(*y_pixels_per_unit as f64),
                 )),
@@ -347,7 +343,7 @@ impl PNGChunkData {
 
     /// Convert the timestamp in a tIME chunk to a chrono DateTime object
     pub fn time(&self) -> Option<DateTime<Utc>> {
-        if let PNGChunkData::TIME {
+        if let PngChunkData::Time {
             year,
             month,
             day,
@@ -370,7 +366,7 @@ impl PNGChunkData {
 
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Option<Time> {
-        if let PNGChunkData::FCTL(fctl) = self {
+        if let PngChunkData::Fctl(fctl) = self {
             return Some(fctl.delay());
         }
 
@@ -382,7 +378,7 @@ impl PNGChunkData {
 ///
 /// Values are scaled by 100000
 #[derive(Clone, Copy, Debug, Default)]
-pub struct CHRM {
+pub struct Chrm {
     pub white_x: u32,
     pub white_y: u32,
     pub red_x: u32,
@@ -393,7 +389,7 @@ pub struct CHRM {
     pub blue_y: u32,
 }
 
-impl CHRM {
+impl Chrm {
     /// Scaled white coordinates of the cHRM chunk
     pub fn white_coords(&self) -> (f64, f64) {
         (
@@ -423,7 +419,7 @@ impl CHRM {
 
 /// Mastering Display Color Volume
 #[derive(Clone, Copy, Debug, Default)]
-pub struct MDCV {
+pub struct Mdcv {
     pub red_x: u16,
     pub red_y: u16,
     pub green_x: u16,
@@ -436,7 +432,7 @@ pub struct MDCV {
     pub min_lum: u32,
 }
 
-impl MDCV {
+impl Mdcv {
     /// Scaled red coordinates of the mDCV chunk
     pub fn red_coords(&self) -> (f64, f64) {
         (self.red_x as f64 / 50000.0, self.red_y as f64 / 50000.0)
@@ -470,7 +466,7 @@ impl MDCV {
 
 /// Content Light Level Information
 #[derive(Clone, Copy, Debug, Default)]
-pub struct CLLI {
+pub struct Clli {
     /// Maximum Content Light Level
     pub max_cll: u32,
 
@@ -478,7 +474,7 @@ pub struct CLLI {
     pub max_fall: u32,
 }
 
-impl CLLI {
+impl Clli {
     /// Scaled maximum content light level
     pub fn max_cll(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.max_cll as f64 / 10000.0)
@@ -492,15 +488,15 @@ impl CLLI {
 
 /// Embedded ICC profile
 #[derive(Clone, Debug, Default)]
-pub struct ICCP {
+pub struct Iccp {
     pub name: String,
-    pub compression_method: PNGCompressionMethod,
+    pub compression_method: PngCompressionMethod,
     pub compressed_profile: Vec<u8>,
 }
 
-impl ICCP {
+impl Iccp {
     pub fn profile(&self) -> Option<Vec<u8>> {
-        if self.compression_method == PNGCompressionMethod::Zlib {
+        if self.compression_method == PngCompressionMethod::Zlib {
             inflate_bytes_zlib(self.compressed_profile.as_slice()).ok()
         } else {
             None
@@ -510,23 +506,23 @@ impl ICCP {
 
 /// Textual data
 #[derive(Clone, Debug)]
-pub struct TEXT {
+pub struct Text {
     pub keyword: String,
     pub string: String,
 }
 
 /// Compressed textual data
 #[derive(Clone, Debug, Default)]
-pub struct ZTXT {
+pub struct Ztxt {
     pub keyword: String,
-    pub compression_method: PNGCompressionMethod,
+    pub compression_method: PngCompressionMethod,
     pub compressed_string: Vec<u8>,
 }
 
-impl ZTXT {
+impl Ztxt {
     /// Decompress the compressed string in a zTXt chunk
     pub fn string(&self) -> Option<String> {
-        if self.compression_method == PNGCompressionMethod::Zlib {
+        if self.compression_method == PngCompressionMethod::Zlib {
             let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
             return String::from_utf8(bytes).ok();
         }
@@ -537,20 +533,20 @@ impl ZTXT {
 
 /// International textual data
 #[derive(Clone, Debug, Default)]
-pub struct ITXT {
+pub struct Itxt {
     pub keyword: String,
     pub compressed: bool,
-    pub compression_method: PNGCompressionMethod,
+    pub compression_method: PngCompressionMethod,
     pub language: String,
     pub translated_keyword: String,
     pub compressed_string: Vec<u8>,
 }
 
-impl ITXT {
+impl Itxt {
     /// Decompress the compressed string in an iTXt chunk
     pub fn string(&self) -> Option<String> {
         if self.compressed {
-            if self.compression_method == PNGCompressionMethod::Zlib {
+            if self.compression_method == PngCompressionMethod::Zlib {
                 let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
                 String::from_utf8(bytes).ok()
             } else {
@@ -564,15 +560,15 @@ impl ITXT {
 
 /// Suggested palette
 #[derive(Clone, Debug, Default)]
-pub struct SPLT {
+pub struct Splt {
     pub name: String,
     pub depth: u8,
-    pub palette: Vec<PNGSuggestedPaletteEntry>,
+    pub palette: Vec<PngSuggestedPaletteEntry>,
 }
 
 /// Calibration of pixel values
 #[derive(Clone, Debug, Default)]
-pub struct PCAL {
+pub struct Pcal {
     pub name: String,
     pub original_zero: u32,
     pub original_max: u32,
@@ -583,15 +579,15 @@ pub struct PCAL {
 
 /// Physical scale of image subject
 #[derive(Clone, Debug)]
-pub struct SCAL {
-    pub unit: PNGUnitType,
+pub struct Scal {
+    pub unit: PngUnitType,
     pub pixel_width: String,
     pub pixel_height: String,
 }
 
 /// GIF Application Extension
 #[derive(Clone, Debug)]
-pub struct GIFX {
+pub struct Gifx {
     pub app_id: String,
     pub app_code: [u8; 3],
     pub app_data: Vec<u8>,
@@ -599,7 +595,7 @@ pub struct GIFX {
 
 /// Frame control
 #[derive(Clone, Debug)]
-pub struct FCTL {
+pub struct Fctl {
     pub sequence_number: u32,
     pub width: u32,
     pub height: u32,
@@ -607,11 +603,11 @@ pub struct FCTL {
     pub y_offset: u32,
     pub delay_num: u16,
     pub delay_den: u16,
-    pub dispose_op: APNGDisposalOperator,
-    pub blend_op: APNGBlendOperator,
+    pub dispose_op: ApngDisposalOperator,
+    pub blend_op: ApngBlendOperator,
 }
 
-impl FCTL {
+impl Fctl {
     /// Calculate delay from fcTL chunk in seconds
     pub fn delay(&self) -> Time {
         Time::new::<uom::si::time::second>(self.delay_num as f64 / self.delay_den as f64)
@@ -620,14 +616,14 @@ impl FCTL {
 
 /// Frame data
 #[derive(Clone, Debug)]
-pub struct FDAT {
+pub struct Fdat {
     pub sequence_number: u32,
     pub frame_data: Vec<u8>,
 }
 
 /// Reference to a chunk in a PNG file
 #[derive(Copy, Clone, Debug, Default)]
-pub struct PNGChunkRef {
+pub struct PngChunkRef {
     /// The position in the stream/file for this chunk
     pub position: u64,
 
@@ -645,7 +641,7 @@ fn find_null(bytes: &[u8]) -> usize {
         .unwrap_or(bytes.len())
 }
 
-impl PNGChunkRef {
+impl PngChunkRef {
     /// Read the length and type of a chunk from a [Read]'able stream to make a chunk reference
     ///
     /// This leaves the stream at the start of chunk data.
@@ -728,14 +724,14 @@ impl PNGChunkRef {
         }
     }
 
-    /// Read the chunk data and parse it into a PNGChunkData enum
+    /// Read the chunk data and parse it into a PngChunkData enum
     ///
     /// This also checks the chunk CRC value.
-    pub fn read_chunk<R>(
+    pub(crate) fn read_chunk<R>(
         &self,
         stream: &mut R,
-        ihdr: Option<&PNGChunkData>,
-    ) -> Result<PNGChunkData, std::io::Error>
+        ihdr: Option<&PngChunkData>,
+    ) -> Result<PngChunkData, std::io::Error>
     where
         R: Read + Seek,
     {
@@ -751,7 +747,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::IHDR {
+                Ok(PngChunkData::Ihdr {
                     width: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     height: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                     bit_depth: buf[8],
@@ -762,13 +758,13 @@ impl PNGChunkRef {
                 })
             }
 
-            b"PLTE" => Ok(PNGChunkData::PLTE(Box::new(
+            b"PLTE" => Ok(PngChunkData::Plte(Box::new(
                 (0..self.length / 3)
                     .map(|_| {
                         let mut buf = [0_u8; 3];
                         chunkstream.read_exact(&mut buf)?;
                         data_crc.consume(&buf);
-                        Ok(PNGPaletteEntry {
+                        Ok(PngPaletteEntry {
                             red: buf[0],
                             green: buf[1],
                             blue: buf[2],
@@ -782,37 +778,37 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::IDAT(Box::new(data)))
+                Ok(PngChunkData::Idat(Box::new(data)))
             }
 
-            b"IEND" => Ok(PNGChunkData::IEND),
+            b"IEND" => Ok(PngChunkData::Iend),
 
             b"tRNS" => {
                 if ihdr.is_none() {
                     return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
                 }
 
-                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
                     match *colour_type {
-                        PNGColourType::Greyscale => {
+                        PngColourType::Greyscale => {
                             let mut buf = [0_u8; 2];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::TRNS {
-                                data: PNGtRNSType::Greyscale {
+                            Ok(PngChunkData::Trns {
+                                data: PngTrnsType::Greyscale {
                                     value: u16::from_be_bytes(buf),
                                 },
                             })
                         }
 
-                        PNGColourType::TrueColour => {
+                        PngColourType::TrueColour => {
                             let mut buf = [0_u8; 6];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::TRNS {
-                                data: PNGtRNSType::TrueColour {
+                            Ok(PngChunkData::Trns {
+                                data: PngTrnsType::TrueColour {
                                     red: u16::from_be_bytes(
                                         buf[0..2].try_into().map_err(to_io_error)?,
                                     ),
@@ -826,13 +822,13 @@ impl PNGChunkRef {
                             })
                         }
 
-                        PNGColourType::IndexedColour => {
+                        PngColourType::IndexedColour => {
                             let mut values = vec![0_u8; self.length as usize];
                             chunkstream.read_exact(&mut values)?;
                             data_crc.consume(&values);
 
-                            Ok(PNGChunkData::TRNS {
-                                data: PNGtRNSType::IndexedColour { values },
+                            Ok(PngChunkData::Trns {
+                                data: PngTrnsType::IndexedColour { values },
                             })
                         }
 
@@ -853,7 +849,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::GAMA {
+                Ok(PngChunkData::Gama {
                     gamma: u32::from_be_bytes(buf),
                 })
             }
@@ -863,7 +859,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::CHRM(Box::new(CHRM {
+                Ok(PngChunkData::Chrm(Box::new(Chrm {
                     white_x: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
                     white_y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
                     red_x: u32::from_be_bytes(data[8..12].try_into().map_err(to_io_error)?),
@@ -881,7 +877,7 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let name_end = find_null(&data);
-                Ok(PNGChunkData::ICCP(Box::new(ICCP {
+                Ok(PngChunkData::Iccp(Box::new(Iccp {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     compression_method: data[name_end].try_into().map_err(to_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
@@ -893,25 +889,25 @@ impl PNGChunkRef {
                     return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
                 }
 
-                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
                     match colour_type {
-                        PNGColourType::Greyscale => {
+                        PngColourType::Greyscale => {
                             let mut buf = [0_u8; 1];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::SBIT {
-                                bits: PNGsBITType::Greyscale { grey_bits: buf[0] },
+                            Ok(PngChunkData::Sbit {
+                                bits: PngSbitType::Greyscale { grey_bits: buf[0] },
                             })
                         }
 
-                        PNGColourType::TrueColour | PNGColourType::IndexedColour => {
+                        PngColourType::TrueColour | PngColourType::IndexedColour => {
                             let mut buf = [0_u8; 3];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::SBIT {
-                                bits: PNGsBITType::Colour {
+                            Ok(PngChunkData::Sbit {
+                                bits: PngSbitType::Colour {
                                     red_bits: buf[0],
                                     green_bits: buf[1],
                                     blue_bits: buf[2],
@@ -919,26 +915,26 @@ impl PNGChunkRef {
                             })
                         }
 
-                        PNGColourType::GreyscaleAlpha => {
+                        PngColourType::GreyscaleAlpha => {
                             let mut buf = [0_u8; 2];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::SBIT {
-                                bits: PNGsBITType::GreyscaleAlpha {
+                            Ok(PngChunkData::Sbit {
+                                bits: PngSbitType::GreyscaleAlpha {
                                     grey_bits: buf[0],
                                     alpha_bits: buf[1],
                                 },
                             })
                         }
 
-                        PNGColourType::TrueColourAlpha => {
+                        PngColourType::TrueColourAlpha => {
                             let mut buf = [0_u8; 4];
                             chunkstream.read_exact(&mut buf)?;
                             data_crc.consume(&buf);
 
-                            Ok(PNGChunkData::SBIT {
-                                bits: PNGsBITType::TrueColourAlpha {
+                            Ok(PngChunkData::Sbit {
+                                bits: PngSbitType::TrueColourAlpha {
                                     red_bits: buf[0],
                                     green_bits: buf[1],
                                     blue_bits: buf[2],
@@ -959,7 +955,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::SRGB {
+                Ok(PngChunkData::Srgb {
                     rendering_intent: buf[0].try_into().map_err(to_io_error)?,
                 })
             }
@@ -969,7 +965,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::CICP {
+                Ok(PngChunkData::Cicp {
                     colour_primaries: buf[0].into(),
                     transfer_function: buf[1].into(),
                     matrix_coeffs: buf[2].into(),
@@ -982,7 +978,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::MDCV(Box::new(MDCV {
+                Ok(PngChunkData::Mdcv(Box::new(Mdcv {
                     red_x: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
                     red_y: u16::from_be_bytes(buf[2..4].try_into().map_err(to_io_error)?),
                     green_x: u16::from_be_bytes(buf[4..6].try_into().map_err(to_io_error)?),
@@ -1001,7 +997,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::CLLI(Box::new(CLLI {
+                Ok(PngChunkData::Clli(Box::new(Clli {
                     max_cll: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     max_fall: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                 })))
@@ -1013,7 +1009,7 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let keyword_end = find_null(&data);
-                Ok(PNGChunkData::TEXT(Box::new(TEXT {
+                Ok(PngChunkData::Text(Box::new(Text {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     string: String::from_utf8(data[keyword_end + 1..].to_vec())
@@ -1027,7 +1023,7 @@ impl PNGChunkRef {
                 data_crc.consume(&data);
 
                 let keyword_end = find_null(&data);
-                Ok(PNGChunkData::ZTXT(Box::new(ZTXT {
+                Ok(PngChunkData::Ztxt(Box::new(Ztxt {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
@@ -1044,7 +1040,7 @@ impl PNGChunkRef {
                 let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
                 let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
 
-                Ok(PNGChunkData::ITXT(Box::new(ITXT {
+                Ok(PngChunkData::Itxt(Box::new(Itxt {
                     keyword: String::from_utf8(data[0..keyword_end].to_vec())
                         .map_err(to_io_error)?,
                     compressed: data[keyword_end + 1] > 0,
@@ -1068,9 +1064,9 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                if let PNGChunkData::IHDR { colour_type, .. } = ihdr.unwrap() {
+                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
                     match colour_type {
-                        PNGColourType::Greyscale | PNGColourType::GreyscaleAlpha => {
+                        PngColourType::Greyscale | PngColourType::GreyscaleAlpha => {
                             if self.length != 2 {
                                 return Err(std::io::Error::other(format!(
                                     "PNG: Invalid length of bKGD chunk ({})",
@@ -1078,8 +1074,8 @@ impl PNGChunkRef {
                                 )));
                             }
 
-                            Ok(PNGChunkData::BKGD {
-                                data: PNGbKGDType::Greyscale {
+                            Ok(PngChunkData::Bkgd {
+                                data: PngBkgdType::Greyscale {
                                     value: u16::from_be_bytes(
                                         data[0..2].try_into().map_err(to_io_error)?,
                                     ),
@@ -1087,16 +1083,16 @@ impl PNGChunkRef {
                             })
                         }
 
-                        PNGColourType::TrueColour | PNGColourType::TrueColourAlpha => {
+                        PngColourType::TrueColour | PngColourType::TrueColourAlpha => {
                             if self.length != 6 {
                                 return Err(std::io::Error::other(format!(
-                                    "PNG: Invalid length of bKGD chunk ({})",
+                                    "Png: Invalid length of bKGD chunk ({})",
                                     self.length
                                 )));
                             }
 
-                            Ok(PNGChunkData::BKGD {
-                                data: PNGbKGDType::TrueColour {
+                            Ok(PngChunkData::Bkgd {
+                                data: PngBkgdType::TrueColour {
                                     red: u16::from_be_bytes(
                                         data[0..2].try_into().map_err(to_io_error)?,
                                     ),
@@ -1110,16 +1106,16 @@ impl PNGChunkRef {
                             })
                         }
 
-                        PNGColourType::IndexedColour => {
+                        PngColourType::IndexedColour => {
                             if self.length != 1 {
                                 return Err(std::io::Error::other(format!(
-                                    "PNG: Invalid length of bKGD chunk ({})",
+                                    "Png: Invalid length of bKGD chunk ({})",
                                     self.length
                                 )));
                             }
 
-                            Ok(PNGChunkData::BKGD {
-                                data: PNGbKGDType::IndexedColour { index: data[0] },
+                            Ok(PngChunkData::Bkgd {
+                                data: PngBkgdType::IndexedColour { index: data[0] },
                             })
                         }
                     }
@@ -1135,7 +1131,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::HIST(Box::new(
+                Ok(PngChunkData::Hist(Box::new(
                     (0..self.length / 2)
                         .map(|n| {
                             let start = n as usize * 2;
@@ -1152,7 +1148,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::PHYS {
+                Ok(PngChunkData::Phys {
                     x_pixels_per_unit: u32::from_be_bytes(
                         buf[0..4].try_into().map_err(to_io_error)?,
                     ),
@@ -1168,7 +1164,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut profile)?;
                 data_crc.consume(&profile);
 
-                Ok(PNGChunkData::EXIF(Box::new(profile)))
+                Ok(PngChunkData::Exif(Box::new(profile)))
             }
 
             b"sPLT" => {
@@ -1181,14 +1177,14 @@ impl PNGChunkRef {
                 let entry_size = ((depth / 8) * 4) + 2;
                 let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
 
-                Ok(PNGChunkData::SPLT(Box::new(SPLT {
+                Ok(PngChunkData::Splt(Box::new(Splt {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     depth,
                     palette: (0..num_entries)
                         .map(|i| {
                             let start = name_end + 2 + (i * entry_size as usize);
                             if depth == 8 {
-                                Ok(PNGSuggestedPaletteEntry {
+                                Ok(PngSuggestedPaletteEntry {
                                     red: data[start] as u16,
                                     green: data[start + 1] as u16,
                                     blue: data[start + 2] as u16,
@@ -1200,7 +1196,7 @@ impl PNGChunkRef {
                                     ),
                                 })
                             } else {
-                                Ok(PNGSuggestedPaletteEntry {
+                                Ok(PngSuggestedPaletteEntry {
                                     red: u16::from_be_bytes(
                                         data[start..start + 2].try_into().map_err(to_io_error)?,
                                     ),
@@ -1236,7 +1232,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::TIME {
+                Ok(PngChunkData::Time {
                     year: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
                     month: buf[2],
                     day: buf[3],
@@ -1252,7 +1248,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::ACTL {
+                Ok(PngChunkData::Actl {
                     num_frames: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     num_plays: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                 })
@@ -1263,7 +1259,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::FCTL(Box::new(FCTL {
+                Ok(PngChunkData::Fctl(Box::new(Fctl {
                     sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     width: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                     height: u32::from_be_bytes(buf[8..12].try_into().map_err(to_io_error)?),
@@ -1281,7 +1277,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::FDAT(Box::new(FDAT {
+                Ok(PngChunkData::Fdat(Box::new(Fdat {
                     sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     frame_data: buf[4..].to_vec(),
                 })))
@@ -1293,7 +1289,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::OFFS {
+                Ok(PngChunkData::Offs {
                     x: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     y: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                     unit: buf[8].try_into().map_err(to_io_error)?,
@@ -1321,7 +1317,7 @@ impl PNGChunkRef {
                     prev_end = param_end;
                 }
 
-                Ok(PNGChunkData::PCAL(Box::new(PCAL {
+                Ok(PngChunkData::Pcal(Box::new(Pcal {
                     name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
                     original_zero: u32::from_be_bytes(
                         data[name_end..name_end + 4]
@@ -1348,7 +1344,7 @@ impl PNGChunkRef {
                 let width_end = find_null(&data[1..]) + 1;
                 let height_end = find_null(&data[width_end..]) + width_end;
 
-                Ok(PNGChunkData::SCAL(Box::new(SCAL {
+                Ok(PngChunkData::Scal(Box::new(Scal {
                     unit: data[0].try_into().map_err(to_io_error)?,
                     pixel_width: String::from_utf8(data[1..width_end].to_vec())
                         .map_err(to_io_error)?,
@@ -1362,7 +1358,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::GIFG {
+                Ok(PngChunkData::Gifg {
                     disposal_method: buf[0],
                     user_input: buf[1] > 0,
                     delay_time: u16::from_be_bytes(buf[2..].try_into().map_err(to_io_error)?),
@@ -1374,7 +1370,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::GIFX(Box::new(GIFX {
+                Ok(PngChunkData::Gifx(Box::new(Gifx {
                     app_id: String::from_utf8(data[0..8].to_vec()).map_err(to_io_error)?,
                     app_code: [data[8], data[9], data[10]],
                     app_data: data[11..].to_vec(),
@@ -1386,16 +1382,16 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::STER { mode: buf[0] })
+                Ok(PngChunkData::Ster { mode: buf[0] })
             }
 
             // JNG chunks
-            b"JHDR" => {
+            b"Jhdr" => {
                 let mut buf = [0_u8; 16];
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
-                Ok(PNGChunkData::JHDR {
+                Ok(PngChunkData::Jhdr {
                     width: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
                     height: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
                     colour_type: buf[8].try_into().map_err(to_io_error)?,
@@ -1414,7 +1410,7 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::JDAT(Box::new(data)))
+                Ok(PngChunkData::Jdat(Box::new(data)))
             }
 
             b"JDAA" => {
@@ -1422,10 +1418,10 @@ impl PNGChunkRef {
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
-                Ok(PNGChunkData::JDAA(Box::new(data)))
+                Ok(PngChunkData::Jdaa(Box::new(data)))
             }
 
-            b"JSEP" => Ok(PNGChunkData::JSEP),
+            b"JSEP" => Ok(PngChunkData::Jsep),
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({:?})",
@@ -1453,10 +1449,10 @@ impl PNGChunkRef {
 
 /// A frame in an APNG file
 #[derive(Clone, Default, Debug)]
-pub struct APNGFrame {
+pub struct ApngFrame {
     /// The fcTL chunk defining the frame
-    pub fctl: PNGChunkRef,
+    pub fctl: PngChunkRef,
 
     /// The fdAT chunk(s) containing the frame data
-    pub fdats: Vec<PNGChunkRef>,
+    pub fdats: Vec<PngChunkRef>,
 }

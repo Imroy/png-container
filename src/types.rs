@@ -23,24 +23,24 @@ use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 
 /// All of the different file types based on PNG
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum PNGFileType {
+pub enum PngFileType {
     /// Portable Network Graphics
-    PNG,
+    Png,
 
     /// Multiple-image Network Graphics
-    MNG,
+    Mng,
 
     /// JPEG Network Graphics
-    JNG,
+    Jng,
 
     /// Animated Portable Network Graphics
-    APNG,
+    Apng,
 }
 
 /// Colour type of image
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGColourType {
+pub enum PngColourType {
     /// Greyscale image - allowed depths of 1, 2, 4, 8, or 16 bits per component
     Greyscale = 0,
 
@@ -60,7 +60,7 @@ pub enum PNGColourType {
 /// Compression method(s)
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGCompressionMethod {
+pub enum PngCompressionMethod {
     /// DEFLATE
     #[default]
     Zlib = 0,
@@ -69,7 +69,7 @@ pub enum PNGCompressionMethod {
 /// Filter methods
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGFilterMethod {
+pub enum PngFilterMethod {
     /// Adaptive filtering with five basic filter types
     #[default]
     Adaptive = 0,
@@ -78,7 +78,7 @@ pub enum PNGFilterMethod {
 /// Filter types
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGFilterType {
+pub enum PngFilterType {
     None = 0,
     Sub,
     Up,
@@ -89,7 +89,7 @@ pub enum PNGFilterType {
 /// Interlacing methods
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGInterlaceMethod {
+pub enum PngInterlaceMethod {
     /// No interlacing
     None = 0,
 
@@ -99,7 +99,7 @@ pub enum PNGInterlaceMethod {
 
 /// Palette entry for for PLTE chunk
 #[derive(Clone, Debug)]
-pub struct PNGPaletteEntry {
+pub struct PngPaletteEntry {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
@@ -107,7 +107,7 @@ pub struct PNGPaletteEntry {
 
 /// Contents of tRNS chunk
 #[derive(Clone, Debug)]
-pub enum PNGtRNSType {
+pub enum PngTrnsType {
     Greyscale { value: u16 },
 
     TrueColour { red: u16, green: u16, blue: u16 },
@@ -117,7 +117,7 @@ pub enum PNGtRNSType {
 
 /// Contents of sBIT chunk
 #[derive(Copy, Clone, Debug)]
-pub enum PNGsBITType {
+pub enum PngSbitType {
     Greyscale {
         grey_bits: u8,
     },
@@ -144,7 +144,7 @@ pub enum PNGsBITType {
 /// ICC rendering intent
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGRenderingIntent {
+pub enum PngRenderingIntent {
     Perceptual = 0,
     RelativeColorimetric,
     Saturation,
@@ -153,7 +153,7 @@ pub enum PNGRenderingIntent {
 
 /// Contents of bKGD chunk
 #[derive(Copy, Clone, Debug)]
-pub enum PNGbKGDType {
+pub enum PngBkgdType {
     Greyscale { value: u16 },
 
     TrueColour { red: u16, green: u16, blue: u16 },
@@ -164,7 +164,7 @@ pub enum PNGbKGDType {
 /// Unit type used in several chunks
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum PNGUnitType {
+pub enum PngUnitType {
     Unknown = 0,
 
     Metre = 1,
@@ -174,7 +174,7 @@ pub enum PNGUnitType {
 ///
 /// When depth=8, the red, green, blue, and alpha fields will actually be unscaled u8 values.
 #[derive(Copy, Clone, Debug)]
-pub struct PNGSuggestedPaletteEntry {
+pub struct PngSuggestedPaletteEntry {
     pub red: u16,
     pub green: u16,
     pub blue: u16,
@@ -192,7 +192,7 @@ pub enum ColourPrimaries {
     /// IEC 61966-2-1 sRGB or sYCC\
     /// IEC 61966-2-4\
     /// SMPTE RP 177 Annex B
-    BT709 = 1,
+    Bt709 = 1,
 
     /// Image characteristics are unknown or are determined by the application.
     Unspecified = 2,
@@ -214,28 +214,28 @@ pub enum ColourPrimaries {
     /// Rec. ITU-R BT.1700-0 NTSC\
     /// SMPTE ST 170\
     /// (functionally the same as the value 7)
-    BT601 = 6,
+    Bt601 = 6,
 
     /// SMPTE ST 240\
     /// (functionally the same as the value 6)
-    ST240 = 7,
+    St240 = 7,
 
     /// Generic film (colour filters using Illuminant C)
     GenericFilm = 8,
 
     /// Rec. ITU-R BT.2020-2\
     /// Rec. ITU-R BT.2100-2
-    BT2020 = 9,
+    Bt2020 = 9,
 
     /// SMPTE ST 428-1\
     /// (CIE 1931 XYZ as in ISO/CIE 11664-1)
-    ST428 = 10,
+    St428 = 10,
 
     /// SMPTE RP 431-2
-    RP431 = 11,
+    Rp431 = 11,
 
     /// SMPTE EG 432-1
-    EG432 = 12,
+    Eg432 = 12,
 
     /// No corresponding industry specification identified
     NoSpec = 22,
@@ -249,16 +249,16 @@ impl ColourPrimaries {
     /// Scaled red coordinates of the primary
     pub fn red_coords(self) -> (f64, f64) {
         match self {
-            ColourPrimaries::BT709 => (0.64, 0.33),
+            ColourPrimaries::Bt709 => (0.64, 0.33),
             ColourPrimaries::SystemM => (0.67, 0.33),
             ColourPrimaries::SystemBG => (0.64, 0.33),
-            ColourPrimaries::BT601 => (0.63, 0.34),
-            ColourPrimaries::ST240 => (0.63, 0.34),
+            ColourPrimaries::Bt601 => (0.63, 0.34),
+            ColourPrimaries::St240 => (0.63, 0.34),
             ColourPrimaries::GenericFilm => (0.681, 0.319),
-            ColourPrimaries::BT2020 => (0.708, 0.292),
-            ColourPrimaries::ST428 => (1.0, 0.0),
-            ColourPrimaries::RP431 => (0.68, 0.32),
-            ColourPrimaries::EG432 => (0.68, 0.32),
+            ColourPrimaries::Bt2020 => (0.708, 0.292),
+            ColourPrimaries::St428 => (1.0, 0.0),
+            ColourPrimaries::Rp431 => (0.68, 0.32),
+            ColourPrimaries::Eg432 => (0.68, 0.32),
             ColourPrimaries::NoSpec => (0.63, 0.34),
 
             ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
@@ -268,16 +268,16 @@ impl ColourPrimaries {
     /// Scaled green coordinates of the primary
     pub fn green_coords(self) -> (f64, f64) {
         match self {
-            ColourPrimaries::BT709 => (0.3, 0.6),
+            ColourPrimaries::Bt709 => (0.3, 0.6),
             ColourPrimaries::SystemM => (0.21, 0.71),
             ColourPrimaries::SystemBG => (0.29, 0.60),
-            ColourPrimaries::BT601 => (0.31, 0.595),
-            ColourPrimaries::ST240 => (0.31, 0.595),
+            ColourPrimaries::Bt601 => (0.31, 0.595),
+            ColourPrimaries::St240 => (0.31, 0.595),
             ColourPrimaries::GenericFilm => (0.243, 0.692),
-            ColourPrimaries::BT2020 => (0.17, 0.797),
-            ColourPrimaries::ST428 => (0.0, 1.0),
-            ColourPrimaries::RP431 => (0.265, 0.69),
-            ColourPrimaries::EG432 => (0.265, 0.69),
+            ColourPrimaries::Bt2020 => (0.17, 0.797),
+            ColourPrimaries::St428 => (0.0, 1.0),
+            ColourPrimaries::Rp431 => (0.265, 0.69),
+            ColourPrimaries::Eg432 => (0.265, 0.69),
             ColourPrimaries::NoSpec => (0.295, 0.605),
 
             ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
@@ -287,16 +287,16 @@ impl ColourPrimaries {
     /// Scaled blue coordinates of the primary
     pub fn blue_coords(self) -> (f64, f64) {
         match self {
-            ColourPrimaries::BT709 => (0.15, 0.06),
+            ColourPrimaries::Bt709 => (0.15, 0.06),
             ColourPrimaries::SystemM => (0.14, 0.08),
             ColourPrimaries::SystemBG => (0.15, 0.06),
-            ColourPrimaries::BT601 => (0.155, 0.07),
-            ColourPrimaries::ST240 => (0.155, 0.07),
+            ColourPrimaries::Bt601 => (0.155, 0.07),
+            ColourPrimaries::St240 => (0.155, 0.07),
             ColourPrimaries::GenericFilm => (0.145, 0.049),
-            ColourPrimaries::BT2020 => (0.131, 0.046),
-            ColourPrimaries::ST428 => (0.0, 0.0),
-            ColourPrimaries::RP431 => (0.15, 0.06),
-            ColourPrimaries::EG432 => (0.15, 0.06),
+            ColourPrimaries::Bt2020 => (0.131, 0.046),
+            ColourPrimaries::St428 => (0.0, 0.0),
+            ColourPrimaries::Rp431 => (0.15, 0.06),
+            ColourPrimaries::Eg432 => (0.15, 0.06),
             ColourPrimaries::NoSpec => (0.155, 0.077),
 
             ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
@@ -306,16 +306,16 @@ impl ColourPrimaries {
     /// Scaled white coordinates of the primary
     pub fn white_coords(self) -> (f64, f64) {
         match self {
-            ColourPrimaries::BT709 => (0.3127, 0.329),
+            ColourPrimaries::Bt709 => (0.3127, 0.329),
             ColourPrimaries::SystemM => (0.31, 0.316),
             ColourPrimaries::SystemBG => (0.3127, 0.329),
-            ColourPrimaries::BT601 => (0.3127, 0.329),
-            ColourPrimaries::ST240 => (0.3127, 0.329),
+            ColourPrimaries::Bt601 => (0.3127, 0.329),
+            ColourPrimaries::St240 => (0.3127, 0.329),
             ColourPrimaries::GenericFilm => (0.31, 0.316),
-            ColourPrimaries::BT2020 => (0.3127, 0.329),
-            ColourPrimaries::ST428 => (1.0 / 3.0, 1.0 / 3.0),
-            ColourPrimaries::RP431 => (0.314, 0.351),
-            ColourPrimaries::EG432 => (0.3127, 0.329),
+            ColourPrimaries::Bt2020 => (0.3127, 0.329),
+            ColourPrimaries::St428 => (1.0 / 3.0, 1.0 / 3.0),
+            ColourPrimaries::Rp431 => (0.314, 0.351),
+            ColourPrimaries::Eg432 => (0.3127, 0.329),
             ColourPrimaries::NoSpec => (0.3127, 0.329),
 
             ColourPrimaries::Unspecified | ColourPrimaries::Reserved(_) => (0.0, 0.0),
@@ -331,7 +331,7 @@ pub enum TransferFunction {
     /// Rec. ITU-R BT.709-6\
     /// Rec. ITU-R BT.1361-0 conventional colour gamut system (historical)\
     /// (functionally the same as the values 6, 14 and 15)
-    BT709 = 1,
+    Bt709 = 1,
 
     /// Image characteristics are unknown or are determined by the application.
     Unspecified = 2,
@@ -351,10 +351,10 @@ pub enum TransferFunction {
     /// Rec. ITU-R BT.1700-0 NTSC\
     /// SMPTE ST 170\
     /// (functionally the same as the values 1, 14 and 15)
-    BT601 = 6,
+    Bt601 = 6,
 
     /// SMPTE ST 240
-    ST240 = 7,
+    St240 = 7,
 
     /// Linear transfer characteristics
     Linear = 8,
@@ -366,10 +366,10 @@ pub enum TransferFunction {
     Log316 = 10,
 
     /// IEC 61966-2-4
-    IEC61966 = 11,
+    Iec61966 = 11,
 
     /// Rec. ITU-R BT.1361-0 extended colour gamut system (historical)
-    BT1361 = 12,
+    Bt1361 = 12,
 
     /// IEC 61966-2-1 sRGB (with MatrixCoefficients equal to 0)\
     /// IEC 61966-2-1 sYCC (with MatrixCoefficients equal to 5)
@@ -377,22 +377,22 @@ pub enum TransferFunction {
 
     /// Rec. ITU-R BT.2020-2 (10-bit system)\
     /// (functionally the same as the values 1, 6 and 15)
-    BT2020_10b = 14,
+    Bt2020_10b = 14,
 
     /// Rec. ITU-R BT.2020-2 (12-bit system)\
     /// (functionally the same as the values 1, 6 and 14)
-    BT2020_12b = 15,
+    Bt2020_12b = 15,
 
     /// SMPTE ST 2084 for 10-, 12-, 14- and 16-bit systems\
     /// Rec. ITU-R BT.2100-2 perceptual quantization (PQ) system
-    ST2084 = 16,
+    St2084 = 16,
 
     /// SMPTE ST 428-1
-    ST428 = 17,
+    St428 = 17,
 
     /// ARIB STD-B67\
     /// Rec. ITU-R BT.2100-2 hybrid log-gamma (HLG) system
-    HLG = 18,
+    Hlg = 18,
 
     /// For future use by ITU-T | ISO/IEC
     #[num_enum(catch_all)]
@@ -413,7 +413,7 @@ pub enum MatrixCoefficients {
     /// Rec. ITU-R BT.1361-0 conventional colour gamut system and extended colour gamut system (historical)\
     /// IEC 61966-2-4 xvYCC709\
     /// SMPTE RP 177 Annex B
-    BT709 = 1,
+    Bt09 = 1,
 
     /// Image characteristics are unknown or are determined by the application
     Unspecified = 2,
@@ -436,10 +436,10 @@ pub enum MatrixCoefficients {
     /// Rec. ITU-R BT.1700-0 NTSC\
     /// SMPTE ST 170\
     /// (functionally the same as the value 5)
-    BT601 = 6,
+    Bt601 = 6,
 
     /// SMPTE ST 240
-    ST240 = 7,
+    St240 = 7,
 
     YCgCo = 8,
 
@@ -451,7 +451,7 @@ pub enum MatrixCoefficients {
     Bt2020ConstLum = 10,
 
     /// SMPTE ST 2085
-    ST2085 = 11,
+    St2085 = 11,
 
     /// Chromaticity-derived non-constant luminance system
     ChromaNonConstLum = 12,
@@ -460,7 +460,7 @@ pub enum MatrixCoefficients {
     ChromaConstLum = 13,
 
     /// Rec. ITU-R BT.2100-2 ICTCP
-    BT2100 = 14,
+    Bt2100 = 14,
 
     /// Colour representation developed in SMPTE as IPT-PQ-C2.
     IptPqC2 = 15,
@@ -477,7 +477,7 @@ pub enum MatrixCoefficients {
 /// Disposal operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum APNGDisposalOperator {
+pub enum ApngDisposalOperator {
     None,
     Background,
     Previous,
@@ -486,7 +486,7 @@ pub enum APNGDisposalOperator {
 /// Blend operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum APNGBlendOperator {
+pub enum ApngBlendOperator {
     Source,
     Over,
 }
@@ -494,7 +494,7 @@ pub enum APNGBlendOperator {
 /// Colour type of JNG image
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum JNGColourType {
+pub enum JngColourType {
     Greyscale = 8,
 
     Colour = 10,
@@ -509,7 +509,7 @@ pub enum JNGColourType {
 /// JNG image sample depth
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum JNGImageSampleDepth {
+pub enum JngImageSampleDepth {
     Depth8 = 8,
 
     Depth12 = 12,
@@ -520,9 +520,9 @@ pub enum JNGImageSampleDepth {
 /// JNG image and alpha compression type
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum JNGCompressionType {
+pub enum JngCompressionType {
     /// PNG greyscale
-    PNGGreyscale = 0,
+    PngGreyscale = 0,
 
     /// Huffman-coded baseline JPEG
     HuffmanBaseline = 8,
@@ -531,7 +531,7 @@ pub enum JNGCompressionType {
 /// JNG alpha sample depth
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum JNGAlphaSampleDepth {
+pub enum JngAlphaSampleDepth {
     Depth0 = 0,
     Depth1 = 1,
     Depth2 = 2,
@@ -543,7 +543,7 @@ pub enum JNGAlphaSampleDepth {
 /// JNG image and alpha interlace type
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
-pub enum JNGInterlaceMethod {
+pub enum JngInterlaceMethod {
     SequentialJPEG = 0,
 
     ProgressiveJPEG = 8,

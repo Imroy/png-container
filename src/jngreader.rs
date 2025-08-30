@@ -26,7 +26,7 @@ use crate::types::*;
 
 /// A JNG file reader
 #[derive(Debug)]
-pub struct JNGSeekableReader<R> {
+pub struct JngReader<R> {
     /// Image width in pixels
     pub width: u32,
 
@@ -34,21 +34,21 @@ pub struct JNGSeekableReader<R> {
     pub height: u32,
 
     /// Image colour type
-    pub colour_type: JNGColourType,
+    pub colour_type: JngColourType,
 
     /// File stream we're reading from
     pub stream: R,
 
     /// The JHDR chunk data
-    pub jhdr: PNGChunkData,
+    pub jhdr: PngChunkData,
 
     /// The IEND chunk
-    pub iend: PNGChunkRef,
+    pub iend: PngChunkRef,
 
     next_chunk_pos: u64,
 }
 
-impl<R> JNGSeekableReader<R>
+impl<R> JngReader<R>
 where
     R: Read + Seek,
 {
@@ -65,19 +65,19 @@ where
             }
         }
 
-        Ok(JNGSeekableReader {
+        Ok(JngReader {
             width: 0,
             height: 0,
-            colour_type: JNGColourType::Greyscale,
+            colour_type: JngColourType::Greyscale,
             stream,
-            jhdr: PNGChunkData::None,
-            iend: PNGChunkRef::default(),
+            jhdr: PngChunkData::None,
+            iend: PngChunkRef::default(),
             next_chunk_pos: 8,
         })
     }
 
     /// Scan all of the chunks in a JNG file
-    pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+    pub fn scan_all_chunks(&mut self) -> Result<Vec<PngChunkRef>, std::io::Error> {
         let mut chunks = Vec::new();
         loop {
             let chunkref = self.scan_next_chunk()?;
@@ -91,7 +91,7 @@ where
     }
 
     /// Scan chunks in a JNG file until the first IDAT or JDAT chunk
-    pub fn scan_header_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+    pub fn scan_header_chunks(&mut self) -> Result<Vec<PngChunkRef>, std::io::Error> {
         let mut chunks = Vec::new();
         loop {
             let chunkref = self.scan_next_chunk()?;
@@ -106,9 +106,9 @@ where
     }
 
     /// Scan the next chunk
-    pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
+    pub fn scan_next_chunk(&mut self) -> Result<PngChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
-        let chunkref = PNGChunkRef::from_stream(&mut self.stream)?;
+        let chunkref = PngChunkRef::from_stream(&mut self.stream)?;
 
         // Invalid chunk types for JNG files
         if (chunkref.chunktype == *b"PLTE")
@@ -137,7 +137,7 @@ where
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
                 self.jhdr = chunkref.read_chunk(&mut self.stream, None)?;
-                if let PNGChunkData::JHDR {
+                if let PngChunkData::Jhdr {
                     width,
                     height,
                     colour_type,
@@ -168,17 +168,17 @@ where
     }
 
     /// Set the position of the next chunk to scan to a given chunk
-    pub fn set_next_chunk_position(&mut self, chunkref: &PNGChunkRef) {
+    pub fn set_next_chunk_position(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position;
     }
 
     /// Set the position of the next chunk to scan to after a given chunk
-    pub fn set_next_chunk_position_after(&mut self, chunkref: &PNGChunkRef) {
+    pub fn set_next_chunk_position_after(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position + 4 + 4 + chunkref.length as u64 + 4;
     }
 
     /// Read the chunk data after seeking to the start of its data
-    pub fn read_chunk(&mut self, chunkref: &PNGChunkRef) -> Result<PNGChunkData, std::io::Error>
+    pub fn read_chunk(&mut self, chunkref: &PngChunkRef) -> Result<PngChunkData, std::io::Error>
     where
         R: Read + Seek,
     {

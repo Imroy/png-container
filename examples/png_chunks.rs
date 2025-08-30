@@ -32,39 +32,39 @@ use png_container::chunks::*;
 use png_container::reader::*;
 use png_container::types::*;
 
-fn print_chunk(cd: &PNGChunkData) {
+fn print_chunk(cd: &PngChunkData) {
     println!("data={:?}", &cd);
     match cd {
-        PNGChunkData::CHRM { .. } => {
+        PngChunkData::Chrm { .. } => {
             println!("white_coords={:?}", cd.chrm_white_coords());
             println!("  red_coords={:?}", cd.chrm_red_coords());
             println!("green_coords={:?}", cd.chrm_green_coords());
             println!(" blue_coords={:?}", cd.chrm_blue_coords());
         }
 
-        PNGChunkData::GAMA { .. } => {
+        PngChunkData::Gama { .. } => {
             if let Some(gamma) = cd.gama_gamma() {
                 println!("gamma={}", gamma);
             }
         }
 
-        PNGChunkData::ICCP { .. } => {
+        PngChunkData::Iccp { .. } => {
             println!("profile={:?}", cd.iccp_profile());
         }
 
-        PNGChunkData::ZTXT { .. } => {
+        PngChunkData::Ztxt { .. } => {
             if let Some(string) = cd.ztxt_string() {
                 println!("string=\"{}\"", string);
             }
         }
 
-        PNGChunkData::ITXT { .. } => {
+        PngChunkData::Itxt { .. } => {
             if let Some(string) = cd.itxt_string() {
                 println!("string=\"{}\"", string);
             }
         }
 
-        PNGChunkData::PHYS { .. } => {
+        PngChunkData::Phys { .. } => {
             if let Some((xres, yres)) = cd.phys_res() {
                 println!(
                     "pixels per inch={} × {}",
@@ -74,13 +74,13 @@ fn print_chunk(cd: &PNGChunkData) {
             }
         }
 
-        PNGChunkData::TIME { .. } => {
+        PngChunkData::Time { .. } => {
             if let Some(time) = cd.time() {
                 println!("time={}", time);
             }
         }
 
-        PNGChunkData::FCTL { .. } => {
+        PngChunkData::Fctl { .. } => {
             if let Some(delay) = cd.fctl_delay() {
                 println!("delay={}", delay.into_format_args(second, Abbreviation));
             }
@@ -96,10 +96,7 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let f = File::open(&args[1])?;
-    let bf = BufReader::new(f);
-
-    let mut reader = PNGSeekableReader::from_stream(bf)?;
+    let mut reader = PngReader::from_stream(File::open(&args[1])?)?;
     let header_chunks = reader.scan_header_chunks()?;
     println!(
         "filetype={:?}, width={}, height={}, bit_depth={}, colour_type={:?}",
@@ -122,7 +119,7 @@ fn main() -> std::io::Result<()> {
         println!("");
     }
 
-    if reader.filetype == PNGFileType::APNG {
+    if reader.filetype == PngFileType::Apng {
         reader.reset_next_chunk_position();
         for f in reader.apng_scan_frames()? {
             println!("frame");

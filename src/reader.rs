@@ -26,11 +26,11 @@ use crate::types::*;
 
 /// A PNG/APNG file reader
 #[derive(Clone, Debug)]
-pub struct PNGSeekableReader<R> {
+pub struct PngReader<R> {
     /// Image file type
     ///
     /// PNG or APNG
-    pub filetype: PNGFileType,
+    pub filetype: PngFileType,
 
     /// Image width in pixels
     pub width: u32,
@@ -42,24 +42,24 @@ pub struct PNGSeekableReader<R> {
     pub bit_depth: u8,
 
     /// Image colour type
-    pub colour_type: PNGColourType,
+    pub colour_type: PngColourType,
 
     /// File stream we're reading from
     stream: R,
 
     /// The IHDR chunk data
-    pub ihdr: PNGChunkData,
+    pub ihdr: PngChunkData,
 
     /// The PLTE chunk, if the file has one
-    pub plte: Option<PNGChunkRef>,
+    pub plte: Option<PngChunkRef>,
 
     /// The IEND chunk
-    pub iend: PNGChunkRef,
+    pub iend: PngChunkRef,
 
     next_chunk_pos: u64,
 }
 
-impl<R> PNGSeekableReader<R>
+impl<R> PngReader<R>
 where
     R: Read + Seek,
 {
@@ -78,16 +78,16 @@ where
             }
         }
 
-        Ok(PNGSeekableReader {
-            filetype: PNGFileType::PNG,
+        Ok(PngReader {
+            filetype: PngFileType::Png,
             width: 0,
             height: 0,
             bit_depth: 0,
-            colour_type: PNGColourType::Greyscale,
+            colour_type: PngColourType::Greyscale,
             stream,
-            ihdr: PNGChunkData::None,
+            ihdr: PngChunkData::None,
             plte: None,
-            iend: PNGChunkRef::default(),
+            iend: PngChunkRef::default(),
             next_chunk_pos: 8,
         })
     }
@@ -95,7 +95,7 @@ where
     /// Scan all of the chunks in a PNG/APNG file
     ///
     /// If this is called after scan_header_chunks(), it will only return the following chunks.
-    pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+    pub fn scan_all_chunks(&mut self) -> Result<Vec<PngChunkRef>, std::io::Error> {
         let mut chunks = Vec::with_capacity(4);
         loop {
             let chunkref = self.scan_next_chunk()?;
@@ -109,7 +109,7 @@ where
     }
 
     /// Scan chunks in a PNG/APNG file until the first IDAT chunk
-    pub fn scan_header_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
+    pub fn scan_header_chunks(&mut self) -> Result<Vec<PngChunkRef>, std::io::Error> {
         let mut chunks = Vec::with_capacity(4);
         loop {
             let chunkref = self.scan_next_chunk()?;
@@ -124,7 +124,7 @@ where
     }
 
     /// Scan chunks in a PNG/APNG file, returning a Vec of the chunks that match a closure
-    pub fn scan_chunks_filtered<F>(&mut self, test: F) -> Result<Vec<PNGChunkRef>, std::io::Error>
+    pub fn scan_chunks_filtered<F>(&mut self, test: F) -> Result<Vec<PngChunkRef>, std::io::Error>
     where
         F: Fn([u8; 4]) -> bool,
     {
@@ -143,9 +143,9 @@ where
     }
 
     /// Scan the next chunk
-    pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
+    pub fn scan_next_chunk(&mut self) -> Result<PngChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
-        let chunkref = PNGChunkRef::from_stream(&mut self.stream)?;
+        let chunkref = PngChunkRef::from_stream(&mut self.stream)?;
 
         // Invalid chunk types for PNG/APNG files
         if (chunkref.chunktype == *b"JHDR")
@@ -166,7 +166,7 @@ where
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
                 self.ihdr = chunkref.read_chunk(&mut self.stream, None)?;
-                if let PNGChunkData::IHDR {
+                if let PngChunkData::Ihdr {
                     width,
                     height,
                     bit_depth,
@@ -198,7 +198,7 @@ where
             | (chunkref.chunktype == *b"fcTL")
             | (chunkref.chunktype == *b"fdAT")
         {
-            self.filetype = PNGFileType::APNG;
+            self.filetype = PngFileType::Apng;
         }
 
         Ok(chunkref)
@@ -211,24 +211,24 @@ where
     }
 
     /// Set the position of the next chunk to scan to a given chunk
-    pub fn set_next_chunk_position(&mut self, chunkref: &PNGChunkRef) {
+    pub fn set_next_chunk_position(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position;
         let _ = self.stream.seek(SeekFrom::Start(self.next_chunk_pos));
     }
 
     /// Set the position of the next chunk to scan to after a given chunk
-    pub fn set_next_chunk_position_after(&mut self, chunkref: &PNGChunkRef) {
+    pub fn set_next_chunk_position_after(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position + 4 + 4 + chunkref.length as u64 + 4;
         let _ = self.stream.seek(SeekFrom::Start(self.next_chunk_pos));
     }
 
     /// Read the chunk data after seeking to the start of its data
-    pub fn read_chunk(&mut self, chunkref: &PNGChunkRef) -> Result<PNGChunkData, std::io::Error> {
+    pub fn read_chunk(&mut self, chunkref: &PngChunkRef) -> Result<PngChunkData, std::io::Error> {
         self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, Some(&self.ihdr))
     }
 
-    pub fn apng_scan_frames(&mut self) -> Result<Vec<APNGFrame>, std::io::Error> {
+    pub fn apng_scan_frames(&mut self) -> Result<Vec<ApngFrame>, std::io::Error> {
         let mut fctl_fdats = self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?;
 
         // Sort fcTL and fdAT chunks by their sequence number
@@ -238,7 +238,7 @@ where
         });
 
         let mut frames = Vec::new();
-        let mut frame = APNGFrame::default();
+        let mut frame = ApngFrame::default();
 
         // Now assemble them into frames
         for chunk in fctl_fdats {
@@ -246,7 +246,7 @@ where
                 "fcTL" => {
                     if frame.fctl.position > 0 {
                         frames.push(frame);
-                        frame = APNGFrame::default();
+                        frame = ApngFrame::default();
                     }
                     frame.fctl = chunk;
                 }
