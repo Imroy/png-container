@@ -24,16 +24,6 @@ use std::io::{Read, Seek, SeekFrom};
 use crate::chunks::*;
 use crate::types::*;
 
-/// A frame in an APNG file
-#[derive(Clone, Default, Debug)]
-pub struct APNGFrame {
-    /// The fcTL chunk defining the frame
-    pub fctl: PNGChunkRef,
-
-    /// The fdAT chunk(s) containing the frame data
-    pub fdats: Vec<PNGChunkRef>,
-}
-
 /// A PNG/APNG file reader
 #[derive(Debug)]
 pub struct PNGSeekableReader<R> {

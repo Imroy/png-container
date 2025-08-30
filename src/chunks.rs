@@ -1449,6 +1449,16 @@ impl PNGChunkRef {
     }
 }
 
+/// A frame in an APNG file
+#[derive(Clone, Default, Debug)]
+pub struct APNGFrame {
+    /// The fcTL chunk defining the frame
+    pub fctl: PNGChunkRef,
+
+    /// The fdAT chunk(s) containing the frame data
+    pub fdats: Vec<PNGChunkRef>,
+}
+
 /// An iterator for reading IDAT/fdAT/JDAT/JDAA chunks from a PNG/APNG/JNG image
 pub struct PNGDATChunkIter<'a, R> {
     stream: &'a mut R,
