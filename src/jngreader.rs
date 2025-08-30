@@ -81,9 +81,9 @@ where
     pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
         let mut chunks = Vec::new();
         loop {
-            let chunk = self.scan_next_chunk()?;
-            chunks.push(chunk);
-            if chunk.chunktype == *b"IEND" {
+            let chunkref = self.scan_next_chunk()?;
+            chunks.push(chunkref);
+            if chunkref.chunktype == *b"IEND" {
                 break;
             }
         }
@@ -95,12 +95,12 @@ where
     pub fn scan_header_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
         let mut chunks = Vec::new();
         loop {
-            let chunk = self.scan_next_chunk()?;
-            if chunk.chunktype == *b"IDAT" || chunk.chunktype == *b"JDAT" {
-                self.next_chunk_pos = chunk.position;
+            let chunkref = self.scan_next_chunk()?;
+            if chunkref.chunktype == *b"IDAT" || chunkref.chunktype == *b"JDAT" {
+                self.next_chunk_pos = chunkref.position;
                 break;
             }
-            chunks.push(chunk);
+            chunks.push(chunkref);
         }
 
         Ok(chunks)
@@ -109,35 +109,35 @@ where
     /// Scan the next chunk
     pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
-        let chunk = PNGChunkRef::from_stream(&mut self.stream)?;
+        let chunkref = PNGChunkRef::from_stream(&mut self.stream)?;
 
         // Invalid chunk types for JNG files
-        if (chunk.chunktype == *b"PLTE")
-            | (chunk.chunktype == *b"hIST")
-            | (chunk.chunktype == *b"pCAL")
-            | (chunk.chunktype == *b"sBIT")
-            | (chunk.chunktype == *b"sPLT")
-            | (chunk.chunktype == *b"tRNS")
-            | (chunk.chunktype == *b"fRAc")
-            | (chunk.chunktype == *b"gIFg")
-            | (chunk.chunktype == *b"gIFx")
-            | (chunk.chunktype == *b"aCTL")
-            | (chunk.chunktype == *b"fcTL")
-            | (chunk.chunktype == *b"fdAT")
+        if (chunkref.chunktype == *b"PLTE")
+            | (chunkref.chunktype == *b"hIST")
+            | (chunkref.chunktype == *b"pCAL")
+            | (chunkref.chunktype == *b"sBIT")
+            | (chunkref.chunktype == *b"sPLT")
+            | (chunkref.chunktype == *b"tRNS")
+            | (chunkref.chunktype == *b"fRAc")
+            | (chunkref.chunktype == *b"gIFg")
+            | (chunkref.chunktype == *b"gIFx")
+            | (chunkref.chunktype == *b"aCTL")
+            | (chunkref.chunktype == *b"fcTL")
+            | (chunkref.chunktype == *b"fdAT")
         {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("JNG: Invalid chunk type \"{:?}\"", chunk.chunktype),
+                format!("JNG: Invalid chunk type \"{:?}\"", chunkref.chunktype),
             ));
         }
 
-        self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
+        self.next_chunk_pos += 4 + 4 + chunkref.length as u64 + 4;
 
-        match &chunk.chunktype {
+        match &chunkref.chunktype {
             b"JHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
-                self.jhdr = chunk.read_chunk(&mut self.stream, None)?;
+                self.jhdr = chunkref.read_chunk(&mut self.stream, None)?;
                 if let PNGChunkData::JHDR {
                     width,
                     height,
@@ -154,13 +154,13 @@ where
             }
 
             b"IEND" => {
-                self.iend = chunk;
+                self.iend = chunkref;
             }
 
             _ => (),
         }
 
-        Ok(chunk)
+        Ok(chunkref)
     }
 
     /// Reset the position of the next chunk to scan back to the start of the file
