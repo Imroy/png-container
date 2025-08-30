@@ -300,7 +300,7 @@ impl PNGChunkData {
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Option<Vec<u8>> {
         if let PNGChunkData::ICCP(iccp) = self {
-            return iccp.profile();
+            iccp.profile()
         } else {
             None
         }

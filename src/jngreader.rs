@@ -59,8 +59,7 @@ where
             let mut signature = [0; 8];
             stream.read_exact(&mut signature)?;
             if signature != [0x8b, 0x4a, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                return Err(std::io::Error::other(
                     "JNG: Bad file signature",
                 ));
             }
