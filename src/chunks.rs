@@ -159,8 +159,16 @@ pub enum PNGChunkData {
         second: u8,
     },
 
-    // Extensions
+    /// Animation control
+    ACTL { num_frames: u32, num_plays: u32 },
 
+    /// Frame control
+    FCTL(Box<FCTL>),
+
+    /// Frame data
+    FDAT(Box<FDAT>),
+
+    // Extensions
     /// Image offset
     OFFS { x: u32, y: u32, unit: PNGUnitType },
 
@@ -184,19 +192,7 @@ pub enum PNGChunkData {
     /// Indicator of Stereo Image
     STER { mode: u8 },
 
-    // Animation information
-
-    /// Animation control
-    ACTL { num_frames: u32, num_plays: u32 },
-
-    /// Frame control
-    FCTL(Box<FCTL>),
-
-    /// Frame data
-    FDAT(Box<FDAT>),
-
     // JNG chunks
-
     /// JNG header
     JHDR {
         /// Width of image in pixels
