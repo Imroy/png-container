@@ -19,7 +19,7 @@
 /*! PNG chunks
  */
 
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 use std::slice::Iter;
 use std::str;
 
@@ -649,10 +649,12 @@ impl PNGChunkRef {
     /// Read the length and type of a chunk from a [Read]'able stream to make a chunk reference
     ///
     /// This leaves the stream at the start of chunk data.
-    pub fn new<R>(stream: &mut R, position: u64) -> Result<Self, std::io::Error>
+    pub(crate) fn from_stream<R>(stream: &mut R) -> Result<Self, std::io::Error>
     where
-        R: Read,
+        R: Read + Seek,
     {
+        let position = stream.stream_position()?;
+
         let mut buf4 = [0_u8; 4];
         stream.read_exact(&mut buf4)?;
         let length = u32::from_be_bytes(buf4);
@@ -703,10 +705,14 @@ impl PNGChunkRef {
     }
 
     /// Read just the sequence number of an fcTL or fdAT chunk
-    pub fn read_fctl_fdat_sequence_number<R>(&self, stream: &mut R) -> Result<u32, std::io::Error>
+    pub(crate) fn read_fctl_fdat_sequence_number<R>(
+        &self,
+        stream: &mut R,
+    ) -> Result<u32, std::io::Error>
     where
-        R: Read,
+        R: Read + Seek,
     {
+        stream.seek(SeekFrom::Start(self.position))?;
         let mut chunkstream = stream.take(self.length as u64);
         match &self.chunktype {
             b"fcTL" | b"fdAT" => {
@@ -724,7 +730,6 @@ impl PNGChunkRef {
 
     /// Read the chunk data and parse it into a PNGChunkData enum
     ///
-    /// Stream must be at the start of chunk data after the length and type fields.
     /// This also checks the chunk CRC value.
     pub fn read_chunk<R>(
         &self,
@@ -732,8 +737,9 @@ impl PNGChunkRef {
         ihdr: Option<&PNGChunkData>,
     ) -> Result<PNGChunkData, std::io::Error>
     where
-        R: Read,
+        R: Read + Seek,
     {
+        stream.seek(SeekFrom::Start(self.position + 4 + 4))?;
         let mut chunkstream = stream.take(self.length as u64);
 
         let mut data_crc = CRC::new();
@@ -1456,7 +1462,10 @@ pub struct APNGFrame {
 }
 
 /// An iterator for reading IDAT/fdAT/JDAT/JDAA chunks from a PNG/APNG/JNG image
-pub struct PNGDATChunkIter<'a, R> {
+pub struct PNGDATChunkIter<'a, R>
+where
+    R: Read + Seek,
+{
     stream: &'a mut R,
 
     position: u64,
@@ -1464,26 +1473,26 @@ pub struct PNGDATChunkIter<'a, R> {
 
 impl<'a, R> PNGDATChunkIter<'a, R>
 where
-    R: Read,
+    R: Read + Seek,
 {
     /// Constructor
     ///
-    /// `stream`: anything that implements [Read].\
+    /// `stream`: anything that implements [Read] and [Seek].\
     /// `position`: The current stream position, at the start of a chunk.
-    pub fn new(stream: &'a mut R, position: u64) -> Self {
+    pub fn from_stream(stream: &'a mut R, position: u64) -> Self {
         Self { stream, position }
     }
 }
 
 impl<'a, R> Iterator for PNGDATChunkIter<'a, R>
 where
-    R: Read,
+    R: Read + Seek,
 {
     type Item = PNGChunkData;
 
     /// Get the next IDAT/fdAT/JDAT/JDAA chunk
     fn next(&mut self) -> Option<Self::Item> {
-        let mut chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+        let mut chunkref = PNGChunkRef::from_stream(self.stream).ok()?;
         if chunkref.chunktype == *b"IEND" {
             return None;
         }
@@ -1501,7 +1510,7 @@ where
             && chunkref.chunktype != *b"JDAT"
             && chunkref.chunktype != *b"JDAA"
         {
-            chunkref = PNGChunkRef::new(self.stream, self.position).ok()?;
+            chunkref = PNGChunkRef::from_stream(self.stream).ok()?;
             if chunkref.chunktype == *b"IEND" {
                 return None;
             }

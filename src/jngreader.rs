@@ -109,8 +109,7 @@ where
     /// Scan the next chunk
     pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
-        let position = self.stream.stream_position()?;
-        let chunk = PNGChunkRef::new(&mut self.stream, position)?;
+        let chunk = PNGChunkRef::from_stream(&mut self.stream)?;
 
         // Invalid chunk types for JNG files
         if (chunk.chunktype == *b"PLTE")

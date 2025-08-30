@@ -146,28 +146,27 @@ where
     /// Scan the next chunk
     pub fn scan_next_chunk(&mut self) -> Result<PNGChunkRef, std::io::Error> {
         self.stream.seek(SeekFrom::Start(self.next_chunk_pos))?;
-        let position = self.stream.stream_position()?;
-        let chunk = PNGChunkRef::new(&mut self.stream, position)?;
+        let chunkref = PNGChunkRef::from_stream(&mut self.stream)?;
 
         // Invalid chunk types for PNG/APNG files
-        if (chunk.chunktype == *b"JHDR")
-            | (chunk.chunktype == *b"JDAT")
-            | (chunk.chunktype == *b"JDAA")
-            | (chunk.chunktype == *b"JSEP")
+        if (chunkref.chunktype == *b"JHDR")
+            | (chunkref.chunktype == *b"JDAT")
+            | (chunkref.chunktype == *b"JDAA")
+            | (chunkref.chunktype == *b"JSEP")
         {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("PNG: Invalid chunk type \"{:?}\"", chunk.chunktype),
+                format!("PNG: Invalid chunk type \"{:?}\"", chunkref.chunktype),
             ));
         }
 
-        self.next_chunk_pos += 4 + 4 + chunk.length as u64 + 4;
+        self.next_chunk_pos += 4 + 4 + chunkref.length as u64 + 4;
 
-        match &chunk.chunktype {
+        match &chunkref.chunktype {
             b"IHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
-                self.ihdr = chunk.read_chunk(&mut self.stream, None)?;
+                self.ihdr = chunkref.read_chunk(&mut self.stream, None)?;
                 if let PNGChunkData::IHDR {
                     width,
                     height,
@@ -186,24 +185,24 @@ where
             }
 
             b"PLTE" => {
-                self.plte = Some(chunk);
+                self.plte = Some(chunkref);
             }
 
             b"IEND" => {
-                self.iend = chunk;
+                self.iend = chunkref;
             }
 
             _ => (),
         }
 
-        if (chunk.chunktype == *b"aCTL")
-            | (chunk.chunktype == *b"fcTL")
-            | (chunk.chunktype == *b"fdAT")
+        if (chunkref.chunktype == *b"aCTL")
+            | (chunkref.chunktype == *b"fcTL")
+            | (chunkref.chunktype == *b"fdAT")
         {
             self.filetype = PNGFileType::APNG;
         }
 
-        Ok(chunk)
+        Ok(chunkref)
     }
 
     /// Reset the position of the next chunk to scan back to the start of the file
@@ -271,6 +270,6 @@ where
     /// Return a PNGDATChunkIter for this stream
     pub fn dat_chunk_iter(&mut self) -> Result<PNGDATChunkIter<R>, std::io::Error> {
         let position = self.stream.stream_position()?;
-        Ok(PNGDATChunkIter::new(&mut self.stream, position))
+        Ok(PNGDATChunkIter::from_stream(&mut self.stream, position))
     }
 }

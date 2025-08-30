@@ -20,12 +20,15 @@
 */
 
 use std::collections::VecDeque;
-use std::io::Read;
+use std::io::{Read, Seek};
 
 use crate::chunks::PNGDATChunkIter;
 
 /// A reader for reading data from a series of IDAT, fdAT, JDAT, or JDAA chunks
-pub struct PNGDATReader<'a, R> {
+pub struct PNGDATReader<'a, R>
+where
+    R: Read + Seek,
+{
     /// Iterator to the IDAT/fdAT/JDAT/JDAA chunk(s)
     dat_iter: PNGDATChunkIter<'a, R>,
 
@@ -33,7 +36,10 @@ pub struct PNGDATReader<'a, R> {
     queue: VecDeque<u8>,
 }
 
-impl<'a, R> PNGDATReader<'a, R> {
+impl<'a, R> PNGDATReader<'a, R>
+where
+    R: Read + Seek,
+{
     /// Constructor
     ///
     /// `dat_iter`: an iterator over IDAT, fdAT, JDAT, or JDAA chunks.
@@ -46,7 +52,7 @@ impl<'a, R> PNGDATReader<'a, R> {
 
     fn get_next_chunk(&mut self) -> bool
     where
-        R: Read,
+        R: Read + Seek,
     {
         let chunk = self.dat_iter.next();
         if let Some(chunk) = chunk {
@@ -65,7 +71,7 @@ impl<'a, R> PNGDATReader<'a, R> {
 
 impl<'a, R> Read for PNGDATReader<'a, R>
 where
-    R: Read,
+    R: Read + Seek,
 {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         while self.queue.len() < buf.len() {
