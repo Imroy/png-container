@@ -266,10 +266,4 @@ where
 
         Ok(frames)
     }
-
-    /// Return a PNGDATChunkIter for this stream
-    pub fn dat_chunk_iter(&mut self) -> Result<PNGDATChunkIter<R>, std::io::Error> {
-        let position = self.stream.stream_position()?;
-        Ok(PNGDATChunkIter::from_stream(&mut self.stream, position))
-    }
 }

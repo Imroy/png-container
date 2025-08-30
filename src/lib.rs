@@ -27,7 +27,6 @@ pub mod chunks;
 pub mod crc;
 pub mod jngreader;
 pub mod reader;
-pub mod streams;
 pub mod types;
 
 pub fn to_io_error<T>(e: T) -> std::io::Error
