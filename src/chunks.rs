@@ -747,7 +747,7 @@ impl PNGChunkRef {
 
         let chunk = match &self.chunktype {
             b"IHDR" => {
-                let mut buf = [ 0_u8; 13 ];
+                let mut buf = [0_u8; 13];
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
@@ -778,7 +778,7 @@ impl PNGChunkRef {
             ))),
 
             b"IDAT" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -827,7 +827,7 @@ impl PNGChunkRef {
                         }
 
                         PNGColourType::IndexedColour => {
-                            let mut values = vec![ 0_u8; self.length as usize ];
+                            let mut values = vec![0_u8; self.length as usize];
                             chunkstream.read_exact(&mut values)?;
                             data_crc.consume(&values);
 
@@ -859,7 +859,7 @@ impl PNGChunkRef {
             }
 
             b"cHRM" => {
-                let mut data = [ 0_u8; 32 ];
+                let mut data = [0_u8; 32];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -876,7 +876,7 @@ impl PNGChunkRef {
             }
 
             b"iCCP" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1008,7 +1008,7 @@ impl PNGChunkRef {
             }
 
             b"tEXt" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1022,7 +1022,7 @@ impl PNGChunkRef {
             }
 
             b"zTXt" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1036,7 +1036,7 @@ impl PNGChunkRef {
             }
 
             b"iTXt" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1064,7 +1064,7 @@ impl PNGChunkRef {
                     return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
                 }
 
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1131,7 +1131,7 @@ impl PNGChunkRef {
             }
 
             b"hIST" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1164,7 +1164,7 @@ impl PNGChunkRef {
             }
 
             b"eXIf" => {
-                let mut profile = vec![ 0_u8; self.length as usize ];
+                let mut profile = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut profile)?;
                 data_crc.consume(&profile);
 
@@ -1172,7 +1172,7 @@ impl PNGChunkRef {
             }
 
             b"sPLT" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1277,7 +1277,7 @@ impl PNGChunkRef {
             }
 
             b"fdAT" => {
-                let mut buf = vec![ 0_u8; self.length as usize ];
+                let mut buf = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut buf)?;
                 data_crc.consume(&buf);
 
@@ -1301,7 +1301,7 @@ impl PNGChunkRef {
             }
 
             b"pCAL" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1341,7 +1341,7 @@ impl PNGChunkRef {
             }
 
             b"sCAL" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1370,7 +1370,7 @@ impl PNGChunkRef {
             }
 
             b"gIFx" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1410,7 +1410,7 @@ impl PNGChunkRef {
             }
 
             b"JDAT" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 
@@ -1418,7 +1418,7 @@ impl PNGChunkRef {
             }
 
             b"JDAA" => {
-                let mut data = vec![ 0_u8; self.length as usize ];
+                let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
 

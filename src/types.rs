@@ -313,7 +313,7 @@ impl ColourPrimaries {
             ColourPrimaries::ST240 => (0.3127, 0.329),
             ColourPrimaries::GenericFilm => (0.31, 0.316),
             ColourPrimaries::BT2020 => (0.3127, 0.329),
-            ColourPrimaries::ST428 => (1.0/3.0, 1.0/3.0),
+            ColourPrimaries::ST428 => (1.0 / 3.0, 1.0 / 3.0),
             ColourPrimaries::RP431 => (0.314, 0.351),
             ColourPrimaries::EG432 => (0.3127, 0.329),
             ColourPrimaries::NoSpec => (0.3127, 0.329),
