@@ -98,9 +98,9 @@ where
     pub fn scan_all_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
         let mut chunks = Vec::with_capacity(4);
         loop {
-            let chunk = self.scan_next_chunk()?;
-            chunks.push(chunk);
-            if chunk.chunktype == *b"IEND" {
+            let chunkref = self.scan_next_chunk()?;
+            chunks.push(chunkref);
+            if chunkref.chunktype == *b"IEND" {
                 break;
             }
         }
@@ -112,12 +112,12 @@ where
     pub fn scan_header_chunks(&mut self) -> Result<Vec<PNGChunkRef>, std::io::Error> {
         let mut chunks = Vec::with_capacity(4);
         loop {
-            let chunk = self.scan_next_chunk()?;
-            if chunk.chunktype == *b"IDAT" {
-                self.next_chunk_pos = chunk.position;
+            let chunkref = self.scan_next_chunk()?;
+            if chunkref.chunktype == *b"IDAT" {
+                self.next_chunk_pos = chunkref.position;
                 break;
             }
-            chunks.push(chunk);
+            chunks.push(chunkref);
         }
 
         Ok(chunks)
@@ -130,11 +130,11 @@ where
     {
         let mut chunks = Vec::new();
         loop {
-            let chunk = self.scan_next_chunk()?;
-            if test(chunk.chunktype) {
-                chunks.push(chunk);
+            let chunkref = self.scan_next_chunk()?;
+            if test(chunkref.chunktype) {
+                chunks.push(chunkref);
             }
-            if chunk.chunktype == *b"IEND" {
+            if chunkref.chunktype == *b"IEND" {
                 break;
             }
         }
