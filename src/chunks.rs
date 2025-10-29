@@ -572,9 +572,27 @@ pub struct Clli {
 }
 
 impl Clli {
+    /// Constructor
+    pub fn new(max_cll: Luminance, max_fall: Luminance) -> Self {
+        Self {
+            max_cll: (max_cll.get::<candela_per_square_meter>() * 10000.0) as u32,
+            max_fall: (max_fall.get::<candela_per_square_meter>() * 10000.0) as u32,
+        }
+    }
+
+    /// Set Maximum Content Light Level
+    pub fn set_max_cll(&mut self, max_cll: Luminance) {
+        self.max_cll = (max_cll.get::<candela_per_square_meter>() * 10000.0) as u32;
+    }
+
     /// Scaled maximum content light level
     pub fn max_cll(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.max_cll as f64 / 10000.0)
+    }
+
+    /// Set Maximum Frame-Average Light Level
+    pub fn set_max_fall(&mut self, max_fall: Luminance) {
+        self.max_fall = (max_fall.get::<candela_per_square_meter>() * 10000.0) as u32;
     }
 
     /// Scaled maximum frame-average Light Level
