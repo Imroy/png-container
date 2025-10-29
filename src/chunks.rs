@@ -560,9 +560,9 @@ impl Ztxt {
     pub fn string(&self) -> Option<String> {
         if self.compression_method == PngCompressionMethod::Zlib {
             let mut decoder = ZlibDecoder::new(self.compressed_string.as_slice());
-            let mut out = String::new();
-            if decoder.read_to_string(&mut out).is_ok() {
-                return Some(out);
+            let mut out = Vec::new();
+            if decoder.read_to_end(&mut out).is_ok() {
+                return Some(out.iter().map(|b| *b as char).collect());
             }
         }
 
@@ -946,7 +946,7 @@ impl PngChunkRef {
 
                 let name_end = find_null(&data);
                 Ok(PngChunkData::Iccp(Box::new(Iccp {
-                    name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
+                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
                     compression_method: data[name_end].try_into().map_err(to_io_error)?,
                     compressed_profile: data[name_end + 2..].to_vec(),
                 })))
@@ -1078,10 +1078,8 @@ impl PngChunkRef {
 
                 let keyword_end = find_null(&data);
                 Ok(PngChunkData::Text(Box::new(Text {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .map_err(to_io_error)?,
-                    string: String::from_utf8(data[keyword_end + 1..].to_vec())
-                        .map_err(to_io_error)?,
+                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
+                    string: data[keyword_end + 1..].iter().map(|b| *b as char).collect(),
                 })))
             }
 
@@ -1092,8 +1090,7 @@ impl PngChunkRef {
 
                 let keyword_end = find_null(&data);
                 Ok(PngChunkData::Ztxt(Box::new(Ztxt {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .map_err(to_io_error)?,
+                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
                     compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
                     compressed_string: data[keyword_end + 2..].to_vec(),
                 })))
@@ -1109,12 +1106,13 @@ impl PngChunkRef {
                 let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
 
                 Ok(PngChunkData::Itxt(Box::new(Itxt {
-                    keyword: String::from_utf8(data[0..keyword_end].to_vec())
-                        .map_err(to_io_error)?,
+                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
                     compressed: data[keyword_end + 1] > 0,
                     compression_method: data[keyword_end + 2].try_into().map_err(to_io_error)?,
-                    language: String::from_utf8(data[keyword_end + 3..language_end].to_vec())
-                        .map_err(to_io_error)?,
+                    language: data[keyword_end + 3..language_end]
+                        .iter()
+                        .map(|b| *b as char)
+                        .collect(),
                     translated_keyword: String::from_utf8(
                         data[language_end + 1..tkeyword_end].to_vec(),
                     )
@@ -1246,7 +1244,7 @@ impl PngChunkRef {
                 let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
 
                 Ok(PngChunkData::Splt(Box::new(Splt {
-                    name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
+                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
                     depth,
                     palette: (0..num_entries)
                         .map(|i| {
@@ -1379,14 +1377,16 @@ impl PngChunkRef {
                 for _ in 0..num_parameters {
                     let param_end = find_null(&data[prev_end..]) + prev_end;
                     parameters.push(
-                        String::from_utf8(data[prev_end..param_end].to_vec())
-                            .map_err(to_io_error)?,
+                        data[prev_end..param_end]
+                            .iter()
+                            .map(|b| *b as char)
+                            .collect(),
                     );
                     prev_end = param_end;
                 }
 
                 Ok(PngChunkData::Pcal(Box::new(Pcal {
-                    name: String::from_utf8(data[0..name_end].to_vec()).map_err(to_io_error)?,
+                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
                     original_zero: u32::from_be_bytes(
                         data[name_end..name_end + 4]
                             .try_into()
@@ -1398,8 +1398,10 @@ impl PngChunkRef {
                             .map_err(to_io_error)?,
                     ),
                     equation_type: data[name_end + 8],
-                    unit_name: String::from_utf8(data[name_end + 10..unit_end].to_vec())
-                        .map_err(to_io_error)?,
+                    unit_name: data[name_end + 10..unit_end]
+                        .iter()
+                        .map(|b| *b as char)
+                        .collect(),
                     parameters,
                 })))
             }
@@ -1414,10 +1416,11 @@ impl PngChunkRef {
 
                 Ok(PngChunkData::Scal(Box::new(Scal {
                     unit: data[0].try_into().map_err(to_io_error)?,
-                    pixel_width: String::from_utf8(data[1..width_end].to_vec())
-                        .map_err(to_io_error)?,
-                    pixel_height: String::from_utf8(data[width_end..height_end].to_vec())
-                        .map_err(to_io_error)?,
+                    pixel_width: data[1..width_end].iter().map(|b| *b as char).collect(),
+                    pixel_height: data[width_end..height_end]
+                        .iter()
+                        .map(|b| *b as char)
+                        .collect(),
                 })))
             }
 
@@ -1439,7 +1442,7 @@ impl PngChunkRef {
                 data_crc.consume(&data);
 
                 Ok(PngChunkData::Gifx(Box::new(Gifx {
-                    app_id: String::from_utf8(data[0..8].to_vec()).map_err(to_io_error)?,
+                    app_id: data[0..8].iter().map(|b| *b as char).collect(),
                     app_auth: [data[8], data[9], data[10]],
                     app_data: data[11..].to_vec(),
                 })))
