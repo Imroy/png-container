@@ -406,6 +406,29 @@ impl Chrm {
         }
     }
 
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 32];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            white_x: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
+            white_y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
+            red_x: u32::from_be_bytes(data[8..12].try_into().map_err(to_io_error)?),
+            red_y: u32::from_be_bytes(data[12..16].try_into().map_err(to_io_error)?),
+            green_x: u32::from_be_bytes(data[16..20].try_into().map_err(to_io_error)?),
+            green_y: u32::from_be_bytes(data[20..24].try_into().map_err(to_io_error)?),
+            blue_x: u32::from_be_bytes(data[24..28].try_into().map_err(to_io_error)?),
+            blue_y: u32::from_be_bytes(data[28..32].try_into().map_err(to_io_error)?),
+        })
+    }
+
     /// Set the white coordinates
     pub fn set_white_coords(&mut self, white: (f64, f64)) {
         self.white_x = (white.0 * 100000.0) as u32;
@@ -496,6 +519,32 @@ impl Mdcv {
         }
     }
 
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0_u8; 24];
+        stream.read_exact(&mut buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(Self {
+            red_x: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
+            red_y: u16::from_be_bytes(buf[2..4].try_into().map_err(to_io_error)?),
+            green_x: u16::from_be_bytes(buf[4..6].try_into().map_err(to_io_error)?),
+            green_y: u16::from_be_bytes(buf[6..8].try_into().map_err(to_io_error)?),
+            blue_x: u16::from_be_bytes(buf[8..10].try_into().map_err(to_io_error)?),
+            blue_y: u16::from_be_bytes(buf[10..12].try_into().map_err(to_io_error)?),
+            white_x: u16::from_be_bytes(buf[12..14].try_into().map_err(to_io_error)?),
+            white_y: u16::from_be_bytes(buf[14..16].try_into().map_err(to_io_error)?),
+            max_lum: u32::from_be_bytes(buf[16..20].try_into().map_err(to_io_error)?),
+            min_lum: u32::from_be_bytes(buf[20..24].try_into().map_err(to_io_error)?),
+        })
+    }
+
+
     /// Set the red coordinates
     pub fn set_red_coords(&mut self, red: (f64, f64)) {
         self.red_x = (red.0 * 50000.0) as u16;
@@ -580,6 +629,23 @@ impl Clli {
         }
     }
 
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0_u8; 8];
+        stream.read_exact(&mut buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(Self {
+            max_cll: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
+            max_fall: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
+        })
+    }
+
     /// Set Maximum Content Light Level
     pub fn set_max_cll(&mut self, max_cll: Luminance) {
         self.max_cll = (max_cll.get::<candela_per_square_meter>() * 10000.0) as u32;
@@ -625,6 +691,29 @@ impl Iccp {
         }
     }
 
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let name_end = find_null(&data);
+        Ok(Self {
+            name: data[0..name_end].iter().map(|b| *b as char).collect(),
+            compression_method: data[name_end].try_into().map_err(to_io_error)?,
+            compressed_profile: data[name_end + 2..].to_vec(),
+        })
+    }
+
     /// Set profile
     pub fn set_profile(&mut self, compression_method: PngCompressionMethod, profile: &[u8]) {
         let mut compressed_profile = Vec::new();
@@ -658,6 +747,30 @@ pub struct Text {
     pub string: String,
 }
 
+impl Text {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let keyword_end = find_null(&data);
+        Ok(Self {
+            keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
+            string: data[keyword_end + 1..].iter().map(|b| *b as char).collect(),
+        })
+    }
+}
+
 /// Compressed textual data
 #[derive(Clone, Debug, Default)]
 pub struct Ztxt {
@@ -680,6 +793,29 @@ impl Ztxt {
             compression_method,
             compressed_string,
         }
+    }
+
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let keyword_end = find_null(&data);
+        Ok(Self {
+            keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
+            compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
+            compressed_string: data[keyword_end + 2..].to_vec(),
+        })
     }
 
     /// Set the string
@@ -746,6 +882,39 @@ impl Itxt {
         }
     }
 
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let keyword_end = find_null(&data);
+        let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
+        let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
+
+        Ok(Self {
+            keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
+            compressed: data[keyword_end + 1] > 0,
+            compression_method: data[keyword_end + 2].try_into().map_err(to_io_error)?,
+            language: data[keyword_end + 3..language_end]
+                .iter()
+                .map(|b| *b as char)
+                .collect(),
+            translated_keyword: String::from_utf8(data[language_end + 1..tkeyword_end].to_vec())
+                .map_err(to_io_error)?,
+            compressed_string: data[tkeyword_end + 1..].to_vec(),
+        })
+    }
+
     /// Set the string
     pub fn set_string(&mut self, compression_method: Option<PngCompressionMethod>, string: &str) {
         let mut compressed_string = Vec::new();
@@ -788,6 +957,70 @@ pub struct Splt {
     pub palette: Vec<PngSuggestedPaletteEntry>,
 }
 
+impl Splt {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let name_end = find_null(&data);
+        let depth = data[name_end + 1];
+        let entry_size = ((depth / 8) * 4) + 2;
+        let num_entries = (length as usize - name_end - 1) / (entry_size as usize);
+
+        Ok(Self {
+            name: data[0..name_end].iter().map(|b| *b as char).collect(),
+            depth,
+            palette: (0..num_entries)
+                .map(|i| {
+                    let start = name_end + 2 + (i * entry_size as usize);
+                    if depth == 8 {
+                        Ok(PngSuggestedPaletteEntry {
+                            red: data[start] as u16,
+                            green: data[start + 1] as u16,
+                            blue: data[start + 2] as u16,
+                            alpha: data[start + 3] as u16,
+                            frequency: u16::from_be_bytes(
+                                data[start + 4..start + 6].try_into().map_err(to_io_error)?,
+                            ),
+                        })
+                    } else {
+                        Ok(PngSuggestedPaletteEntry {
+                            red: u16::from_be_bytes(
+                                data[start..start + 2].try_into().map_err(to_io_error)?,
+                            ),
+                            green: u16::from_be_bytes(
+                                data[start + 2..start + 4].try_into().map_err(to_io_error)?,
+                            ),
+                            blue: u16::from_be_bytes(
+                                data[start + 4..start + 6].try_into().map_err(to_io_error)?,
+                            ),
+                            alpha: u16::from_be_bytes(
+                                data[start + 6..start + 8].try_into().map_err(to_io_error)?,
+                            ),
+                            frequency: u16::from_be_bytes(
+                                data[start + 8..start + 10]
+                                    .try_into()
+                                    .map_err(to_io_error)?,
+                            ),
+                        })
+                    }
+                })
+                .collect::<Result<Vec<_>, std::io::Error>>()?,
+        })
+    }
+}
+
 /// Calibration of pixel values
 #[derive(Clone, Debug)]
 pub struct Pcal {
@@ -799,6 +1032,60 @@ pub struct Pcal {
     pub parameters: Vec<String>,
 }
 
+impl Pcal {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let name_end = find_null(&data);
+        let num_parameters = data[name_end + 9];
+        let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
+
+        let parameters = data[unit_end..]
+            .split(|b| *b == 0)
+            .map(|slice| slice.iter().map(|b| *b as char).collect::<String>())
+            .collect::<Vec<_>>();
+        if parameters.len() != num_parameters as usize {
+            return Err(std::io::Error::other(format!(
+                "Read {} parameters but there are supposed to be {}",
+                parameters.len(),
+                num_parameters
+            )));
+        }
+
+        Ok(Self {
+            name: data[0..name_end].iter().map(|b| *b as char).collect(),
+            original_zero: u32::from_be_bytes(
+                data[name_end..name_end + 4]
+                    .try_into()
+                    .map_err(to_io_error)?,
+            ),
+            original_max: u32::from_be_bytes(
+                data[name_end + 4..name_end + 8]
+                    .try_into()
+                    .map_err(to_io_error)?,
+            ),
+            equation_type: data[name_end + 8].try_into().map_err(to_io_error)?,
+            unit_name: data[name_end + 10..unit_end]
+                .iter()
+                .map(|b| *b as char)
+                .collect(),
+            parameters,
+        })
+    }
+}
+
 /// Physical scale of image subject
 #[derive(Clone, Debug)]
 pub struct Scal {
@@ -807,12 +1094,66 @@ pub struct Scal {
     pub pixel_height: String,
 }
 
+impl Scal {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let width_end = find_null(&data[1..]) + 1;
+        let height_end = find_null(&data[width_end..]) + width_end;
+
+        Ok(Self {
+            unit: data[0].try_into().map_err(to_io_error)?,
+            pixel_width: data[1..width_end].iter().map(|b| *b as char).collect(),
+            pixel_height: data[width_end..height_end]
+                .iter()
+                .map(|b| *b as char)
+                .collect(),
+        })
+    }
+}
+
 /// GIF Application Extension
 #[derive(Clone, Debug)]
 pub struct Gifx {
     pub app_id: String,
     pub app_auth: [u8; 3],
     pub app_data: Vec<u8>,
+}
+
+impl Gifx {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            app_id: data[0..8].iter().map(|b| *b as char).collect(),
+            app_auth: [data[8], data[9], data[10]],
+            app_data: data[11..].to_vec(),
+        })
+    }
 }
 
 /// Frame control
@@ -830,6 +1171,30 @@ pub struct Fctl {
 }
 
 impl Fctl {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0_u8; 26];
+        stream.read_exact(&mut buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(Self {
+            sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
+            width: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
+            height: u32::from_be_bytes(buf[8..12].try_into().map_err(to_io_error)?),
+            x_offset: u32::from_be_bytes(buf[12..16].try_into().map_err(to_io_error)?),
+            y_offset: u32::from_be_bytes(buf[16..20].try_into().map_err(to_io_error)?),
+            delay_num: u16::from_be_bytes(buf[20..22].try_into().map_err(to_io_error)?),
+            delay_den: u16::from_be_bytes(buf[22..24].try_into().map_err(to_io_error)?),
+            dispose_op: buf[24].try_into().map_err(to_io_error)?,
+            blend_op: buf[24].try_into().map_err(to_io_error)?,
+        })
+    }
+
     /// Calculate delay from fcTL chunk in seconds
     pub fn delay(&self) -> Time {
         Time::new::<uom::si::time::second>(self.delay_num as f64 / self.delay_den as f64)
@@ -841,6 +1206,29 @@ impl Fctl {
 pub struct Fdat {
     pub sequence_number: u32,
     pub frame_data: Vec<u8>,
+}
+
+impl Fdat {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = vec![0_u8; length as usize];
+        stream.read_exact(&mut buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(Self {
+            sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
+            frame_data: buf[4..].to_vec(),
+        })
+    }
 }
 
 /// Reference to a chunk in a PNG file
@@ -1076,35 +1464,16 @@ impl PngChunkRef {
                 })
             }
 
-            b"cHRM" => {
-                let mut data = [0_u8; 32];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
+            b"cHRM" => Ok(PngChunkData::Chrm(Box::new(Chrm::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Chrm(Box::new(Chrm {
-                    white_x: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
-                    white_y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
-                    red_x: u32::from_be_bytes(data[8..12].try_into().map_err(to_io_error)?),
-                    red_y: u32::from_be_bytes(data[12..16].try_into().map_err(to_io_error)?),
-                    green_x: u32::from_be_bytes(data[16..20].try_into().map_err(to_io_error)?),
-                    green_y: u32::from_be_bytes(data[20..24].try_into().map_err(to_io_error)?),
-                    blue_x: u32::from_be_bytes(data[24..28].try_into().map_err(to_io_error)?),
-                    blue_y: u32::from_be_bytes(data[28..32].try_into().map_err(to_io_error)?),
-                })))
-            }
-
-            b"iCCP" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let name_end = find_null(&data);
-                Ok(PngChunkData::Iccp(Box::new(Iccp {
-                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
-                    compression_method: data[name_end].try_into().map_err(to_io_error)?,
-                    compressed_profile: data[name_end + 2..].to_vec(),
-                })))
-            }
+            b"iCCP" => Ok(PngChunkData::Iccp(Box::new(Iccp::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"sBIT" => {
                 if ihdr.is_none() {
@@ -1195,85 +1564,33 @@ impl PngChunkRef {
                 })
             }
 
-            b"mDCV" => {
-                let mut buf = [0_u8; 24];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
+            b"mDCV" => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Mdcv(Box::new(Mdcv {
-                    red_x: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
-                    red_y: u16::from_be_bytes(buf[2..4].try_into().map_err(to_io_error)?),
-                    green_x: u16::from_be_bytes(buf[4..6].try_into().map_err(to_io_error)?),
-                    green_y: u16::from_be_bytes(buf[6..8].try_into().map_err(to_io_error)?),
-                    blue_x: u16::from_be_bytes(buf[8..10].try_into().map_err(to_io_error)?),
-                    blue_y: u16::from_be_bytes(buf[10..12].try_into().map_err(to_io_error)?),
-                    white_x: u16::from_be_bytes(buf[12..14].try_into().map_err(to_io_error)?),
-                    white_y: u16::from_be_bytes(buf[14..16].try_into().map_err(to_io_error)?),
-                    max_lum: u32::from_be_bytes(buf[16..20].try_into().map_err(to_io_error)?),
-                    min_lum: u32::from_be_bytes(buf[20..24].try_into().map_err(to_io_error)?),
-                })))
-            }
+            b"cLLI" => Ok(PngChunkData::Clli(Box::new(Clli::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
-            b"cLLI" => {
-                let mut buf = [0_u8; 8];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
+            b"tEXt" => Ok(PngChunkData::Text(Box::new(Text::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Clli(Box::new(Clli {
-                    max_cll: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    max_fall: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                })))
-            }
+            b"zTXt" => Ok(PngChunkData::Ztxt(Box::new(Ztxt::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
-            b"tEXt" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let keyword_end = find_null(&data);
-                Ok(PngChunkData::Text(Box::new(Text {
-                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
-                    string: data[keyword_end + 1..].iter().map(|b| *b as char).collect(),
-                })))
-            }
-
-            b"zTXt" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let keyword_end = find_null(&data);
-                Ok(PngChunkData::Ztxt(Box::new(Ztxt {
-                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
-                    compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
-                    compressed_string: data[keyword_end + 2..].to_vec(),
-                })))
-            }
-
-            b"iTXt" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let keyword_end = find_null(&data);
-                let language_end = find_null(&data[keyword_end + 3..]) + keyword_end + 3;
-                let tkeyword_end = find_null(&data[language_end + 1..]) + language_end + 1;
-
-                Ok(PngChunkData::Itxt(Box::new(Itxt {
-                    keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
-                    compressed: data[keyword_end + 1] > 0,
-                    compression_method: data[keyword_end + 2].try_into().map_err(to_io_error)?,
-                    language: data[keyword_end + 3..language_end]
-                        .iter()
-                        .map(|b| *b as char)
-                        .collect(),
-                    translated_keyword: String::from_utf8(
-                        data[language_end + 1..tkeyword_end].to_vec(),
-                    )
-                    .map_err(to_io_error)?,
-                    compressed_string: data[tkeyword_end + 1..].to_vec(),
-                })))
-            }
+            b"iTXt" => Ok(PngChunkData::Itxt(Box::new(Itxt::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"bKGD" => {
                 if ihdr.is_none() {
@@ -1387,65 +1704,11 @@ impl PngChunkRef {
                 Ok(PngChunkData::Exif(Box::new(profile)))
             }
 
-            b"sPLT" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let name_end = find_null(&data);
-                let depth = data[name_end + 1];
-                let entry_size = ((depth / 8) * 4) + 2;
-                let num_entries = (self.length as usize - name_end - 1) / (entry_size as usize);
-
-                Ok(PngChunkData::Splt(Box::new(Splt {
-                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
-                    depth,
-                    palette: (0..num_entries)
-                        .map(|i| {
-                            let start = name_end + 2 + (i * entry_size as usize);
-                            if depth == 8 {
-                                Ok(PngSuggestedPaletteEntry {
-                                    red: data[start] as u16,
-                                    green: data[start + 1] as u16,
-                                    blue: data[start + 2] as u16,
-                                    alpha: data[start + 3] as u16,
-                                    frequency: u16::from_be_bytes(
-                                        data[start + 4..start + 6]
-                                            .try_into()
-                                            .map_err(to_io_error)?,
-                                    ),
-                                })
-                            } else {
-                                Ok(PngSuggestedPaletteEntry {
-                                    red: u16::from_be_bytes(
-                                        data[start..start + 2].try_into().map_err(to_io_error)?,
-                                    ),
-                                    green: u16::from_be_bytes(
-                                        data[start + 2..start + 4]
-                                            .try_into()
-                                            .map_err(to_io_error)?,
-                                    ),
-                                    blue: u16::from_be_bytes(
-                                        data[start + 4..start + 6]
-                                            .try_into()
-                                            .map_err(to_io_error)?,
-                                    ),
-                                    alpha: u16::from_be_bytes(
-                                        data[start + 6..start + 8]
-                                            .try_into()
-                                            .map_err(to_io_error)?,
-                                    ),
-                                    frequency: u16::from_be_bytes(
-                                        data[start + 8..start + 10]
-                                            .try_into()
-                                            .map_err(to_io_error)?,
-                                    ),
-                                })
-                            }
-                        })
-                        .collect::<Result<Vec<_>, std::io::Error>>()?,
-                })))
-            }
+            b"sPLT" => Ok(PngChunkData::Splt(Box::new(Splt::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"tIME" => {
                 let mut buf = [0_u8; 7];
@@ -1474,34 +1737,16 @@ impl PngChunkRef {
                 })
             }
 
-            b"fcTL" => {
-                let mut buf = [0_u8; 26];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
+            b"fcTL" => Ok(PngChunkData::Fctl(Box::new(Fctl::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Fctl(Box::new(Fctl {
-                    sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    width: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                    height: u32::from_be_bytes(buf[8..12].try_into().map_err(to_io_error)?),
-                    x_offset: u32::from_be_bytes(buf[12..16].try_into().map_err(to_io_error)?),
-                    y_offset: u32::from_be_bytes(buf[16..20].try_into().map_err(to_io_error)?),
-                    delay_num: u16::from_be_bytes(buf[20..22].try_into().map_err(to_io_error)?),
-                    delay_den: u16::from_be_bytes(buf[22..24].try_into().map_err(to_io_error)?),
-                    dispose_op: buf[24].try_into().map_err(to_io_error)?,
-                    blend_op: buf[24].try_into().map_err(to_io_error)?,
-                })))
-            }
-
-            b"fdAT" => {
-                let mut buf = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Fdat(Box::new(Fdat {
-                    sequence_number: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    frame_data: buf[4..].to_vec(),
-                })))
-            }
+            b"fdAT" => Ok(PngChunkData::Fdat(Box::new(Fdat::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             // Extensions
             b"oFFs" => {
@@ -1516,65 +1761,17 @@ impl PngChunkRef {
                 })
             }
 
-            b"pCAL" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
+            b"pCAL" => Ok(PngChunkData::Pcal(Box::new(Pcal::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
-                let name_end = find_null(&data);
-                let num_parameters = data[name_end + 9];
-                let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
-
-                let parameters = data[unit_end..]
-                    .split(|b| *b == 0)
-                    .map(|slice| slice.iter().map(|b| *b as char).collect::<String>())
-                    .collect::<Vec<_>>();
-                if parameters.len() != num_parameters as usize {
-                    return Err(std::io::Error::other(format!(
-                        "Read {} parameters but there are supposed to be {}",
-                        parameters.len(),
-                        num_parameters
-                    )));
-                }
-
-                Ok(PngChunkData::Pcal(Box::new(Pcal {
-                    name: data[0..name_end].iter().map(|b| *b as char).collect(),
-                    original_zero: u32::from_be_bytes(
-                        data[name_end..name_end + 4]
-                            .try_into()
-                            .map_err(to_io_error)?,
-                    ),
-                    original_max: u32::from_be_bytes(
-                        data[name_end + 4..name_end + 8]
-                            .try_into()
-                            .map_err(to_io_error)?,
-                    ),
-                    equation_type: data[name_end + 8].try_into().map_err(to_io_error)?,
-                    unit_name: data[name_end + 10..unit_end]
-                        .iter()
-                        .map(|b| *b as char)
-                        .collect(),
-                    parameters,
-                })))
-            }
-
-            b"sCAL" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                let width_end = find_null(&data[1..]) + 1;
-                let height_end = find_null(&data[width_end..]) + width_end;
-
-                Ok(PngChunkData::Scal(Box::new(Scal {
-                    unit: data[0].try_into().map_err(to_io_error)?,
-                    pixel_width: data[1..width_end].iter().map(|b| *b as char).collect(),
-                    pixel_height: data[width_end..height_end]
-                        .iter()
-                        .map(|b| *b as char)
-                        .collect(),
-                })))
-            }
+            b"sCAL" => Ok(PngChunkData::Scal(Box::new(Scal::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"gIFg" => {
                 let mut buf = [0_u8; 4];
@@ -1588,17 +1785,11 @@ impl PngChunkRef {
                 })
             }
 
-            b"gIFx" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                Ok(PngChunkData::Gifx(Box::new(Gifx {
-                    app_id: data[0..8].iter().map(|b| *b as char).collect(),
-                    app_auth: [data[8], data[9], data[10]],
-                    app_data: data[11..].to_vec(),
-                })))
-            }
+            b"gIFx" => Ok(PngChunkData::Gifx(Box::new(Gifx::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"sTER" => {
                 let mut buf = [0_u8; 1];
