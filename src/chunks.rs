@@ -24,7 +24,10 @@ use std::slice::Iter;
 use std::str;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use flate2::bufread::ZlibDecoder;
+use flate2::{
+    Compression,
+    bufread::{ZlibDecoder, ZlibEncoder},
+};
 use uom::si::{
     f64::{LinearNumberDensity, Luminance, Time},
     linear_number_density::per_meter,
@@ -495,6 +498,21 @@ pub struct Iccp {
 }
 
 impl Iccp {
+    /// Constructor
+    pub fn new(name: &str, compression_method: PngCompressionMethod, profile: &[u8]) -> Self {
+        let mut compressed_profile = Vec::new();
+        if compression_method == PngCompressionMethod::Zlib {
+            let mut encoder = ZlibEncoder::new(profile, Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_profile);
+        }
+
+        Self {
+            name: name.to_string(),
+            compression_method,
+            compressed_profile,
+        }
+    }
+
     pub fn profile(&self) -> Option<Vec<u8>> {
         if self.compression_method == PngCompressionMethod::Zlib {
             let mut decoder = ZlibDecoder::new(self.compressed_profile.as_slice());
@@ -524,6 +542,21 @@ pub struct Ztxt {
 }
 
 impl Ztxt {
+    /// Constructor
+    pub fn new(keyword: &str, compression_method: PngCompressionMethod, string: &str) -> Self {
+        let mut compressed_string = Vec::new();
+        if compression_method == PngCompressionMethod::Zlib {
+            let mut encoder = ZlibEncoder::new(string.as_bytes(), Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_string);
+        }
+
+        Self {
+            keyword: keyword.to_string(),
+            compression_method,
+            compressed_string,
+        }
+    }
+
     /// Decompress the compressed string in a zTXt chunk
     pub fn string(&self) -> Option<String> {
         if self.compression_method == PngCompressionMethod::Zlib {
@@ -550,6 +583,32 @@ pub struct Itxt {
 }
 
 impl Itxt {
+    /// Constructor
+    pub fn new(
+        keyword: &str,
+        compression_method: Option<PngCompressionMethod>,
+        language: &str,
+        translated_keyword: &str,
+        string: &str,
+    ) -> Self {
+        let mut compressed_string = Vec::new();
+        if compression_method == Some(PngCompressionMethod::Zlib) {
+            let mut encoder = ZlibEncoder::new(string.as_bytes(), Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_string);
+        } else {
+            compressed_string.extend(string.bytes());
+        }
+
+        Self {
+            keyword: keyword.to_string(),
+            compressed: compression_method.is_some(),
+            compression_method: compression_method.unwrap_or_default(),
+            language: language.to_string(),
+            translated_keyword: translated_keyword.to_string(),
+            compressed_string,
+        }
+    }
+
     /// Decompress the compressed string in an iTXt chunk
     pub fn string(&self) -> Option<String> {
         if self.compressed {
