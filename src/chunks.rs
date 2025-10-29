@@ -682,6 +682,18 @@ impl Ztxt {
         }
     }
 
+    /// Set the string
+    pub fn set_string(&mut self, compression_method: PngCompressionMethod, string: &str) {
+        let mut compressed_string = Vec::new();
+        if compression_method == PngCompressionMethod::Zlib {
+            let mut encoder = ZlibEncoder::new(string.as_bytes(), Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_string);
+        }
+
+        self.compression_method = compression_method;
+        self.compressed_string = compressed_string;
+    }
+
     /// Decompress the compressed string in a zTXt chunk
     pub fn string(&self) -> Option<String> {
         if self.compression_method == PngCompressionMethod::Zlib {
@@ -732,6 +744,22 @@ impl Itxt {
             translated_keyword: translated_keyword.to_string(),
             compressed_string,
         }
+    }
+
+    /// Set the string
+    pub fn set_string(&mut self, compression_method: Option<PngCompressionMethod>, string: &str) {
+        let mut compressed_string = Vec::new();
+        if compression_method == Some(PngCompressionMethod::Zlib) {
+            let mut encoder = ZlibEncoder::new(string.as_bytes(), Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_string);
+            self.compressed = true;
+        } else {
+            compressed_string.extend(string.bytes());
+            self.compressed = false;
+        }
+
+        self.compression_method = compression_method.unwrap_or_default();
+        self.compressed_string = compressed_string;
     }
 
     /// Decompress the compressed string in an iTXt chunk
