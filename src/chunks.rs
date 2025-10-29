@@ -657,7 +657,7 @@ pub struct Scal {
 #[derive(Clone, Debug)]
 pub struct Gifx {
     pub app_id: String,
-    pub app_code: [u8; 3],
+    pub app_auth: [u8; 3],
     pub app_data: Vec<u8>,
 }
 
@@ -1440,7 +1440,7 @@ impl PngChunkRef {
 
                 Ok(PngChunkData::Gifx(Box::new(Gifx {
                     app_id: String::from_utf8(data[0..8].to_vec()).map_err(to_io_error)?,
-                    app_code: [data[8], data[9], data[10]],
+                    app_auth: [data[8], data[9], data[10]],
                     app_data: data[11..].to_vec(),
                 })))
             }
