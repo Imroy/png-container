@@ -24,7 +24,7 @@ use std::slice::Iter;
 use std::str;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use inflate::inflate_bytes_zlib;
+use flate2::bufread::ZlibDecoder;
 use uom::si::{
     f64::{LinearNumberDensity, Luminance, Time},
     linear_number_density::per_meter,
@@ -497,10 +497,14 @@ pub struct Iccp {
 impl Iccp {
     pub fn profile(&self) -> Option<Vec<u8>> {
         if self.compression_method == PngCompressionMethod::Zlib {
-            inflate_bytes_zlib(self.compressed_profile.as_slice()).ok()
-        } else {
-            None
+            let mut decoder = ZlibDecoder::new(self.compressed_profile.as_slice());
+            let mut out = Vec::new();
+            if decoder.read_to_end(&mut out).is_ok() {
+                return Some(out);
+            }
         }
+
+        None
     }
 }
 
@@ -523,8 +527,11 @@ impl Ztxt {
     /// Decompress the compressed string in a zTXt chunk
     pub fn string(&self) -> Option<String> {
         if self.compression_method == PngCompressionMethod::Zlib {
-            let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
-            return String::from_utf8(bytes).ok();
+            let mut decoder = ZlibDecoder::new(self.compressed_string.as_slice());
+            let mut out = String::new();
+            if decoder.read_to_string(&mut out).is_ok() {
+                return Some(out);
+            }
         }
 
         None
@@ -547,14 +554,17 @@ impl Itxt {
     pub fn string(&self) -> Option<String> {
         if self.compressed {
             if self.compression_method == PngCompressionMethod::Zlib {
-                let bytes = inflate_bytes_zlib(self.compressed_string.as_slice()).ok()?;
-                String::from_utf8(bytes).ok()
-            } else {
-                None
+                let mut decoder = ZlibDecoder::new(self.compressed_string.as_slice());
+                let mut out = String::new();
+                if decoder.read_to_string(&mut out).is_ok() {
+                    return Some(out);
+                }
             }
-        } else {
-            String::from_utf8(self.compressed_string.to_vec()).ok()
+
+            return None;
         }
+
+        String::from_utf8(self.compressed_string.to_vec()).ok()
     }
 }
 
