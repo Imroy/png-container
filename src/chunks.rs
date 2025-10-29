@@ -473,9 +473,44 @@ pub struct Mdcv {
 }
 
 impl Mdcv {
+    /// Constructor
+    pub fn new(
+        red: (f64, f64),
+        green: (f64, f64),
+        blue: (f64, f64),
+        white: (f64, f64),
+        max_lum: Luminance,
+        min_lum: Luminance,
+    ) -> Self {
+        Self {
+            red_x: (red.0 * 50000.0) as u16,
+            red_y: (red.1 * 50000.0) as u16,
+            green_x: (green.0 * 50000.0) as u16,
+            green_y: (green.1 * 50000.0) as u16,
+            blue_x: (blue.0 * 50000.0) as u16,
+            blue_y: (blue.1 * 50000.0) as u16,
+            white_x: (white.0 * 50000.0) as u16,
+            white_y: (white.1 * 50000.0) as u16,
+            max_lum: (max_lum.get::<candela_per_square_meter>() * 10000.0) as u32,
+            min_lum: (min_lum.get::<candela_per_square_meter>() * 10000.0) as u32,
+        }
+    }
+
+    /// Set the red coordinates
+    pub fn set_red_coords(&mut self, red: (f64, f64)) {
+        self.red_x = (red.0 * 50000.0) as u16;
+        self.red_y = (red.1 * 50000.0) as u16;
+    }
+
     /// Scaled red coordinates of the mDCV chunk
     pub fn red_coords(&self) -> (f64, f64) {
         (self.red_x as f64 / 50000.0, self.red_y as f64 / 50000.0)
+    }
+
+    /// Set the green coordinates
+    pub fn set_green_coords(&mut self, green: (f64, f64)) {
+        self.green_x = (green.0 * 50000.0) as u16;
+        self.green_y = (green.1 * 50000.0) as u16;
     }
 
     /// Scaled green coordinates of the mDCV chunk
@@ -483,9 +518,21 @@ impl Mdcv {
         (self.green_x as f64 / 50000.0, self.green_y as f64 / 50000.0)
     }
 
+    /// Set the blue coordinates
+    pub fn set_blue_coords(&mut self, blue: (f64, f64)) {
+        self.blue_x = (blue.0 * 50000.0) as u16;
+        self.blue_y = (blue.1 * 50000.0) as u16;
+    }
+
     /// Scaled blue coordinates of the mDCV chunk
     pub fn blue_coords(&self) -> (f64, f64) {
         (self.blue_x as f64 / 50000.0, self.blue_y as f64 / 50000.0)
+    }
+
+    /// Set the white coordinates
+    pub fn set_white_coords(&mut self, white: (f64, f64)) {
+        self.white_x = (white.0 * 50000.0) as u16;
+        self.white_y = (white.1 * 50000.0) as u16;
     }
 
     /// Scaled white coordinates of the mDCV chunk
@@ -493,9 +540,19 @@ impl Mdcv {
         (self.white_x as f64 / 50000.0, self.white_y as f64 / 50000.0)
     }
 
+    /// Set the maximum luminance of the mDCV chunk
+    pub fn set_max_lum(&mut self, max_lum: Luminance) {
+        self.max_lum = (max_lum.get::<candela_per_square_meter>() * 10000.0) as u32;
+    }
+
     /// Scaled mastering display maximum luminance of the mDCV chunk
     pub fn max_lum(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.max_lum as f64 / 10000.0)
+    }
+
+    /// Set the minimum luminance of the mDCV chunk
+    pub fn set_min_lum(&mut self, min_lum: Luminance) {
+        self.min_lum = (min_lum.get::<candela_per_square_meter>() * 10000.0) as u32;
     }
 
     /// Scaled mastering display minimum luminance of the mDCV chunk
