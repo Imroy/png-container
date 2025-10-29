@@ -49,7 +49,7 @@ pub enum PngChunkData {
     Ihdr(Box<Ihdr>),
 
     /// Palette
-    Plte(Box<Vec<PngPaletteEntry>>),
+    Plte(Box<Plte>),
 
     /// Image data
     Idat(Box<Vec<u8>>),
@@ -400,6 +400,40 @@ impl Ihdr {
             filter_method: buf[11].try_into().map_err(to_io_error)?,
             interlace_method: buf[12].try_into().map_err(to_io_error)?,
         })
+    }
+}
+
+/// Palette
+#[derive(Clone, Debug, Default)]
+pub struct Plte(Vec<PngPaletteEntry>);
+
+impl Plte {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self(
+            (0..length as usize / 3)
+                .map(|i| {
+                    Ok(PngPaletteEntry {
+                        red: data[i * 3],
+                        green: data[i * 3 + 1],
+                        blue: data[i * 3 + 2],
+                    })
+                })
+                .collect::<Result<Vec<_>, std::io::Error>>()?,
+        ))
     }
 }
 
@@ -1384,20 +1418,11 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"PLTE" => Ok(PngChunkData::Plte(Box::new(
-                (0..self.length / 3)
-                    .map(|_| {
-                        let mut buf = [0_u8; 3];
-                        chunkstream.read_exact(&mut buf)?;
-                        data_crc.consume(&buf);
-                        Ok(PngPaletteEntry {
-                            red: buf[0],
-                            green: buf[1],
-                            blue: buf[2],
-                        })
-                    })
-                    .collect::<Result<Vec<_>, std::io::Error>>()?,
-            ))),
+            b"PLTE" => Ok(PngChunkData::Plte(Box::new(Plte::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             b"IDAT" => {
                 let mut data = vec![0_u8; self.length as usize];
