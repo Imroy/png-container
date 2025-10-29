@@ -474,6 +474,23 @@ pub enum MatrixCoefficients {
     Reserved(u8),
 }
 
+/// Equation types used in the pCAL chunk
+#[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
+pub enum CalibrationEquationType {
+    /// Linear mapping
+    Linear = 0,
+
+    /// Base-e exponential mapping
+    EPower = 1,
+
+    /// Arbitrary-base exponential mapping
+    ArbitraryPower = 2,
+
+    /// Hyperbolic mapping
+    Hyperbolic,
+}
+
 /// GIF Disposal methods for gIFg chunk
 #[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, FromPrimitive)]
 #[repr(u8)]

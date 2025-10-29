@@ -761,12 +761,12 @@ pub struct Splt {
 }
 
 /// Calibration of pixel values
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Pcal {
     pub name: String,
     pub original_zero: u32,
     pub original_max: u32,
-    pub equation_type: u8,
+    pub equation_type: CalibrationEquationType,
     pub unit_name: String,
     pub parameters: Vec<String>,
 }
@@ -1523,7 +1523,7 @@ impl PngChunkRef {
                             .try_into()
                             .map_err(to_io_error)?,
                     ),
-                    equation_type: data[name_end + 8],
+                    equation_type: data[name_end + 8].try_into().map_err(to_io_error)?,
                     unit_name: data[name_end + 10..unit_end]
                         .iter()
                         .map(|b| *b as char)
