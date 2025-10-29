@@ -625,6 +625,19 @@ impl Iccp {
         }
     }
 
+    /// Set profile
+    pub fn set_profile(&mut self, compression_method: PngCompressionMethod, profile: &[u8]) {
+        let mut compressed_profile = Vec::new();
+        if compression_method == PngCompressionMethod::Zlib {
+            let mut encoder = ZlibEncoder::new(profile, Compression::best());
+            let _ = encoder.read_to_end(&mut compressed_profile);
+        }
+
+        self.compression_method = compression_method;
+        self.compressed_profile = compressed_profile;
+    }
+
+    /// Uncompressed profile
     pub fn profile(&self) -> Option<Vec<u8>> {
         if self.compression_method == PngCompressionMethod::Zlib {
             let mut decoder = ZlibDecoder::new(self.compressed_profile.as_slice());
