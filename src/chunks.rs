@@ -392,6 +392,26 @@ pub struct Chrm {
 }
 
 impl Chrm {
+    /// Constructor
+    pub fn new(white: (f64, f64), red: (f64, f64), green: (f64, f64), blue: (f64, f64)) -> Self {
+        Self {
+            white_x: (white.0 * 100000.0) as u32,
+            white_y: (white.1 * 100000.0) as u32,
+            red_x: (red.0 * 100000.0) as u32,
+            red_y: (red.1 * 100000.0) as u32,
+            green_x: (green.0 * 100000.0) as u32,
+            green_y: (green.1 * 100000.0) as u32,
+            blue_x: (blue.0 * 100000.0) as u32,
+            blue_y: (blue.1 * 100000.0) as u32,
+        }
+    }
+
+    /// Set the white coordinates
+    pub fn set_white_coords(&mut self, white: (f64, f64)) {
+        self.white_x = (white.0 * 100000.0) as u32;
+        self.white_y = (white.1 * 100000.0) as u32;
+    }
+
     /// Scaled white coordinates of the cHRM chunk
     pub fn white_coords(&self) -> (f64, f64) {
         (
@@ -400,9 +420,21 @@ impl Chrm {
         )
     }
 
+    /// Set the red coordinates
+    pub fn set_red_coords(&mut self, red: (f64, f64)) {
+        self.red_x = (red.0 * 100000.0) as u32;
+        self.red_y = (red.1 * 100000.0) as u32;
+    }
+
     /// Scaled red coordinates of the cHRM chunk
     pub fn red_coords(&self) -> (f64, f64) {
         (self.red_x as f64 / 100000.0, self.red_y as f64 / 100000.0)
+    }
+
+    /// Set the green coordinates
+    pub fn set_green_coords(&mut self, green: (f64, f64)) {
+        self.green_x = (green.0 * 100000.0) as u32;
+        self.green_y = (green.1 * 100000.0) as u32;
     }
 
     /// Scaled green coordinates of the cHRM chunk
@@ -411,6 +443,12 @@ impl Chrm {
             self.green_x as f64 / 100000.0,
             self.green_y as f64 / 100000.0,
         )
+    }
+
+    /// Set the blue coordinates
+    pub fn set_blue_coords(&mut self, blue: (f64, f64)) {
+        self.blue_x = (blue.0 * 100000.0) as u32;
+        self.blue_y = (blue.1 * 100000.0) as u32;
     }
 
     /// Scaled blue coordinates of the cHRM chunk
