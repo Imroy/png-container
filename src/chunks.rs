@@ -45,30 +45,8 @@ pub enum PngChunkData {
     None,
 
     // Critical chunks
-
     /// Image header
-    Ihdr {
-        /// Width of image in pixels
-        width: u32,
-
-        /// Height of image in pixels
-        height: u32,
-
-        /// Number of bits per sample
-        bit_depth: u8,
-
-        /// Colour type
-        colour_type: PngColourType,
-
-        /// Compression method
-        compression_method: PngCompressionMethod,
-
-        /// Filter method
-        filter_method: PngFilterMethod,
-
-        /// Interlace method
-        interlace_method: PngInterlaceMethod,
-    },
+    Ihdr(Box<Ihdr>),
 
     /// Palette
     Plte(Box<Vec<PngPaletteEntry>>),
@@ -373,6 +351,55 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+/// Image header
+#[derive(Clone, Copy, Debug)]
+pub struct Ihdr {
+    /// Width of image in pixels
+    pub width: u32,
+
+    /// Height of image in pixels
+    pub height: u32,
+
+    /// Number of bits per sample
+    pub bit_depth: u8,
+
+    /// Colour type
+    pub colour_type: PngColourType,
+
+    /// Compression method
+    pub compression_method: PngCompressionMethod,
+
+    /// Filter method
+    pub filter_method: PngFilterMethod,
+
+    /// Interlace method
+    pub interlace_method: PngInterlaceMethod,
+}
+
+impl Ihdr {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut buf = [0_u8; 13];
+        stream.read_exact(&mut buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(Self {
+            width: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
+            height: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
+            bit_depth: buf[8],
+            colour_type: buf[9].try_into().map_err(to_io_error)?,
+            compression_method: buf[10].try_into().map_err(to_io_error)?,
+            filter_method: buf[11].try_into().map_err(to_io_error)?,
+            interlace_method: buf[12].try_into().map_err(to_io_error)?,
+        })
     }
 }
 
@@ -1340,7 +1367,7 @@ impl PngChunkRef {
     pub(crate) fn read_chunk<R>(
         &self,
         stream: &mut R,
-        ihdr: Option<&PngChunkData>,
+        ihdr: Option<&Ihdr>,
     ) -> Result<PngChunkData, std::io::Error>
     where
         R: Read + Seek,
@@ -1352,21 +1379,10 @@ impl PngChunkRef {
         data_crc.consume(&self.chunktype);
 
         let chunk = match &self.chunktype {
-            b"IHDR" => {
-                let mut buf = [0_u8; 13];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Ihdr {
-                    width: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    height: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                    bit_depth: buf[8],
-                    colour_type: buf[9].try_into().map_err(to_io_error)?,
-                    compression_method: buf[10].try_into().map_err(to_io_error)?,
-                    filter_method: buf[11].try_into().map_err(to_io_error)?,
-                    interlace_method: buf[12].try_into().map_err(to_io_error)?,
-                })
-            }
+            b"IHDR" => Ok(PngChunkData::Ihdr(Box::new(Ihdr::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
             b"PLTE" => Ok(PngChunkData::Plte(Box::new(
                 (0..self.length / 3)
@@ -1394,11 +1410,7 @@ impl PngChunkRef {
             b"IEND" => Ok(PngChunkData::Iend),
 
             b"tRNS" => {
-                if ihdr.is_none() {
-                    return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
-                }
-
-                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
+                if let Some(Ihdr { colour_type, .. }) = ihdr {
                     match *colour_type {
                         PngColourType::Greyscale => {
                             let mut buf = [0_u8; 2];
@@ -1448,9 +1460,7 @@ impl PngChunkRef {
                         ))),
                     }
                 } else {
-                    Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr",
-                    ))
+                    Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 
@@ -1476,11 +1486,7 @@ impl PngChunkRef {
             )?))),
 
             b"sBIT" => {
-                if ihdr.is_none() {
-                    return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
-                }
-
-                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
+                if let Some(Ihdr { colour_type, .. }) = ihdr {
                     match colour_type {
                         PngColourType::Greyscale => {
                             let mut buf = [0_u8; 1];
@@ -1535,9 +1541,7 @@ impl PngChunkRef {
                         }
                     }
                 } else {
-                    Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr",
-                    ))
+                    Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 
@@ -1593,15 +1597,11 @@ impl PngChunkRef {
             )?))),
 
             b"bKGD" => {
-                if ihdr.is_none() {
-                    return Err(std::io::Error::other("PNG: Unset ihdr".to_string()));
-                }
+                if let Some(Ihdr { colour_type, .. }) = ihdr {
+                    let mut data = vec![0_u8; self.length as usize];
+                    chunkstream.read_exact(&mut data)?;
+                    data_crc.consume(&data);
 
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                if let PngChunkData::Ihdr { colour_type, .. } = ihdr.unwrap() {
                     match colour_type {
                         PngColourType::Greyscale | PngColourType::GreyscaleAlpha => {
                             if self.length != 2 {
@@ -1657,9 +1657,7 @@ impl PngChunkRef {
                         }
                     }
                 } else {
-                    Err(std::io::Error::other(
-                        "PNG: Wrong chunk type passed as ihdr",
-                    ))
+                    Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 

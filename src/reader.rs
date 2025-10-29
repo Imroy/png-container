@@ -48,7 +48,7 @@ pub struct PngReader<R> {
     stream: R,
 
     /// The IHDR chunk data
-    pub ihdr: PngChunkData,
+    pub ihdr: Option<Ihdr>,
 
     /// The PLTE chunk, if the file has one
     pub plte: Option<PngChunkRef>,
@@ -85,7 +85,7 @@ where
             bit_depth: 0,
             colour_type: PngColourType::Greyscale,
             stream,
-            ihdr: PngChunkData::None,
+            ihdr: None,
             plte: None,
             iend: PngChunkRef::default(),
             next_chunk_pos: 8,
@@ -165,14 +165,16 @@ where
             b"IHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
-                self.ihdr = chunkref.read_chunk(&mut self.stream, None)?;
-                if let PngChunkData::Ihdr {
+                if let PngChunkData::Ihdr(ihdr) = chunkref.read_chunk(&mut self.stream, None)? {
+                    self.ihdr = Some(*ihdr);
+                }
+                if let Some(Ihdr {
                     width,
                     height,
                     bit_depth,
                     colour_type,
                     ..
-                } = self.ihdr
+                }) = self.ihdr
                 {
                     self.width = width;
                     self.height = height;
@@ -225,7 +227,7 @@ where
     /// Read the chunk data after seeking to the start of its data
     pub fn read_chunk(&mut self, chunkref: &PngChunkRef) -> Result<PngChunkData, std::io::Error> {
         self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
-        chunkref.read_chunk(&mut self.stream, Some(&self.ihdr))
+        chunkref.read_chunk(&mut self.stream, self.ihdr.as_ref())
     }
 
     pub fn apng_scan_frames(&mut self) -> Result<Vec<ApngFrame>, std::io::Error> {
