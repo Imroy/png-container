@@ -474,6 +474,27 @@ pub enum MatrixCoefficients {
     Reserved(u8),
 }
 
+/// GIF Disposal methods for gIFg chunk
+#[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, FromPrimitive)]
+#[repr(u8)]
+pub enum GifDisposalMethod {
+    /// No disposal specified
+    Unspecified = 0,
+
+    /// Do not dispose
+    DoNotDispose = 1,
+
+    /// Restore to background colour
+    RestoreBackground = 2,
+
+    /// Restore to previous
+    RestorePrevious = 3,
+
+    /// To be defined
+    #[num_enum(catch_all)]
+    Undefined(u8),
+}
+
 /// Disposal operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]

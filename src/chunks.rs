@@ -179,8 +179,7 @@ pub enum PngChunkData {
 
     /// GIF Graphic Control Extension
     Gifg {
-        // TODO: make this an enum
-        disposal_method: u8,
+        disposal_method: GifDisposalMethod,
         user_input: bool,
         delay_time: u16,
     },
@@ -1428,7 +1427,7 @@ impl PngChunkRef {
                 data_crc.consume(&buf);
 
                 Ok(PngChunkData::Gifg {
-                    disposal_method: buf[0],
+                    disposal_method: buf[0].into(),
                     user_input: buf[1] > 0,
                     delay_time: u16::from_be_bytes(buf[2..].try_into().map_err(to_io_error)?),
                 })
