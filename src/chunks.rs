@@ -1496,19 +1496,17 @@ impl PngChunkRef {
                 let name_end = find_null(&data);
                 let num_parameters = data[name_end + 9];
                 let unit_end = find_null(&data[name_end + 10..]) + name_end + 10;
-                let mut parameters = Vec::with_capacity(num_parameters as usize);
 
-                // TODO: can this be done with an iterator?
-                let mut prev_end = unit_end;
-                for _ in 0..num_parameters {
-                    let param_end = find_null(&data[prev_end..]) + prev_end;
-                    parameters.push(
-                        data[prev_end..param_end]
-                            .iter()
-                            .map(|b| *b as char)
-                            .collect(),
-                    );
-                    prev_end = param_end;
+                let parameters = data[unit_end..]
+                    .split(|b| *b == 0)
+                    .map(|slice| slice.iter().map(|b| *b as char).collect::<String>())
+                    .collect::<Vec<_>>();
+                if parameters.len() != num_parameters as usize {
+                    return Err(std::io::Error::other(format!(
+                        "Read {} parameters but there are supposed to be {}",
+                        parameters.len(),
+                        num_parameters
+                    )));
                 }
 
                 Ok(PngChunkData::Pcal(Box::new(Pcal {
