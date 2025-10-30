@@ -105,42 +105,6 @@ pub struct PngPaletteEntry {
     pub blue: u8,
 }
 
-/// Contents of tRNS chunk
-#[derive(Clone, Debug)]
-pub enum PngTrnsType {
-    Greyscale { value: u16 },
-
-    TrueColour { red: u16, green: u16, blue: u16 },
-
-    IndexedColour { values: Vec<u8> },
-}
-
-/// Contents of sBIT chunk
-#[derive(Copy, Clone, Debug)]
-pub enum PngSbitType {
-    Greyscale {
-        grey_bits: u8,
-    },
-
-    Colour {
-        red_bits: u8,
-        green_bits: u8,
-        blue_bits: u8,
-    },
-
-    GreyscaleAlpha {
-        grey_bits: u8,
-        alpha_bits: u8,
-    },
-
-    TrueColourAlpha {
-        red_bits: u8,
-        green_bits: u8,
-        blue_bits: u8,
-        alpha_bits: u8,
-    },
-}
-
 /// ICC rendering intent
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
@@ -149,16 +113,6 @@ pub enum PngRenderingIntent {
     RelativeColorimetric,
     Saturation,
     AbsoluteColorimetric,
-}
-
-/// Contents of bKGD chunk
-#[derive(Copy, Clone, Debug)]
-pub enum PngBkgdType {
-    Greyscale { value: u16 },
-
-    TrueColour { red: u16, green: u16, blue: u16 },
-
-    IndexedColour { index: u8 },
 }
 
 /// Unit type used in several chunks

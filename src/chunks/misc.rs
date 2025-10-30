@@ -29,8 +29,12 @@ use crate::types::*;
 
 /// Background colour
 #[derive(Clone, Copy, Debug)]
-pub struct Bkgd {
-    pub background: PngBkgdType,
+pub enum Bkgd {
+    Greyscale { value: u16 },
+
+    TrueColour { red: u16, green: u16, blue: u16 },
+
+    IndexedColour { index: u8 },
 }
 
 impl Bkgd {
@@ -50,7 +54,7 @@ impl Bkgd {
             data_crc.consume(&data);
         }
 
-        let background = match colour_type {
+        match colour_type {
             PngColourType::Greyscale | PngColourType::GreyscaleAlpha => {
                 if length != 2 {
                     return Err(std::io::Error::other(format!(
@@ -59,9 +63,9 @@ impl Bkgd {
                     )));
                 }
 
-                PngBkgdType::Greyscale {
+                Ok(Self::Greyscale {
                     value: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
-                }
+                })
             }
 
             PngColourType::TrueColour | PngColourType::TrueColourAlpha => {
@@ -72,11 +76,11 @@ impl Bkgd {
                     )));
                 }
 
-                PngBkgdType::TrueColour {
+                Ok(Self::TrueColour {
                     red: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
                     green: u16::from_be_bytes(data[2..4].try_into().map_err(to_io_error)?),
                     blue: u16::from_be_bytes(data[4..6].try_into().map_err(to_io_error)?),
-                }
+                })
             }
 
             PngColourType::IndexedColour => {
@@ -87,11 +91,9 @@ impl Bkgd {
                     )));
                 }
 
-                PngBkgdType::IndexedColour { index: data[0] }
+                Ok(Self::IndexedColour { index: data[0] })
             }
-        };
-
-        Ok(Self { background })
+        }
     }
 }
 

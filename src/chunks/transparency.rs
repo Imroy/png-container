@@ -25,8 +25,12 @@ use crate::to_io_error;
 use crate::types::*;
 
 #[derive(Clone, Debug)]
-pub struct Trns {
-    pub alpha: PngTrnsType,
+pub enum Trns {
+    Greyscale { value: u16 },
+
+    TrueColour { red: u16, green: u16, blue: u16 },
+
+    IndexedColour { values: Vec<u8> },
 }
 
 impl Trns {
@@ -46,23 +50,17 @@ impl Trns {
         }
 
         match colour_type {
-            PngColourType::Greyscale => Ok(Self {
-                alpha: PngTrnsType::Greyscale {
-                    value: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
-                },
+            PngColourType::Greyscale => Ok(Self::Greyscale {
+                value: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
             }),
 
-            PngColourType::TrueColour => Ok(Self {
-                alpha: PngTrnsType::TrueColour {
-                    red: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
-                    green: u16::from_be_bytes(data[2..4].try_into().map_err(to_io_error)?),
-                    blue: u16::from_be_bytes(data[4..6].try_into().map_err(to_io_error)?),
-                },
+            PngColourType::TrueColour => Ok(Self::TrueColour {
+                red: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
+                green: u16::from_be_bytes(data[2..4].try_into().map_err(to_io_error)?),
+                blue: u16::from_be_bytes(data[4..6].try_into().map_err(to_io_error)?),
             }),
 
-            PngColourType::IndexedColour => Ok(Self {
-                alpha: PngTrnsType::IndexedColour { values: data },
-            }),
+            PngColourType::IndexedColour => Ok(Self::IndexedColour { values: data }),
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Invalid colour type ({}) in ihdr",

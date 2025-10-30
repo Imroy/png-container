@@ -252,8 +252,28 @@ impl Iccp {
 
 /// Significant bits
 #[derive(Clone, Copy, Debug)]
-pub struct Sbit {
-    pub bits: PngSbitType,
+pub enum Sbit {
+    Greyscale {
+        grey_bits: u8,
+    },
+
+    Colour {
+        red_bits: u8,
+        green_bits: u8,
+        blue_bits: u8,
+    },
+
+    GreyscaleAlpha {
+        grey_bits: u8,
+        alpha_bits: u8,
+    },
+
+    TrueColourAlpha {
+        red_bits: u8,
+        green_bits: u8,
+        blue_bits: u8,
+        alpha_bits: u8,
+    },
 }
 
 impl Sbit {
@@ -274,32 +294,24 @@ impl Sbit {
         }
 
         match colour_type {
-            PngColourType::Greyscale => Ok(Self {
-                bits: PngSbitType::Greyscale { grey_bits: data[0] },
+            PngColourType::Greyscale => Ok(Self::Greyscale { grey_bits: data[0] }),
+
+            PngColourType::TrueColour | PngColourType::IndexedColour => Ok(Self::Colour {
+                red_bits: data[0],
+                green_bits: data[1],
+                blue_bits: data[2],
             }),
 
-            PngColourType::TrueColour | PngColourType::IndexedColour => Ok(Self {
-                bits: PngSbitType::Colour {
-                    red_bits: data[0],
-                    green_bits: data[1],
-                    blue_bits: data[2],
-                },
+            PngColourType::GreyscaleAlpha => Ok(Self::GreyscaleAlpha {
+                grey_bits: data[0],
+                alpha_bits: data[1],
             }),
 
-            PngColourType::GreyscaleAlpha => Ok(Self {
-                bits: PngSbitType::GreyscaleAlpha {
-                    grey_bits: data[0],
-                    alpha_bits: data[1],
-                },
-            }),
-
-            PngColourType::TrueColourAlpha => Ok(Self {
-                bits: PngSbitType::TrueColourAlpha {
-                    red_bits: data[0],
-                    green_bits: data[1],
-                    blue_bits: data[2],
-                    alpha_bits: data[3],
-                },
+            PngColourType::TrueColourAlpha => Ok(Self::TrueColourAlpha {
+                red_bits: data[0],
+                green_bits: data[1],
+                blue_bits: data[2],
+                alpha_bits: data[3],
             }),
         }
     }
