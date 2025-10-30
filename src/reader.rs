@@ -166,7 +166,7 @@ where
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
                 if let PngChunkData::Ihdr(ihdr) = chunkref.read_chunk(&mut self.stream, None)? {
-                    self.ihdr = Some(*ihdr);
+                    self.ihdr = Some(ihdr);
                 }
                 if let Some(Ihdr {
                     width,

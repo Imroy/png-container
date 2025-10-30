@@ -50,7 +50,7 @@ pub enum PngChunkData {
 
     // Critical chunks
     /// Image header
-    Ihdr(Box<Ihdr>),
+    Ihdr(Ihdr),
 
     /// Palette
     Plte(Box<Plte>),
@@ -88,7 +88,7 @@ pub enum PngChunkData {
     Mdcv(Box<Mdcv>),
 
     /// Content Light Level Information
-    Clli(Box<Clli>),
+    Clli(Clli),
 
     // Textual information
     /// Textual data
@@ -118,7 +118,7 @@ pub enum PngChunkData {
 
     // Time stamp information
     /// Image last-modification time
-    Time(Box<Time>),
+    Time(Time),
 
     /// Animation control
     Actl(Actl),
@@ -399,10 +399,10 @@ impl PngChunkRef {
         data_crc.consume(&self.chunktype);
 
         let chunk = match &self.chunktype {
-            b"IHDR" => Ok(PngChunkData::Ihdr(Box::new(Ihdr::from_stream(
+            b"IHDR" => Ok(PngChunkData::Ihdr(Ihdr::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
-            )?))),
+            )?)),
 
             b"PLTE" => Ok(PngChunkData::Plte(Box::new(Plte::from_stream(
                 &mut chunkstream,
@@ -477,10 +477,10 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"cLLI" => Ok(PngChunkData::Clli(Box::new(Clli::from_stream(
+            b"cLLI" => Ok(PngChunkData::Clli(Clli::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
-            )?))),
+            )?)),
 
             b"tEXt" => Ok(PngChunkData::Text(Box::new(Text::from_stream(
                 &mut chunkstream,
@@ -538,10 +538,10 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"tIME" => Ok(PngChunkData::Time(Box::new(Time::from_stream(
+            b"tIME" => Ok(PngChunkData::Time(Time::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
-            )?))),
+            )?)),
 
             // Animation information
             b"acTL" => Ok(PngChunkData::Actl(Actl::from_stream(
