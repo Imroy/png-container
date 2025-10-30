@@ -135,6 +135,48 @@ impl Chrm {
     }
 }
 
+/// Image gamma
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Gama {
+    /// Gamma value, scaled by 100000
+    pub gamma: u32,
+}
+
+impl Gama {
+    /// Constructor
+    pub fn new(gamma: f64) -> Self {
+        Self {
+            gamma: (gamma * 100000.0).round() as u32,
+        }
+    }
+
+    /// Set the gamma value
+    pub fn set_gamma(&mut self, gamma: f64) {
+        self.gamma = (gamma * 100000.0).round() as u32
+    }
+
+    /// Gamma value
+    pub fn gamma(self) -> f64 {
+        self.gamma as f64 / 100000.0
+    }
+
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 4];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            gamma: u32::from_be_bytes(data),
+        })
+    }
+}
+
 /// Embedded ICC profile
 #[derive(Clone, Debug, Default)]
 pub struct Iccp {
@@ -205,6 +247,115 @@ impl Iccp {
         }
 
         None
+    }
+}
+
+/// Significant bits
+#[derive(Clone, Copy, Debug)]
+pub struct Sbit {
+    pub bits: PngSbitType,
+}
+
+impl Sbit {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        colour_type: PngColourType,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        match colour_type {
+            PngColourType::Greyscale => Ok(Self {
+                bits: PngSbitType::Greyscale { grey_bits: data[0] },
+            }),
+
+            PngColourType::TrueColour | PngColourType::IndexedColour => Ok(Self {
+                bits: PngSbitType::Colour {
+                    red_bits: data[0],
+                    green_bits: data[1],
+                    blue_bits: data[2],
+                },
+            }),
+
+            PngColourType::GreyscaleAlpha => Ok(Self {
+                bits: PngSbitType::GreyscaleAlpha {
+                    grey_bits: data[0],
+                    alpha_bits: data[1],
+                },
+            }),
+
+            PngColourType::TrueColourAlpha => Ok(Self {
+                bits: PngSbitType::TrueColourAlpha {
+                    red_bits: data[0],
+                    green_bits: data[1],
+                    blue_bits: data[2],
+                    alpha_bits: data[3],
+                },
+            }),
+        }
+    }
+}
+
+/// Standard RGB colour space
+#[derive(Clone, Copy, Debug)]
+pub struct Srgb {
+    pub rendering_intent: PngRenderingIntent,
+}
+
+impl Srgb {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 1];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            rendering_intent: data[0].try_into().map_err(to_io_error)?,
+        })
+    }
+}
+
+/// Coding-independent code points for video signal type identification
+#[derive(Clone, Copy, Debug)]
+pub struct Cicp {
+    pub colour_primaries: ColourPrimaries,
+    pub transfer_function: TransferFunction,
+    pub matrix_coeffs: MatrixCoefficients,
+    pub video_full_range: bool,
+}
+
+impl Cicp {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 4];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            colour_primaries: data[0].into(),
+            transfer_function: data[1].into(),
+            matrix_coeffs: data[2].into(),
+            video_full_range: data[3] > 0,
+        })
     }
 }
 

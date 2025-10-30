@@ -23,11 +23,8 @@ use std::io::{Read, Seek, SeekFrom};
 use std::slice::Iter;
 use std::str;
 
-use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use uom::si::{
-    f64::{LinearNumberDensity, Luminance, Time},
-    linear_number_density::per_meter,
-    luminance::candela_per_square_meter,
+use chrono::{DateTime, Utc};
+use uom::si::f64::{LinearNumberDensity, Time as UoMTime};
 
 pub mod animation;
 pub mod colour_space;
@@ -35,14 +32,15 @@ pub mod critical;
 pub mod extensions;
 pub mod misc;
 pub mod text;
+pub mod time;
+pub mod transparency;
 
 pub use crate::chunks::{
-    animation::*, colour_space::*, critical::*, extensions::*, misc::*, text::*,
+    animation::*, colour_space::*, critical::*, extensions::*, misc::*, text::*, time::*,
+    transparency::*,
 };
 
 use crate::crc::*;
-use crate::to_io_error;
-use crate::types::*;
 
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
@@ -65,35 +63,26 @@ pub enum PngChunkData {
 
     // Transparency information
     /// Transparency
-    Trns { data: PngTrnsType },
+    Trns(Box<Trns>),
 
     // Colour space information
     /// Primary chromaticities and white point
     Chrm(Box<Chrm>),
 
     /// Image gamma
-    ///
-    /// Value is scaled by 100000
-    Gama { gamma: u32 },
+    Gama(Gama),
 
     /// Embedded ICC profile
     Iccp(Box<Iccp>),
 
     /// Significant bits
-    Sbit { bits: PngSbitType },
+    Sbit(Sbit),
 
     /// Standard RGB colour space
-    Srgb {
-        rendering_intent: PngRenderingIntent,
-    },
+    Srgb(Srgb),
 
     /// Coding-independent code points for video signal type identification
-    Cicp {
-        colour_primaries: ColourPrimaries,
-        transfer_function: TransferFunction,
-        matrix_coeffs: MatrixCoefficients,
-        video_full_range: bool,
-    },
+    Cicp(Cicp),
 
     /// Mastering Display Color Volume
     Mdcv(Box<Mdcv>),
@@ -113,17 +102,13 @@ pub enum PngChunkData {
 
     // Miscellaneous information
     /// Background colour
-    Bkgd { data: PngBkgdType },
+    Bkgd(Bkgd),
 
     /// Image histogram
-    Hist(Box<Vec<u16>>),
+    Hist(Box<Hist>),
 
     /// Physical pixel dimensions
-    Phys {
-        x_pixels_per_unit: u32,
-        y_pixels_per_unit: u32,
-        unit: PngUnitType,
-    },
+    Phys(Phys),
 
     /// Suggested palette
     Splt(Box<Splt>),
@@ -133,17 +118,10 @@ pub enum PngChunkData {
 
     // Time stamp information
     /// Image last-modification time
-    Time {
-        year: u16,
-        month: u8,
-        day: u8,
-        hour: u8,
-        minute: u8,
-        second: u8,
-    },
+    Time(Box<Time>),
 
     /// Animation control
-    Actl { num_frames: u32, num_plays: u32 },
+    Actl(Actl),
 
     /// Frame control
     Fctl(Box<Fctl>),
@@ -153,7 +131,7 @@ pub enum PngChunkData {
 
     // Extensions
     /// Image offset
-    Offs { x: u32, y: u32, unit: PngUnitType },
+    Offs(Offs),
 
     /// Calibration of pixel values
     Pcal(Box<Pcal>),
@@ -162,51 +140,17 @@ pub enum PngChunkData {
     Scal(Box<Scal>),
 
     /// GIF Graphic Control Extension
-    Gifg {
-        disposal_method: GifDisposalMethod,
-        user_input: bool,
-        delay_time: u16,
-    },
+    Gifg(Gifg),
 
     /// GIF Application Extension
     Gifx(Box<Gifx>),
 
     /// Indicator of Stereo Image
-    Ster { mode: u8 },
+    Ster(Ster),
 
     // JNG chunks
     /// JNG header
-    Jhdr {
-        /// Width of image in pixels
-        width: u32,
-
-        /// Height of image in pixels
-        height: u32,
-
-        /// Colour type
-        colour_type: JngColourType,
-
-        /// Image sample depth
-        image_sample_depth: JngImageSampleDepth,
-
-        /// Image compression method
-        image_compression_method: JngCompressionType,
-
-        /// Image interlace method
-        image_interlace_method: JngInterlaceMethod,
-
-        /// Alpha sample depth
-        alpha_sample_depth: JngAlphaSampleDepth,
-
-        /// Alpha compression method
-        alpha_compression_method: JngCompressionType,
-
-        /// Alpha channel filter method
-        alpha_filter_method: PngFilterMethod,
-
-        /// Alpha interlace method
-        alpha_interlace_method: JngInterlaceMethod,
-    },
+    Jhdr(Box<Jhdr>),
 
     /// JNG image data
     Jdat(Box<Vec<u8>>),
@@ -272,11 +216,11 @@ impl PngChunkData {
 
     /// Scaled gamma value of a gAMA chunk
     pub fn gama_gamma(&self) -> Option<f64> {
-        if let PngChunkData::Gama { gamma } = self {
-            return Some(*gamma as f64 / 100000.0);
+        if let PngChunkData::Gama(g) = self {
+            Some(g.gamma())
+        } else {
+            None
         }
-
-        None
     }
 
     /// Decompress the compressed profile in a iCCP chunk
@@ -308,20 +252,8 @@ impl PngChunkData {
 
     /// Convert the units in a pHYs chunk to a UoM type
     pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
-        if let PngChunkData::Phys {
-            x_pixels_per_unit,
-            y_pixels_per_unit,
-            unit,
-        } = self
-        {
-            return match unit {
-                PngUnitType::Unknown => None,
-
-                PngUnitType::Metre => Some((
-                    LinearNumberDensity::new::<per_meter>(*x_pixels_per_unit as f64),
-                    LinearNumberDensity::new::<per_meter>(*y_pixels_per_unit as f64),
-                )),
-            };
+        if let PngChunkData::Phys(phys) = self {
+            return phys.resolution();
         }
 
         None
@@ -329,29 +261,15 @@ impl PngChunkData {
 
     /// Convert the timestamp in a tIME chunk to a chrono DateTime object
     pub fn time(&self) -> Option<DateTime<Utc>> {
-        if let PngChunkData::Time {
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            second,
-        } = self
-        {
-            return Some(DateTime::from_naive_utc_and_offset(
-                NaiveDateTime::new(
-                    NaiveDate::from_ymd_opt(*year as i32, *month as u32, *day as u32)?,
-                    NaiveTime::from_hms_opt(*hour as u32, *minute as u32, *second as u32)?,
-                ),
-                Utc,
-            ));
+        if let PngChunkData::Time(time) = self {
+            return time.time();
         }
 
         None
     }
 
     /// Calculate delay from fcTL chunk in seconds
-    pub fn fctl_delay(&self) -> Option<Time> {
+    pub fn fctl_delay(&self) -> Option<UoMTime> {
         if let PngChunkData::Fctl(fctl) = self {
             return Some(fctl.delay());
         }
@@ -504,68 +422,21 @@ impl PngChunkRef {
 
             b"tRNS" => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    match *colour_type {
-                        PngColourType::Greyscale => {
-                            let mut buf = [0_u8; 2];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Trns {
-                                data: PngTrnsType::Greyscale {
-                                    value: u16::from_be_bytes(buf),
-                                },
-                            })
-                        }
-
-                        PngColourType::TrueColour => {
-                            let mut buf = [0_u8; 6];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Trns {
-                                data: PngTrnsType::TrueColour {
-                                    red: u16::from_be_bytes(
-                                        buf[0..2].try_into().map_err(to_io_error)?,
-                                    ),
-                                    green: u16::from_be_bytes(
-                                        buf[2..4].try_into().map_err(to_io_error)?,
-                                    ),
-                                    blue: u16::from_be_bytes(
-                                        buf[4..6].try_into().map_err(to_io_error)?,
-                                    ),
-                                },
-                            })
-                        }
-
-                        PngColourType::IndexedColour => {
-                            let mut values = vec![0_u8; self.length as usize];
-                            chunkstream.read_exact(&mut values)?;
-                            data_crc.consume(&values);
-
-                            Ok(PngChunkData::Trns {
-                                data: PngTrnsType::IndexedColour { values },
-                            })
-                        }
-
-                        _ => Err(std::io::Error::other(format!(
-                            "PNG: Invalid colour type ({}) in ihdr",
-                            *colour_type as u8
-                        ))),
-                    }
+                    Ok(PngChunkData::Trns(Box::new(Trns::from_stream(
+                        &mut chunkstream,
+                        self.length,
+                        *colour_type,
+                        Some(&mut data_crc),
+                    )?)))
                 } else {
                     Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 
-            b"gAMA" => {
-                let mut buf = [0_u8; 4];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Gama {
-                    gamma: u32::from_be_bytes(buf),
-                })
-            }
+            b"gAMA" => Ok(PngChunkData::Gama(Gama::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"cHRM" => Ok(PngChunkData::Chrm(Box::new(Chrm::from_stream(
                 &mut chunkstream,
@@ -580,86 +451,26 @@ impl PngChunkRef {
 
             b"sBIT" => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    match colour_type {
-                        PngColourType::Greyscale => {
-                            let mut buf = [0_u8; 1];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Sbit {
-                                bits: PngSbitType::Greyscale { grey_bits: buf[0] },
-                            })
-                        }
-
-                        PngColourType::TrueColour | PngColourType::IndexedColour => {
-                            let mut buf = [0_u8; 3];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Sbit {
-                                bits: PngSbitType::Colour {
-                                    red_bits: buf[0],
-                                    green_bits: buf[1],
-                                    blue_bits: buf[2],
-                                },
-                            })
-                        }
-
-                        PngColourType::GreyscaleAlpha => {
-                            let mut buf = [0_u8; 2];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Sbit {
-                                bits: PngSbitType::GreyscaleAlpha {
-                                    grey_bits: buf[0],
-                                    alpha_bits: buf[1],
-                                },
-                            })
-                        }
-
-                        PngColourType::TrueColourAlpha => {
-                            let mut buf = [0_u8; 4];
-                            chunkstream.read_exact(&mut buf)?;
-                            data_crc.consume(&buf);
-
-                            Ok(PngChunkData::Sbit {
-                                bits: PngSbitType::TrueColourAlpha {
-                                    red_bits: buf[0],
-                                    green_bits: buf[1],
-                                    blue_bits: buf[2],
-                                    alpha_bits: buf[3],
-                                },
-                            })
-                        }
-                    }
+                    Ok(PngChunkData::Sbit(Sbit::from_stream(
+                        &mut chunkstream,
+                        self.length,
+                        *colour_type,
+                        Some(&mut data_crc),
+                    )?))
                 } else {
                     Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 
-            b"sRGB" => {
-                let mut buf = [0_u8; 1];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
+            b"sRGB" => Ok(PngChunkData::Srgb(Srgb::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
-                Ok(PngChunkData::Srgb {
-                    rendering_intent: buf[0].try_into().map_err(to_io_error)?,
-                })
-            }
-
-            b"cICP" => {
-                let mut buf = [0_u8; 4];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Cicp {
-                    colour_primaries: buf[0].into(),
-                    transfer_function: buf[1].into(),
-                    matrix_coeffs: buf[2].into(),
-                    video_full_range: buf[3] > 0,
-                })
-            }
+            b"cICP" => Ok(PngChunkData::Cicp(Cicp::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"mDCV" => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_stream(
                 &mut chunkstream,
@@ -691,101 +502,27 @@ impl PngChunkRef {
 
             b"bKGD" => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    let mut data = vec![0_u8; self.length as usize];
-                    chunkstream.read_exact(&mut data)?;
-                    data_crc.consume(&data);
-
-                    match colour_type {
-                        PngColourType::Greyscale | PngColourType::GreyscaleAlpha => {
-                            if self.length != 2 {
-                                return Err(std::io::Error::other(format!(
-                                    "PNG: Invalid length of bKGD chunk ({})",
-                                    self.length
-                                )));
-                            }
-
-                            Ok(PngChunkData::Bkgd {
-                                data: PngBkgdType::Greyscale {
-                                    value: u16::from_be_bytes(
-                                        data[0..2].try_into().map_err(to_io_error)?,
-                                    ),
-                                },
-                            })
-                        }
-
-                        PngColourType::TrueColour | PngColourType::TrueColourAlpha => {
-                            if self.length != 6 {
-                                return Err(std::io::Error::other(format!(
-                                    "Png: Invalid length of bKGD chunk ({})",
-                                    self.length
-                                )));
-                            }
-
-                            Ok(PngChunkData::Bkgd {
-                                data: PngBkgdType::TrueColour {
-                                    red: u16::from_be_bytes(
-                                        data[0..2].try_into().map_err(to_io_error)?,
-                                    ),
-                                    green: u16::from_be_bytes(
-                                        data[2..4].try_into().map_err(to_io_error)?,
-                                    ),
-                                    blue: u16::from_be_bytes(
-                                        data[4..6].try_into().map_err(to_io_error)?,
-                                    ),
-                                },
-                            })
-                        }
-
-                        PngColourType::IndexedColour => {
-                            if self.length != 1 {
-                                return Err(std::io::Error::other(format!(
-                                    "Png: Invalid length of bKGD chunk ({})",
-                                    self.length
-                                )));
-                            }
-
-                            Ok(PngChunkData::Bkgd {
-                                data: PngBkgdType::IndexedColour { index: data[0] },
-                            })
-                        }
-                    }
+                    Ok(PngChunkData::Bkgd(Bkgd::from_stream(
+                        &mut chunkstream,
+                        self.length,
+                        *colour_type,
+                        Some(&mut data_crc),
+                    )?))
                 } else {
                     Err(std::io::Error::other("PNG: Unset ihdr".to_string()))
                 }
             }
 
-            b"hIST" => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
+            b"hIST" => Ok(PngChunkData::Hist(Box::new(Hist::from_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Hist(Box::new(
-                    (0..self.length / 2)
-                        .map(|n| {
-                            let start = n as usize * 2;
-                            Ok(u16::from_be_bytes(
-                                data[start..start + 2].try_into().map_err(to_io_error)?,
-                            ))
-                        })
-                        .collect::<Result<Vec<_>, std::io::Error>>()?,
-                )))
-            }
-
-            b"pHYs" => {
-                let mut buf = [0_u8; 9];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Phys {
-                    x_pixels_per_unit: u32::from_be_bytes(
-                        buf[0..4].try_into().map_err(to_io_error)?,
-                    ),
-                    y_pixels_per_unit: u32::from_be_bytes(
-                        buf[4..8].try_into().map_err(to_io_error)?,
-                    ),
-                    unit: buf[8].try_into().map_err(to_io_error)?,
-                })
-            }
+            b"pHYs" => Ok(PngChunkData::Phys(Phys::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"eXIf" => {
                 let mut profile = vec![0_u8; self.length as usize];
@@ -801,32 +538,16 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"tIME" => {
-                let mut buf = [0_u8; 7];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Time {
-                    year: u16::from_be_bytes(buf[0..2].try_into().map_err(to_io_error)?),
-                    month: buf[2],
-                    day: buf[3],
-                    hour: buf[4],
-                    minute: buf[5],
-                    second: buf[6],
-                })
-            }
+            b"tIME" => Ok(PngChunkData::Time(Box::new(Time::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
             // Animation information
-            b"acTL" => {
-                let mut buf = [0_u8; 8];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Actl {
-                    num_frames: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    num_plays: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                })
-            }
+            b"acTL" => Ok(PngChunkData::Actl(Actl::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"fcTL" => Ok(PngChunkData::Fctl(Box::new(Fctl::from_stream(
                 &mut chunkstream,
@@ -840,17 +561,10 @@ impl PngChunkRef {
             )?))),
 
             // Extensions
-            b"oFFs" => {
-                let mut buf = [0_u8; 9];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Offs {
-                    x: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    y: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                    unit: buf[8].try_into().map_err(to_io_error)?,
-                })
-            }
+            b"oFFs" => Ok(PngChunkData::Offs(Offs::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"pCAL" => Ok(PngChunkData::Pcal(Box::new(Pcal::from_stream(
                 &mut chunkstream,
@@ -864,17 +578,10 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"gIFg" => {
-                let mut buf = [0_u8; 4];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Gifg {
-                    disposal_method: buf[0].into(),
-                    user_input: buf[1] > 0,
-                    delay_time: u16::from_be_bytes(buf[2..].try_into().map_err(to_io_error)?),
-                })
-            }
+            b"gIFg" => Ok(PngChunkData::Gifg(Gifg::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             b"gIFx" => Ok(PngChunkData::Gifx(Box::new(Gifx::from_stream(
                 &mut chunkstream,
@@ -882,33 +589,16 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            b"sTER" => {
-                let mut buf = [0_u8; 1];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Ster { mode: buf[0] })
-            }
+            b"sTER" => Ok(PngChunkData::Ster(Ster::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             // JNG chunks
-            b"Jhdr" => {
-                let mut buf = [0_u8; 16];
-                chunkstream.read_exact(&mut buf)?;
-                data_crc.consume(&buf);
-
-                Ok(PngChunkData::Jhdr {
-                    width: u32::from_be_bytes(buf[0..4].try_into().map_err(to_io_error)?),
-                    height: u32::from_be_bytes(buf[4..8].try_into().map_err(to_io_error)?),
-                    colour_type: buf[8].try_into().map_err(to_io_error)?,
-                    image_sample_depth: buf[9].try_into().map_err(to_io_error)?,
-                    image_compression_method: buf[10].try_into().map_err(to_io_error)?,
-                    image_interlace_method: buf[11].try_into().map_err(to_io_error)?,
-                    alpha_sample_depth: buf[12].try_into().map_err(to_io_error)?,
-                    alpha_compression_method: buf[13].try_into().map_err(to_io_error)?,
-                    alpha_filter_method: buf[14].try_into().map_err(to_io_error)?,
-                    alpha_interlace_method: buf[15].try_into().map_err(to_io_error)?,
-                })
-            }
+            b"Jhdr" => Ok(PngChunkData::Jhdr(Box::new(Jhdr::from_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
 
             b"JDAT" => {
                 let mut data = vec![0_u8; self.length as usize];

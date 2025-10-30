@@ -512,6 +512,19 @@ pub enum GifDisposalMethod {
     Undefined(u8),
 }
 
+/// Stereo modes for the sTER chunk
+#[derive(Clone, Copy, Debug, PartialEq, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
+pub enum StereoMode {
+    /// The right-eye image appears at the left and the left-eye image appears
+    /// at the right, suitable for cross-eyed free viewing
+    CrossFuse = 0,
+
+    /// The left-eye image appears at the left and the right-eye image appears
+    /// at the right, suitable for divergent (wall-eyed) free viewing
+    DivergingFuse = 1,
+}
+
 /// Disposal operators in the "fcTL" chunk
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]

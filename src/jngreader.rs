@@ -40,7 +40,7 @@ pub struct JngReader<R> {
     pub stream: R,
 
     /// The JHDR chunk data
-    pub jhdr: PngChunkData,
+    pub jhdr: Option<Jhdr>,
 
     /// The IEND chunk
     pub iend: PngChunkRef,
@@ -70,7 +70,7 @@ where
             height: 0,
             colour_type: JngColourType::Greyscale,
             stream,
-            jhdr: PngChunkData::None,
+            jhdr: None,
             iend: PngChunkRef::default(),
             next_chunk_pos: 8,
         })
@@ -136,13 +136,15 @@ where
             b"JHDR" => {
                 let oldpos = self.stream.stream_position()?;
                 // Fill in image metadata
-                self.jhdr = chunkref.read_chunk(&mut self.stream, None)?;
-                if let PngChunkData::Jhdr {
+                if let PngChunkData::Jhdr(jhdr) = chunkref.read_chunk(&mut self.stream, None)? {
+                    self.jhdr = Some(*jhdr);
+                }
+                if let Some(Jhdr {
                     width,
                     height,
                     colour_type,
                     ..
-                } = self.jhdr
+                }) = self.jhdr
                 {
                     self.width = width;
                     self.height = height;

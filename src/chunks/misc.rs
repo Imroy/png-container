@@ -27,6 +27,142 @@ use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
 
+/// Background colour
+#[derive(Clone, Copy, Debug)]
+pub struct Bkgd {
+    pub background: PngBkgdType,
+}
+
+impl Bkgd {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        colour_type: PngColourType,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        let background = match colour_type {
+            PngColourType::Greyscale | PngColourType::GreyscaleAlpha => {
+                if length != 2 {
+                    return Err(std::io::Error::other(format!(
+                        "PNG: Invalid length of bKGD chunk ({})",
+                        length
+                    )));
+                }
+
+                PngBkgdType::Greyscale {
+                    value: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
+                }
+            }
+
+            PngColourType::TrueColour | PngColourType::TrueColourAlpha => {
+                if length != 6 {
+                    return Err(std::io::Error::other(format!(
+                        "Png: Invalid length of bKGD chunk ({})",
+                        length
+                    )));
+                }
+
+                PngBkgdType::TrueColour {
+                    red: u16::from_be_bytes(data[0..2].try_into().map_err(to_io_error)?),
+                    green: u16::from_be_bytes(data[2..4].try_into().map_err(to_io_error)?),
+                    blue: u16::from_be_bytes(data[4..6].try_into().map_err(to_io_error)?),
+                }
+            }
+
+            PngColourType::IndexedColour => {
+                if length != 1 {
+                    return Err(std::io::Error::other(format!(
+                        "Png: Invalid length of bKGD chunk ({})",
+                        length
+                    )));
+                }
+
+                PngBkgdType::IndexedColour { index: data[0] }
+            }
+        };
+
+        Ok(Self { background })
+    }
+}
+
+/// Image histogram
+#[derive(Clone, Debug)]
+pub struct Hist(pub Vec<u16>);
+
+impl Hist {
+    /// Read contents from a stream
+    pub fn from_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self(
+            data.chunks(2)
+                .map(|h| Ok(u16::from_be_bytes(h.try_into().map_err(to_io_error)?)))
+                .collect::<Result<Vec<_>, std::io::Error>>()?,
+        ))
+    }
+}
+
+/// Physical pixel dimensions
+#[derive(Clone, Copy, Debug)]
+pub struct Phys {
+    pub x_pixels_per_unit: u32,
+    pub y_pixels_per_unit: u32,
+    pub unit: PngUnitType,
+}
+
+impl Phys {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 9];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            x_pixels_per_unit: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
+            y_pixels_per_unit: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
+            unit: data[8].try_into().map_err(to_io_error)?,
+        })
+    }
+
+    /// Convert the units in a pHYs chunk to a UoM type
+    pub fn resolution(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
+        match self.unit {
+            PngUnitType::Unknown => None,
+
+            PngUnitType::Metre => Some((
+                LinearNumberDensity::new::<per_meter>(self.x_pixels_per_unit as f64),
+                LinearNumberDensity::new::<per_meter>(self.y_pixels_per_unit as f64),
+            )),
+        }
+    }
+}
+
 /// Suggested palette
 #[derive(Clone, Debug, Default)]
 pub struct Splt {

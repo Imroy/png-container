@@ -25,6 +25,34 @@ use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
 
+/// Image offset
+#[derive(Clone, Copy, Debug)]
+pub struct Offs {
+    pub x: u32,
+    pub y: u32,
+    pub unit: PngUnitType,
+}
+
+impl Offs {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 9];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            x: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
+            y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
+            unit: data[8].try_into().map_err(to_io_error)?,
+        })
+    }
+}
+
 /// Calibration of pixel values
 #[derive(Clone, Debug)]
 pub struct Pcal {
@@ -128,6 +156,34 @@ impl Scal {
     }
 }
 
+/// GIF Graphic Control Extension
+#[derive(Clone, Copy, Debug)]
+pub struct Gifg {
+    pub disposal_method: GifDisposalMethod,
+    pub user_input: bool,
+    pub delay_time: u16,
+}
+
+impl Gifg {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 4];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            disposal_method: data[0].into(),
+            user_input: data[1] > 0,
+            delay_time: u16::from_be_bytes(data[2..].try_into().map_err(to_io_error)?),
+        })
+    }
+}
+
 /// GIF Application Extension
 #[derive(Clone, Debug)]
 pub struct Gifx {
@@ -156,6 +212,30 @@ impl Gifx {
             app_id: data[0..8].iter().map(|b| *b as char).collect(),
             app_auth: [data[8], data[9], data[10]],
             app_data: data[11..].to_vec(),
+        })
+    }
+}
+
+/// Indicator of Stereo Image
+#[derive(Clone, Copy, Debug)]
+pub struct Ster {
+    pub mode: StereoMode,
+}
+
+impl Ster {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 1];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            mode: data[0].try_into().map_err(to_io_error)?,
         })
     }
 }

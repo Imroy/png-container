@@ -26,6 +26,32 @@ use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
 
+/// Animation control
+#[derive(Clone, Copy, Debug)]
+pub struct Actl {
+    pub num_frames: u32,
+    pub num_plays: u32,
+}
+
+impl Actl {
+    /// Read contents from a stream
+    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = [0_u8; 8];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self {
+            num_frames: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
+            num_plays: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
+        })
+    }
+}
+
 /// Frame control
 #[derive(Clone, Copy, Debug)]
 pub struct Fctl {
