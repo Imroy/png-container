@@ -302,7 +302,7 @@ impl PngChunkRef {
     /// Read the length and type of a chunk from a [Read]'able stream to make a chunk reference
     ///
     /// This leaves the stream at the start of chunk data.
-    pub(crate) fn from_stream<R>(stream: &mut R) -> Result<Self, std::io::Error>
+    pub fn from_stream<R>(stream: &mut R) -> Result<Self, std::io::Error>
     where
         R: Read + Seek,
     {
@@ -358,10 +358,7 @@ impl PngChunkRef {
     }
 
     /// Read just the sequence number of an fcTL or fdAT chunk
-    pub(crate) fn read_fctl_fdat_sequence_number<R>(
-        &self,
-        stream: &mut R,
-    ) -> Result<u32, std::io::Error>
+    pub fn read_fctl_fdat_sequence_number<R>(&self, stream: &mut R) -> Result<u32, std::io::Error>
     where
         R: Read + Seek,
     {
@@ -384,7 +381,7 @@ impl PngChunkRef {
     /// Read the chunk data and parse it into a PngChunkData enum
     ///
     /// This also checks the chunk CRC value.
-    pub(crate) fn read_chunk<R>(
+    pub fn read_chunk<R>(
         &self,
         stream: &mut R,
         ihdr: Option<&Ihdr>,
