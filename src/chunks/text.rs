@@ -138,8 +138,7 @@ impl Ztxt {
 #[derive(Clone, Debug, Default)]
 pub struct Itxt {
     pub keyword: String,
-    pub compressed: bool,
-    pub compression_method: PngCompressionMethod,
+    pub compression_method: Option<PngCompressionMethod>,
     pub language: String,
     pub translated_keyword: String,
     pub compressed_string: Vec<u8>,
@@ -164,8 +163,7 @@ impl Itxt {
 
         Self {
             keyword: keyword.to_string(),
-            compressed: compression_method.is_some(),
-            compression_method: compression_method.unwrap_or_default(),
+            compression_method,
             language: language.to_string(),
             translated_keyword: translated_keyword.to_string(),
             compressed_string,
@@ -193,8 +191,11 @@ impl Itxt {
 
         Ok(Self {
             keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
-            compressed: data[keyword_end + 1] > 0,
-            compression_method: data[keyword_end + 2].try_into().map_err(to_io_error)?,
+            compression_method: if data[keyword_end + 1] > 0 {
+                Some(data[keyword_end + 2].try_into().map_err(to_io_error)?)
+            } else {
+                None
+            },
             language: data[keyword_end + 3..language_end]
                 .iter()
                 .map(|b| *b as char)
@@ -211,28 +212,22 @@ impl Itxt {
         if compression_method == Some(PngCompressionMethod::Zlib) {
             let mut encoder = ZlibEncoder::new(string.as_bytes(), Compression::best());
             let _ = encoder.read_to_end(&mut compressed_string);
-            self.compressed = true;
         } else {
             compressed_string.extend(string.bytes());
-            self.compressed = false;
         }
 
-        self.compression_method = compression_method.unwrap_or_default();
+        self.compression_method = compression_method;
         self.compressed_string = compressed_string;
     }
 
     /// Decompress the compressed string in an iTXt chunk
     pub fn string(&self) -> Option<String> {
-        if self.compressed {
-            if self.compression_method == PngCompressionMethod::Zlib {
-                let mut decoder = ZlibDecoder::new(self.compressed_string.as_slice());
-                let mut out = String::new();
-                if decoder.read_to_string(&mut out).is_ok() {
-                    return Some(out);
-                }
+        if self.compression_method == Some(PngCompressionMethod::Zlib) {
+            let mut decoder = ZlibDecoder::new(self.compressed_string.as_slice());
+            let mut out = String::new();
+            if decoder.read_to_string(&mut out).is_ok() {
+                return Some(out);
             }
-
-            return None;
         }
 
         String::from_utf8(self.compressed_string.to_vec()).ok()
