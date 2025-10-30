@@ -138,17 +138,9 @@ where
                 // Fill in image metadata
                 if let PngChunkData::Jhdr(jhdr) = chunkref.read_chunk(&mut self.stream, None)? {
                     self.jhdr = Some(*jhdr);
-                }
-                if let Some(Jhdr {
-                    width,
-                    height,
-                    colour_type,
-                    ..
-                }) = self.jhdr
-                {
-                    self.width = width;
-                    self.height = height;
-                    self.colour_type = colour_type;
+                    self.width = jhdr.width;
+                    self.height = jhdr.height;
+                    self.colour_type = jhdr.colour_type;
                 }
 
                 self.stream.seek(SeekFrom::Start(oldpos))?;
