@@ -221,10 +221,8 @@ where
         let mut fctl_fdats = self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?;
 
         // Sort fcTL and fdAT chunks by their sequence number
-        fctl_fdats.sort_by_cached_key(|c| {
-            let _ = self.stream.seek(SeekFrom::Start(c.position + 8));
-            c.read_fctl_fdat_sequence_number(&mut self.stream).unwrap()
-        });
+        fctl_fdats
+            .sort_by_cached_key(|c| c.read_fctl_fdat_sequence_number(&mut self.stream).unwrap());
 
         let mut frames = Vec::new();
         let mut frame = ApngFrame::default();
