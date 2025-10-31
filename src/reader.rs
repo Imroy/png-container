@@ -228,18 +228,18 @@ where
         let mut frame = ApngFrame::default();
 
         // Now assemble them into frames
-        for chunk in fctl_fdats {
-            match chunk.type_str() {
+        for chunkref in fctl_fdats {
+            match chunkref.type_str() {
                 "fcTL" => {
                     if frame.fctl.position > 0 {
                         frames.push(frame);
                         frame = ApngFrame::default();
                     }
-                    frame.fctl = chunk;
+                    frame.fctl = chunkref;
                 }
 
                 "fdAT" => {
-                    frame.fdats.push(chunk);
+                    frame.fdats.push(chunkref);
                 }
 
                 _ => (),
