@@ -200,24 +200,20 @@ where
     /// Reset the position of the next chunk to scan back to the start of the file
     pub fn reset_next_chunk_position(&mut self) {
         self.next_chunk_pos = 8;
-        let _ = self.stream.seek(SeekFrom::Start(self.next_chunk_pos));
     }
 
     /// Set the position of the next chunk to scan to a given chunk
     pub fn set_next_chunk_position(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position;
-        let _ = self.stream.seek(SeekFrom::Start(self.next_chunk_pos));
     }
 
     /// Set the position of the next chunk to scan to after a given chunk
     pub fn set_next_chunk_position_after(&mut self, chunkref: &PngChunkRef) {
         self.next_chunk_pos = chunkref.position + 4 + 4 + chunkref.length as u64 + 4;
-        let _ = self.stream.seek(SeekFrom::Start(self.next_chunk_pos));
     }
 
     /// Read the chunk data after seeking to the start of its data
     pub fn read_chunk(&mut self, chunkref: &PngChunkRef) -> Result<PngChunkData, std::io::Error> {
-        self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, self.ihdr.as_ref())
     }
 

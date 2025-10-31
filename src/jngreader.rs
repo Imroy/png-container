@@ -176,7 +176,6 @@ where
     where
         R: Read + Seek,
     {
-        self.stream.seek(SeekFrom::Start(chunkref.position + 8))?;
         chunkref.read_chunk(&mut self.stream, None)
     }
 }
