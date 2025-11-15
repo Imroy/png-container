@@ -57,6 +57,19 @@ pub enum PngColourType {
     TrueColourAlpha = 6,
 }
 
+impl PngColourType {
+    /// Number of components in each pixel
+    pub fn num_components(&self) -> u8 {
+        match self {
+            PngColourType::Greyscale => 1,
+            PngColourType::TrueColour => 3,
+            PngColourType::IndexedColour => 1,
+            PngColourType::GreyscaleAlpha => 2,
+            PngColourType::TrueColourAlpha => 4,
+        }
+    }
+}
+
 /// Compression method(s)
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]

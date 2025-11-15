@@ -71,6 +71,23 @@ impl Ihdr {
             interlace_method: data[12].try_into().map_err(to_io_error)?,
         })
     }
+
+    /// Number of bits in a pixel
+    pub fn pixel_bits(&self) -> u8 {
+        self.colour_type.num_components() * self.bit_depth
+    }
+
+    /// Number of bytes in a line of image data, rounded up
+    pub fn line_size(&self) -> usize {
+        let bits = self.width as usize * self.pixel_bits() as usize;
+
+        // Divide by 8, but round up
+        if bits & 0x07 > 0 {
+            (bits >> 3) + 1
+        } else {
+            bits >> 3
+        }
+    }
 }
 
 /// Palette
