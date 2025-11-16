@@ -53,7 +53,7 @@ where
     R: Read + Seek,
 {
     /// Constructor from a Read-able type
-    fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
+    pub fn from_stream(mut stream: R) -> Result<Self, std::io::Error> {
         // First check the signature
         {
             let mut signature = [0; 8];
