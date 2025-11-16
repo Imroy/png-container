@@ -9,5 +9,5 @@ license = "LGPL-3.0-or-later"
 [dependencies]
 num_enum = "0.7.5"
 chrono = { version = "0.4.42", features = [ "std" ] }
-uom = { version = "0.36.0", features = ["autoconvert"] }
+uom = { version = "0.37.0", features = ["autoconvert"] }
 flate2 = "1.1.5"
