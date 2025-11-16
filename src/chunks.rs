@@ -379,6 +379,7 @@ impl PngChunkRef {
 
     /// Read the chunk data and parse it into a PngChunkData enum
     ///
+    /// `ihdr`: The IHDR chunk, only used for tRNS, sBIT, and bKGD chunks for the colour_type value.
     /// This also checks the chunk CRC value.
     pub fn read_chunk<R>(
         &self,

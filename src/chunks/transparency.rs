@@ -24,6 +24,7 @@ use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
 
+/// tRNS chunk
 #[derive(Clone, Debug)]
 pub enum Trns {
     Greyscale { value: u16 },

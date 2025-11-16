@@ -41,13 +41,13 @@ pub enum PngFileType {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum PngColourType {
-    /// Greyscale image - allowed depths of 1, 2, 4, 8, or 16 bits per component
+    /// Greyscale image - allowed depths of 1, 2, 4, 8, or 16 bits per pixel
     Greyscale = 0,
 
     /// RGB colour image - allowed depths of 8 or 16 bits per component
     TrueColour = 2,
 
-    /// Indexed colour image - allowed depths of 1, 2, 4, or 8 bits per index
+    /// Indexed colour image - allowed depths of 1, 2, 4, or 8 bits per pixel
     IndexedColour,
 
     /// Greyscale image with alpha - allowed depths of 8 or 16 bits per component
