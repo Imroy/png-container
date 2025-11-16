@@ -111,7 +111,7 @@ pub enum PngInterlaceMethod {
 }
 
 /// Palette entry for for PLTE chunk
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct PngPaletteEntry {
     pub red: u8,
     pub green: u8,
