@@ -362,12 +362,11 @@ impl PngChunkRef {
     where
         R: Read + Seek,
     {
-        stream.seek(SeekFrom::Start(self.position + 4 + 4))?;
-        let mut chunkstream = stream.take(self.length as u64);
         match &self.chunktype {
             b"fcTL" | b"fdAT" => {
+                stream.seek(SeekFrom::Start(self.position + 4 + 4))?;
                 let mut buf4 = [0_u8; 4];
-                chunkstream.read_exact(&mut buf4)?;
+                stream.read_exact(&mut buf4)?;
                 Ok(u32::from_be_bytes(buf4))
             }
 
