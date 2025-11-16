@@ -18,14 +18,10 @@
 
 use std::env;
 use std::fs::File;
-use std::io::BufReader;
 
 use uom::{
     fmt::DisplayStyle::Abbreviation,
-    si::{
-        linear_number_density::per_inch,
-        time::second,
-    },
+    si::{linear_number_density::per_inch, time::second},
 };
 
 use png_container::chunks::*;

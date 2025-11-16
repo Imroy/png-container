@@ -72,9 +72,7 @@ where
             let mut signature = [0; 8];
             stream.read_exact(&mut signature)?;
             if signature != [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] {
-                return Err(std::io::Error::other(
-                    "PNG: Bad signature",
-                ));
+                return Err(std::io::Error::other("PNG: Bad signature"));
             }
         }
 
