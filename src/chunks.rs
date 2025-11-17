@@ -45,9 +45,6 @@ use crate::crc::*;
 /// Enum of PNG chunk types and the data they hold
 #[derive(Clone, Debug)]
 pub enum PngChunkData {
-    /// Empty type
-    None,
-
     // Critical chunks
     /// Image header
     Ihdr(Ihdr),
