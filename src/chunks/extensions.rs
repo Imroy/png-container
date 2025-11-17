@@ -195,7 +195,7 @@ impl Gifg {
 /// GIF Application Extension
 #[derive(Clone, Debug)]
 pub struct Gifx {
-    pub app_id: String,
+    pub app_id: [char; 8],
     pub app_auth: [u8; 3],
     pub app_data: Vec<u8>,
 }
@@ -219,7 +219,12 @@ impl Gifx {
         }
 
         Ok(Self {
-            app_id: data[0..8].iter().map(|b| *b as char).collect(),
+            app_id: data[0..8]
+                .iter()
+                .map(|b| *b as char)
+                .collect::<Vec<_>>()
+                .try_into()
+                .map_err(|e| std::io::Error::other(format!("Couldn't convert {:?}", e)))?,
             app_auth: [data[8], data[9], data[10]],
             app_data: data[11..].to_vec(),
         })
