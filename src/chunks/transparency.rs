@@ -18,7 +18,7 @@
 
 //! Transparency chunk
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use crate::crc::*;
 use crate::to_io_error;
@@ -70,5 +70,46 @@ impl Trns {
                 colour_type as u8
             ))),
         }
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        match self {
+            Trns::Greyscale { .. } => 2,
+            Trns::TrueColour { .. } => 6,
+            Trns::IndexedColour { values } => values.len() as u32,
+        }
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data: &[u8] = match self {
+            Trns::Greyscale { value } => &value.to_be_bytes(),
+            Trns::TrueColour { red, green, blue } => {
+                let red_bytes = red.to_be_bytes();
+                let green_bytes = green.to_be_bytes();
+                let blue_bytes = blue.to_be_bytes();
+                &[
+                    red_bytes[0],
+                    red_bytes[1],
+                    green_bytes[0],
+                    green_bytes[1],
+                    blue_bytes[0],
+                    blue_bytes[1],
+                ]
+            }
+            Trns::IndexedColour { values } => values,
+        };
+        stream.write_all(data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(data);
+        }
+
+        Ok(())
     }
 }

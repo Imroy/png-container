@@ -19,7 +19,7 @@
 /*! PNG chunks
  */
 
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::slice::Iter;
 use std::str;
 
@@ -173,6 +173,120 @@ impl PngChunkData {
 
             _ => None,
         }
+    }
+
+    /// Write a chunk to a write-able stream, returning a chunk reference
+    pub fn to_stream<W>(&self, stream: &mut W) -> std::io::Result<PngChunkRef>
+    where
+        W: Write + Seek,
+    {
+        let position = stream.stream_position()?;
+
+        // First get the chunk length and type
+        let (length, chunktype) = match self {
+            PngChunkData::Ihdr(_) => (Ihdr::LENGTH, Ihdr::TYPE),
+            PngChunkData::Plte(plte) => (plte.length(), Plte::TYPE),
+            PngChunkData::Idat(data) => (data.len() as u32, IDAT_TYPE),
+            PngChunkData::Iend => (0, IEND_TYPE),
+            PngChunkData::Trns(trns) => (trns.length(), Trns::TYPE),
+            PngChunkData::Gama(_) => (Gama::LENGTH, Gama::TYPE),
+            PngChunkData::Chrm(_) => (Chrm::LENGTH, Chrm::TYPE),
+            PngChunkData::Iccp(iccp) => (iccp.length(), Iccp::TYPE),
+            PngChunkData::Sbit(sbit) => (sbit.length(), Sbit::TYPE),
+            PngChunkData::Srgb(_) => (Srgb::LENGTH, Srgb::TYPE),
+            PngChunkData::Cicp(_) => (Cicp::LENGTH, Cicp::TYPE),
+            PngChunkData::Mdcv(_) => (Mdcv::LENGTH, Mdcv::TYPE),
+            PngChunkData::Clli(_) => (Clli::LENGTH, Clli::TYPE),
+            PngChunkData::Text(text) => (text.length(), Text::TYPE),
+            PngChunkData::Ztxt(ztxt) => (ztxt.length(), Ztxt::TYPE),
+            PngChunkData::Itxt(itxt) => (itxt.length(), Itxt::TYPE),
+            PngChunkData::Bkgd(bkgd) => (bkgd.length(), Bkgd::TYPE),
+            PngChunkData::Hist(hist) => (hist.length(), Hist::TYPE),
+            PngChunkData::Phys(_) => (Phys::LENGTH, Phys::TYPE),
+            PngChunkData::Exif(exif) => (exif.len() as u32, EXIF_TYPE),
+            PngChunkData::Splt(splt) => (splt.length(), Splt::TYPE),
+            PngChunkData::Time(_) => (Time::LENGTH, Time::TYPE),
+            PngChunkData::Actl(_) => (Actl::LENGTH, Actl::TYPE),
+            PngChunkData::Fctl(_) => (Fctl::LENGTH, Fctl::TYPE),
+            PngChunkData::Fdat(fdat) => (fdat.length(), Fdat::TYPE),
+            PngChunkData::Offs(_) => (Offs::LENGTH, Offs::TYPE),
+            PngChunkData::Pcal(pcal) => (pcal.length(), Pcal::TYPE),
+            PngChunkData::Scal(scal) => (scal.length(), Scal::TYPE),
+            PngChunkData::Gifg(_) => (Gifg::LENGTH, Gifg::TYPE),
+            PngChunkData::Gifx(gifx) => (gifx.length(), Gifx::TYPE),
+            PngChunkData::Ster(_) => (Ster::LENGTH, Ster::TYPE),
+            PngChunkData::Jhdr(_) => (Jhdr::LENGTH, Jhdr::TYPE),
+            PngChunkData::Jdat(data) => (data.len() as u32, JDAT_TYPE),
+            PngChunkData::Jdaa(data) => (data.len() as u32, JDAA_TYPE),
+            PngChunkData::Jsep => (0, JSEP_TYPE),
+        };
+
+        // Write the chunk length and type
+        stream.write_all(&length.to_be_bytes())?;
+        stream.write_all(&chunktype)?;
+
+        let mut data_crc = CRC::new();
+        data_crc.consume(&chunktype);
+
+        // Write the contents of the chunk, calculating CRC as we go
+        match self {
+            PngChunkData::Ihdr(ihdr) => ihdr.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Plte(plte) => plte.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Idat(data) => {
+                stream.write_all(data)?;
+                data_crc.consume(data);
+            }
+            PngChunkData::Iend => (),
+            PngChunkData::Trns(trns) => trns.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Gama(gama) => gama.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Chrm(chrm) => chrm.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Iccp(iccp) => iccp.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Sbit(sbit) => sbit.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Srgb(srgb) => srgb.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Cicp(cicp) => cicp.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Mdcv(mdcv) => mdcv.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Clli(clli) => clli.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Text(text) => text.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Ztxt(ztxt) => ztxt.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Itxt(itxt) => itxt.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Bkgd(bkgd) => bkgd.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Hist(hist) => hist.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Phys(phys) => phys.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Exif(data) => {
+                stream.write_all(data)?;
+                data_crc.consume(data);
+            }
+            PngChunkData::Splt(splt) => splt.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Time(time) => time.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Actl(actl) => actl.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Fctl(fctl) => fctl.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Fdat(fdat) => fdat.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Offs(offs) => offs.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Pcal(pcal) => pcal.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Scal(scal) => scal.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Gifg(gifg) => gifg.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Gifx(gifx) => gifx.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Ster(ster) => ster.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Jhdr(jhdr) => jhdr.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Jdat(data) => {
+                stream.write_all(data)?;
+                data_crc.consume(data);
+            }
+            PngChunkData::Jdaa(data) => {
+                stream.write_all(data)?;
+                data_crc.consume(data);
+            }
+            PngChunkData::Jsep => (),
+        }
+
+        // Now write the CRC
+        stream.write_all(&data_crc.value().to_be_bytes())?;
+
+        Ok(PngChunkRef {
+            position,
+            length,
+            chunktype,
+        })
     }
 
     /// Scaled white coordinates of the cHRM chunk
@@ -636,6 +750,7 @@ impl PngChunkRef {
     }
 }
 
+// Chunk types that don't have structs/enums for us to put these into
 pub(crate) const IDAT_TYPE: [u8; 4] = *b"IDAT";
 pub(crate) const IEND_TYPE: [u8; 4] = *b"IEND";
 pub(crate) const EXIF_TYPE: [u8; 4] = *b"eXIf";

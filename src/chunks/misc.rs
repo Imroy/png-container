@@ -18,7 +18,7 @@
 
 //! Miscellaneous chunks
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use uom::si::{f64::LinearNumberDensity, linear_number_density::per_meter};
 
@@ -97,6 +97,41 @@ impl Bkgd {
             }
         }
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        match self {
+            Bkgd::Greyscale { .. } => 2,
+            Bkgd::TrueColour { .. } => 6,
+            Bkgd::IndexedColour { .. } => 1,
+        }
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data: &[u8] = match self {
+            Bkgd::Greyscale { value } => &value.to_be_bytes(),
+            Bkgd::TrueColour { red, green, blue } => {
+                let r = red.to_be_bytes();
+                let g = green.to_be_bytes();
+                let b = blue.to_be_bytes();
+                &[r[0], r[1], g[0], g[1], b[0], b[1]]
+            }
+            Bkgd::IndexedColour { index } => &[*index],
+        };
+        stream.write_all(data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(data);
+        }
+
+        Ok(())
+    }
 }
 
 /// Image histogram
@@ -127,6 +162,32 @@ impl Hist {
                 .collect::<Result<Vec<_>, std::io::Error>>()?,
         ))
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.0.len() as u32 * 2
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data = self
+            .0
+            .iter()
+            .flat_map(|h| h.to_be_bytes())
+            .collect::<Vec<u8>>();
+        stream.write_all(&data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(())
+    }
 }
 
 /// Physical pixel dimensions
@@ -139,6 +200,7 @@ pub struct Phys {
 
 impl Phys {
     pub(crate) const TYPE: [u8; 4] = *b"pHYs";
+    pub(crate) const LENGTH: u32 = 9;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -156,6 +218,32 @@ impl Phys {
             y_pixels_per_unit: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
             unit: data[8].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let x_bytes = self.x_pixels_per_unit.to_be_bytes();
+        stream.write_all(&x_bytes)?;
+
+        let y_bytes = self.y_pixels_per_unit.to_be_bytes();
+        stream.write_all(&y_bytes)?;
+
+        let unit_byte = [self.unit.into()];
+        stream.write_all(&unit_byte)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&x_bytes);
+            data_crc.consume(&y_bytes);
+            data_crc.consume(&unit_byte);
+        }
+
+        Ok(())
     }
 
     /// Convert the units in a pHYs chunk to a UoM type
@@ -242,5 +330,70 @@ impl Splt {
                 })
                 .collect::<Result<Vec<_>, std::io::Error>>()?,
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        let entry_size = ((self.depth as u32 / 8) * 4) + 2;
+        self.name.len() as u32 + 1 + 1 + (self.palette.len() as u32 * entry_size)
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let name_bytes = self.name.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&name_bytes)?;
+
+        let mid_bytes = [0, self.depth];
+        stream.write_all(&mid_bytes)?;
+
+        let pal = if self.depth == 8 {
+            self.palette
+                .iter()
+                .flat_map(|p| {
+                    let freq_bytes = p.frequency.to_be_bytes();
+                    [
+                        (p.red & 0xff) as u8,
+                        (p.green & 0xff) as u8,
+                        (p.blue & 0xff) as u8,
+                        freq_bytes[0],
+                        freq_bytes[1],
+                    ]
+                })
+                .collect()
+        } else {
+            self.palette
+                .iter()
+                .flat_map(|p| {
+                    let red_bytes = p.red.to_be_bytes();
+                    let green_bytes = p.green.to_be_bytes();
+                    let blue_bytes = p.blue.to_be_bytes();
+                    let freq_bytes = p.frequency.to_be_bytes();
+                    [
+                        red_bytes[0],
+                        red_bytes[1],
+                        green_bytes[0],
+                        green_bytes[1],
+                        blue_bytes[0],
+                        blue_bytes[1],
+                        freq_bytes[0],
+                        freq_bytes[1],
+                    ]
+                })
+                .collect::<Vec<u8>>()
+        };
+        stream.write_all(&pal)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&name_bytes);
+            data_crc.consume(&mid_bytes);
+            data_crc.consume(&pal);
+        }
+
+        Ok(())
     }
 }

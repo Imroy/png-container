@@ -18,7 +18,7 @@
 
 //! Animation chunks
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use uom::si::f64::Time;
 
@@ -35,6 +35,7 @@ pub struct Actl {
 
 impl Actl {
     pub(crate) const TYPE: [u8; 4] = *b"acTL";
+    pub(crate) const LENGTH: u32 = 8;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -51,6 +52,28 @@ impl Actl {
             num_frames: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
             num_plays: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let frames_bytes = self.num_frames.to_be_bytes();
+        stream.write_all(&frames_bytes)?;
+
+        let plays_bytes = self.num_plays.to_be_bytes();
+        stream.write_all(&plays_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&frames_bytes);
+            data_crc.consume(&plays_bytes);
+        }
+
+        Ok(())
     }
 }
 
@@ -70,6 +93,7 @@ pub struct Fctl {
 
 impl Fctl {
     pub(crate) const TYPE: [u8; 4] = *b"fcTL";
+    pub(crate) const LENGTH: u32 = 26;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -93,6 +117,52 @@ impl Fctl {
             dispose_op: data[24].try_into().map_err(to_io_error)?,
             blend_op: data[24].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let seqnum_bytes = self.sequence_number.to_be_bytes();
+        stream.write_all(&seqnum_bytes)?;
+
+        let width_bytes = self.width.to_be_bytes();
+        stream.write_all(&width_bytes)?;
+
+        let height_bytes = self.height.to_be_bytes();
+        stream.write_all(&height_bytes)?;
+
+        let xoff_bytes = self.x_offset.to_be_bytes();
+        stream.write_all(&xoff_bytes)?;
+
+        let yoff_bytes = self.y_offset.to_be_bytes();
+        stream.write_all(&yoff_bytes)?;
+
+        let delayn_bytes = self.delay_num.to_be_bytes();
+        stream.write_all(&delayn_bytes)?;
+
+        let delayd_bytes = self.delay_den.to_be_bytes();
+        stream.write_all(&delayd_bytes)?;
+
+        let end_bytes = [self.dispose_op.into(), self.blend_op.into()];
+        stream.write_all(&end_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&seqnum_bytes);
+            data_crc.consume(&width_bytes);
+            data_crc.consume(&height_bytes);
+            data_crc.consume(&xoff_bytes);
+            data_crc.consume(&yoff_bytes);
+            data_crc.consume(&delayn_bytes);
+            data_crc.consume(&delayd_bytes);
+            data_crc.consume(&end_bytes);
+        }
+
+        Ok(())
     }
 
     /// Calculate delay from fcTL chunk in seconds
@@ -130,5 +200,30 @@ impl Fdat {
             sequence_number: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
             frame_data: data[4..].to_vec(),
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        4 + self.frame_data.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let seq_bytes = self.sequence_number.to_be_bytes();
+        stream.write_all(&seq_bytes)?;
+
+        stream.write_all(&self.frame_data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&seq_bytes);
+            data_crc.consume(&self.frame_data);
+        }
+
+        Ok(())
     }
 }

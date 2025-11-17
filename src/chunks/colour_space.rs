@@ -18,7 +18,7 @@
 
 //! Colour space chunks
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use flate2::{
     Compression,
@@ -48,6 +48,7 @@ pub struct Chrm {
 
 impl Chrm {
     pub(crate) const TYPE: [u8; 4] = *b"cHRM";
+    pub(crate) const LENGTH: u32 = 32;
 
     /// Constructor
     pub fn new(white: (f64, f64), red: (f64, f64), green: (f64, f64), blue: (f64, f64)) -> Self {
@@ -84,6 +85,52 @@ impl Chrm {
             blue_x: u32::from_be_bytes(data[24..28].try_into().map_err(to_io_error)?),
             blue_y: u32::from_be_bytes(data[28..32].try_into().map_err(to_io_error)?),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let wx_bytes = self.white_x.to_be_bytes();
+        stream.write_all(&wx_bytes)?;
+
+        let wy_bytes = self.white_y.to_be_bytes();
+        stream.write_all(&wy_bytes)?;
+
+        let rx_bytes = self.red_x.to_be_bytes();
+        stream.write_all(&rx_bytes)?;
+
+        let ry_bytes = self.red_y.to_be_bytes();
+        stream.write_all(&ry_bytes)?;
+
+        let gx_bytes = self.green_x.to_be_bytes();
+        stream.write_all(&gx_bytes)?;
+
+        let gy_bytes = self.green_y.to_be_bytes();
+        stream.write_all(&gy_bytes)?;
+
+        let bx_bytes = self.blue_x.to_be_bytes();
+        stream.write_all(&bx_bytes)?;
+
+        let by_bytes = self.blue_y.to_be_bytes();
+        stream.write_all(&by_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&wx_bytes);
+            data_crc.consume(&wy_bytes);
+            data_crc.consume(&rx_bytes);
+            data_crc.consume(&ry_bytes);
+            data_crc.consume(&gx_bytes);
+            data_crc.consume(&gy_bytes);
+            data_crc.consume(&bx_bytes);
+            data_crc.consume(&by_bytes);
+        }
+
+        Ok(())
     }
 
     /// Set the white coordinates
@@ -146,6 +193,7 @@ pub struct Gama {
 
 impl Gama {
     pub(crate) const TYPE: [u8; 4] = *b"gAMA";
+    pub(crate) const LENGTH: u32 = 4;
 
     /// Constructor
     pub fn new(gamma: f64) -> Self {
@@ -178,6 +226,24 @@ impl Gama {
         Ok(Self {
             gamma: u32::from_be_bytes(data),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let gamma_bytes = self.gamma.to_be_bytes();
+        stream.write_all(&gamma_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&gamma_bytes);
+        }
+
+        Ok(())
     }
 }
 
@@ -228,6 +294,35 @@ impl Iccp {
             compression_method: data[name_end].try_into().map_err(to_io_error)?,
             compressed_profile: data[name_end + 2..].to_vec(),
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.name.len() as u32 + 1 + 1 + self.compressed_profile.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let name_bytes = self.name.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&name_bytes)?;
+
+        let mid_bytes = [0, self.compression_method.into()];
+        stream.write_all(&mid_bytes)?;
+
+        stream.write_all(&self.compressed_profile)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&name_bytes);
+            data_crc.consume(&mid_bytes);
+            data_crc.consume(&self.compressed_profile);
+        }
+
+        Ok(())
     }
 
     /// Set profile
@@ -323,6 +418,50 @@ impl Sbit {
             }),
         }
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        match self {
+            Sbit::Greyscale { .. } => 1,
+            Sbit::Colour { .. } => 3,
+            Sbit::GreyscaleAlpha { .. } => 2,
+            Sbit::TrueColourAlpha { .. } => 4,
+        }
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data: &[u8] = match self {
+            Sbit::Greyscale { grey_bits } => &[*grey_bits],
+            Sbit::Colour {
+                red_bits,
+                green_bits,
+                blue_bits,
+            } => &[*red_bits, *green_bits, *blue_bits],
+            Sbit::GreyscaleAlpha {
+                grey_bits,
+                alpha_bits,
+            } => &[*grey_bits, *alpha_bits],
+            Sbit::TrueColourAlpha {
+                red_bits,
+                green_bits,
+                blue_bits,
+                alpha_bits,
+            } => &[*red_bits, *green_bits, *blue_bits, *alpha_bits],
+        };
+        stream.write_all(data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(data);
+        }
+
+        Ok(())
+    }
 }
 
 /// Standard RGB colour space
@@ -333,6 +472,7 @@ pub struct Srgb {
 
 impl Srgb {
     pub(crate) const TYPE: [u8; 4] = *b"sRGB";
+    pub(crate) const LENGTH: u32 = 1;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -349,6 +489,24 @@ impl Srgb {
             rendering_intent: data[0].try_into().map_err(to_io_error)?,
         })
     }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data = [self.rendering_intent.into()];
+        stream.write_all(&data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(())
+    }
 }
 
 /// Coding-independent code points for video signal type identification
@@ -362,6 +520,7 @@ pub struct Cicp {
 
 impl Cicp {
     pub(crate) const TYPE: [u8; 4] = *b"cICP";
+    pub(crate) const LENGTH: u32 = 4;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -380,6 +539,29 @@ impl Cicp {
             matrix_coeffs: data[2].into(),
             video_full_range: data[3] > 0,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let data = [
+            self.colour_primaries.into(),
+            self.transfer_function.into(),
+            self.matrix_coeffs.into(),
+            self.video_full_range.into(),
+        ];
+        stream.write_all(&data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(())
     }
 }
 
@@ -400,6 +582,7 @@ pub struct Mdcv {
 
 impl Mdcv {
     pub(crate) const TYPE: [u8; 4] = *b"mDCV";
+    pub(crate) const LENGTH: u32 = 24;
 
     /// Constructor
     pub fn new(
@@ -447,6 +630,60 @@ impl Mdcv {
             max_lum: u32::from_be_bytes(data[16..20].try_into().map_err(to_io_error)?),
             min_lum: u32::from_be_bytes(data[20..24].try_into().map_err(to_io_error)?),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let rx_bytes = self.red_x.to_be_bytes();
+        stream.write_all(&rx_bytes)?;
+
+        let ry_bytes = self.red_y.to_be_bytes();
+        stream.write_all(&ry_bytes)?;
+
+        let gx_bytes = self.green_x.to_be_bytes();
+        stream.write_all(&gx_bytes)?;
+
+        let gy_bytes = self.green_y.to_be_bytes();
+        stream.write_all(&gy_bytes)?;
+
+        let bx_bytes = self.blue_x.to_be_bytes();
+        stream.write_all(&bx_bytes)?;
+
+        let by_bytes = self.blue_y.to_be_bytes();
+        stream.write_all(&by_bytes)?;
+
+        let wx_bytes = self.white_x.to_be_bytes();
+        stream.write_all(&wx_bytes)?;
+
+        let wy_bytes = self.white_y.to_be_bytes();
+        stream.write_all(&wy_bytes)?;
+
+        let max_bytes = self.max_lum.to_be_bytes();
+        stream.write_all(&max_bytes)?;
+
+        let min_bytes = self.min_lum.to_be_bytes();
+        stream.write_all(&min_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&rx_bytes);
+            data_crc.consume(&ry_bytes);
+            data_crc.consume(&gx_bytes);
+            data_crc.consume(&gy_bytes);
+            data_crc.consume(&bx_bytes);
+            data_crc.consume(&by_bytes);
+            data_crc.consume(&wx_bytes);
+            data_crc.consume(&wy_bytes);
+            data_crc.consume(&max_bytes);
+            data_crc.consume(&min_bytes);
+        }
+
+        Ok(())
     }
 
     /// Set the red coordinates
@@ -526,6 +763,7 @@ pub struct Clli {
 
 impl Clli {
     pub(crate) const TYPE: [u8; 4] = *b"cLLI";
+    pub(crate) const LENGTH: u32 = 8;
 
     /// Constructor
     pub fn new(max_cll: Luminance, max_fall: Luminance) -> Self {
@@ -550,6 +788,28 @@ impl Clli {
             max_cll: u32::from_be_bytes(data[0..4].try_into().map_err(to_io_error)?),
             max_fall: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let cll_bytes = self.max_cll.to_be_bytes();
+        stream.write_all(&cll_bytes)?;
+
+        let fall_bytes = self.max_fall.to_be_bytes();
+        stream.write_all(&fall_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&cll_bytes);
+            data_crc.consume(&fall_bytes);
+        }
+
+        Ok(())
     }
 
     /// Set Maximum Content Light Level

@@ -18,7 +18,7 @@
 
 //! tEXt, zTXt, and iTXt chunks
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use flate2::{
     Compression,
@@ -60,6 +60,36 @@ impl Text {
             keyword: data[0..keyword_end].iter().map(|b| *b as char).collect(),
             string: data[keyword_end + 1..].iter().map(|b| *b as char).collect(),
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.keyword.len() as u32 + 1 + self.string.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let kw_bytes = self.keyword.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&kw_bytes)?;
+
+        let null = [0_u8];
+        stream.write_all(&null)?;
+
+        let str_bytes = self.string.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&str_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&kw_bytes);
+            data_crc.consume(&null);
+            data_crc.consume(&str_bytes);
+        }
+
+        Ok(())
     }
 }
 
@@ -110,6 +140,35 @@ impl Ztxt {
             compression_method: data[keyword_end + 1].try_into().map_err(to_io_error)?,
             compressed_string: data[keyword_end + 2..].to_vec(),
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.keyword.len() as u32 + 1 + 1 + self.compressed_string.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let kw_bytes = self.keyword.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&kw_bytes)?;
+
+        let mid_bytes = [0, self.compression_method.into()];
+        stream.write_all(&mid_bytes)?;
+
+        stream.write_all(&self.compressed_string)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&kw_bytes);
+            data_crc.consume(&mid_bytes);
+            data_crc.consume(&self.compressed_string);
+        }
+
+        Ok(())
     }
 
     /// Set the string
@@ -210,6 +269,73 @@ impl Itxt {
                 .map_err(to_io_error)?,
             compressed_string: data[tkeyword_end + 1..].to_vec(),
         })
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.keyword.len() as u32
+            + 1
+            + 2
+            + self.language.len() as u32
+            + 1
+            + self.translated_keyword.len() as u32
+            + 1
+            + self.compressed_string.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let kw_bytes = self.keyword.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&kw_bytes)?;
+
+        let mid_bytes = [
+            0,
+            if self.compression_method.is_some() {
+                1
+            } else {
+                0
+            },
+            if let Some(cm) = self.compression_method {
+                cm.into()
+            } else {
+                0
+            },
+        ];
+        stream.write_all(&mid_bytes)?;
+
+        let lang_bytes = self.language.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&lang_bytes)?;
+
+        let null = [0_u8];
+        stream.write_all(&null)?;
+
+        let tkw_bytes = self
+            .translated_keyword
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        stream.write_all(&tkw_bytes)?;
+
+        stream.write_all(&null)?;
+
+        stream.write_all(&self.compressed_string)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&kw_bytes);
+            data_crc.consume(&mid_bytes);
+            data_crc.consume(&lang_bytes);
+            data_crc.consume(&null);
+            data_crc.consume(&tkw_bytes);
+            data_crc.consume(&null);
+            data_crc.consume(&self.compressed_string);
+        }
+
+        Ok(())
     }
 
     /// Set the string

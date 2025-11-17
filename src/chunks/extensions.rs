@@ -18,7 +18,7 @@
 
 //! Public extension chunks
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use crate::chunks::find_null;
 use crate::crc::*;
@@ -35,6 +35,7 @@ pub struct Offs {
 
 impl Offs {
     pub(crate) const TYPE: [u8; 4] = *b"oFFs";
+    pub(crate) const LENGTH: u32 = 9;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -52,6 +53,32 @@ impl Offs {
             y: u32::from_be_bytes(data[4..8].try_into().map_err(to_io_error)?),
             unit: data[8].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let x_bytes = self.x.to_be_bytes();
+        stream.write_all(&x_bytes)?;
+
+        let y_bytes = self.y.to_be_bytes();
+        stream.write_all(&y_bytes)?;
+
+        let unit_byte = [self.unit.into()];
+        stream.write_all(&unit_byte)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&x_bytes);
+            data_crc.consume(&y_bytes);
+            data_crc.consume(&unit_byte);
+        }
+
+        Ok(())
     }
 }
 
@@ -120,6 +147,64 @@ impl Pcal {
             parameters,
         })
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.name.len() as u32
+            + 1
+            + 9
+            + 1
+            + self.unit_name.len() as u32
+            + self.parameters.iter().fold(1, |a, p| a + p.len() as u32)
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let name_bytes = self.name.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&name_bytes)?;
+
+        let null = [0];
+        stream.write_all(&null)?;
+
+        let zero_bytes = self.original_zero.to_be_bytes();
+        stream.write_all(&zero_bytes)?;
+
+        let max_bytes = self.original_max.to_be_bytes();
+        stream.write_all(&max_bytes)?;
+
+        let mid_bytes = [self.equation_type.into(), self.parameters.len() as u8];
+        stream.write_all(&mid_bytes)?;
+
+        let unit_bytes = self.unit_name.chars().map(|c| c as u8).collect::<Vec<u8>>();
+        stream.write_all(&unit_bytes)?;
+
+        for param in &self.parameters {
+            stream.write_all(&null)?;
+            let param_bytes = param.chars().map(|c| c as u8).collect::<Vec<u8>>();
+            stream.write_all(&param_bytes)?;
+        }
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&name_bytes);
+            data_crc.consume(&null);
+            data_crc.consume(&zero_bytes);
+            data_crc.consume(&max_bytes);
+            data_crc.consume(&mid_bytes);
+            data_crc.consume(&unit_bytes);
+            for param in &self.parameters {
+                let param_bytes = param.chars().map(|c| c as u8).collect::<Vec<u8>>();
+                data_crc.consume(&null);
+                data_crc.consume(&param_bytes);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Physical scale of image subject
@@ -160,6 +245,48 @@ impl Scal {
                 .collect(),
         })
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        1 + self.pixel_width.len() as u32 + 1 + self.pixel_height.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let unit_byte = [self.unit.into()];
+        stream.write_all(&unit_byte)?;
+
+        let width_bytes = self
+            .pixel_width
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        stream.write_all(&width_bytes)?;
+
+        let null = [0];
+        stream.write_all(&null)?;
+
+        let height_bytes = self
+            .pixel_height
+            .chars()
+            .map(|c| c as u8)
+            .collect::<Vec<u8>>();
+        stream.write_all(&height_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&unit_byte);
+            data_crc.consume(&width_bytes);
+            data_crc.consume(&null);
+            data_crc.consume(&height_bytes);
+        }
+
+        Ok(())
+    }
 }
 
 /// GIF Graphic Control Extension
@@ -172,6 +299,7 @@ pub struct Gifg {
 
 impl Gifg {
     pub(crate) const TYPE: [u8; 4] = *b"gIFg";
+    pub(crate) const LENGTH: u32 = 4;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -189,6 +317,28 @@ impl Gifg {
             user_input: data[1] > 0,
             delay_time: u16::from_be_bytes(data[2..].try_into().map_err(to_io_error)?),
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let start_bytes = [self.disposal_method.into(), self.user_input.into()];
+        stream.write_all(&start_bytes)?;
+
+        let delay_bytes = self.delay_time.to_be_bytes();
+        stream.write_all(&delay_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&start_bytes);
+            data_crc.consume(&delay_bytes);
+        }
+
+        Ok(())
     }
 }
 
@@ -229,6 +379,33 @@ impl Gifx {
             app_data: data[11..].to_vec(),
         })
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        8 + 3 + self.app_data.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let id_bytes = self.app_id.iter().map(|c| *c as u8).collect::<Vec<u8>>();
+        stream.write_all(&id_bytes)?;
+
+        stream.write_all(&self.app_auth)?;
+        stream.write_all(&self.app_data)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&id_bytes);
+            data_crc.consume(&self.app_auth);
+            data_crc.consume(&self.app_data);
+        }
+
+        Ok(())
+    }
 }
 
 /// Indicator of Stereo Image
@@ -239,6 +416,7 @@ pub struct Ster {
 
 impl Ster {
     pub(crate) const TYPE: [u8; 4] = *b"sTER";
+    pub(crate) const LENGTH: u32 = 1;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -254,5 +432,23 @@ impl Ster {
         Ok(Self {
             mode: data[0].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let mode_byte = [self.mode.into()];
+        stream.write_all(&mode_byte)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&mode_byte);
+        }
+
+        Ok(())
     }
 }

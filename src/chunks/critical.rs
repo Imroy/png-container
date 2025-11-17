@@ -18,7 +18,7 @@
 
 //! Critical chunks (IHDR, PLTE)
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use crate::crc::*;
 use crate::to_io_error;
@@ -51,6 +51,7 @@ pub struct Ihdr {
 
 impl Ihdr {
     pub(crate) const TYPE: [u8; 4] = *b"IHDR";
+    pub(crate) const LENGTH: u32 = 13;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -72,6 +73,38 @@ impl Ihdr {
             filter_method: data[11].try_into().map_err(to_io_error)?,
             interlace_method: data[12].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let width_bytes = self.width.to_be_bytes();
+        stream.write_all(&width_bytes)?;
+
+        let height_bytes = self.width.to_be_bytes();
+        stream.write_all(&height_bytes)?;
+
+        let rest_bytes = [
+            self.bit_depth,
+            self.colour_type.into(),
+            self.compression_method.into(),
+            self.filter_method.into(),
+            self.interlace_method.into(),
+        ];
+        stream.write_all(&rest_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&width_bytes);
+            data_crc.consume(&height_bytes);
+            data_crc.consume(&rest_bytes);
+        }
+
+        Ok(())
     }
 
     /// Number of bits in a pixel
@@ -126,6 +159,31 @@ impl Plte {
                 .collect::<Result<Vec<_>, std::io::Error>>()?,
         ))
     }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.0.len() as u32 * 3
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let buf = self
+            .0
+            .iter()
+            .flat_map(|col| [col.red, col.green, col.blue])
+            .collect::<Vec<u8>>();
+        stream.write_all(&buf)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&buf);
+        }
+
+        Ok(())
+    }
 }
 
 /// JNG header
@@ -164,6 +222,7 @@ pub struct Jhdr {
 
 impl Jhdr {
     pub(crate) const TYPE: [u8; 4] = *b"Jhdr";
+    pub(crate) const LENGTH: u32 = 16;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -188,5 +247,40 @@ impl Jhdr {
             alpha_filter_method: data[14].try_into().map_err(to_io_error)?,
             alpha_interlace_method: data[15].try_into().map_err(to_io_error)?,
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let width_bytes = self.width.to_be_bytes();
+        stream.write_all(&width_bytes)?;
+
+        let height_bytes = self.width.to_be_bytes();
+        stream.write_all(&height_bytes)?;
+
+        let rest_bytes = [
+            self.colour_type.into(),
+            self.image_sample_depth.into(),
+            self.image_compression_method.into(),
+            self.image_interlace_method.into(),
+            self.alpha_sample_depth.into(),
+            self.alpha_compression_method.into(),
+            self.alpha_filter_method.into(),
+            self.alpha_interlace_method.into(),
+        ];
+        stream.write_all(&rest_bytes)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&width_bytes);
+            data_crc.consume(&height_bytes);
+            data_crc.consume(&rest_bytes);
+        }
+
+        Ok(())
     }
 }

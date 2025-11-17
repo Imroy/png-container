@@ -18,7 +18,7 @@
 
 //! tIME chunk
 
-use std::io::Read;
+use std::io::{Read, Write};
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 
@@ -38,6 +38,7 @@ pub struct Time {
 
 impl Time {
     pub(crate) const TYPE: [u8; 4] = *b"tIME";
+    pub(crate) const LENGTH: u32 = 7;
 
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
@@ -58,6 +59,32 @@ impl Time {
             minute: data[5],
             second: data[6],
         })
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let year_bytes = self.year.to_be_bytes();
+        let data = [
+            year_bytes[0],
+            year_bytes[1],
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+        ];
+        stream.write_all(&data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(())
     }
 
     pub fn time(&self) -> Option<DateTime<Utc>> {
