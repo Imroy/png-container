@@ -50,6 +50,8 @@ pub struct Ihdr {
 }
 
 impl Ihdr {
+    pub(crate) const TYPE: [u8; 4] = *b"IHDR";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -95,6 +97,8 @@ impl Ihdr {
 pub struct Plte(pub Vec<PngPaletteEntry>);
 
 impl Plte {
+    pub(crate) const TYPE: [u8; 4] = *b"PLTE";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -159,6 +163,8 @@ pub struct Jhdr {
 }
 
 impl Jhdr {
+    pub(crate) const TYPE: [u8; 4] = *b"Jhdr";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where

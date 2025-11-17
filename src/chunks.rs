@@ -395,19 +395,19 @@ impl PngChunkRef {
         let mut data_crc = CRC::new();
         data_crc.consume(&self.chunktype);
 
-        let chunk = match &self.chunktype {
-            b"IHDR" => Ok(PngChunkData::Ihdr(Ihdr::from_stream(
+        let chunk = match self.chunktype {
+            Ihdr::TYPE => Ok(PngChunkData::Ihdr(Ihdr::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"PLTE" => Ok(PngChunkData::Plte(Box::new(Plte::from_stream(
+            Plte::TYPE => Ok(PngChunkData::Plte(Box::new(Plte::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"IDAT" => {
+            IDAT_TYPE => {
                 let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
@@ -415,9 +415,9 @@ impl PngChunkRef {
                 Ok(PngChunkData::Idat(Box::new(data)))
             }
 
-            b"IEND" => Ok(PngChunkData::Iend),
+            IEND_TYPE => Ok(PngChunkData::Iend),
 
-            b"tRNS" => {
+            Trns::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
                     Ok(PngChunkData::Trns(Box::new(Trns::from_stream(
                         &mut chunkstream,
@@ -430,23 +430,23 @@ impl PngChunkRef {
                 }
             }
 
-            b"gAMA" => Ok(PngChunkData::Gama(Gama::from_stream(
+            Gama::TYPE => Ok(PngChunkData::Gama(Gama::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"cHRM" => Ok(PngChunkData::Chrm(Box::new(Chrm::from_stream(
+            Chrm::TYPE => Ok(PngChunkData::Chrm(Box::new(Chrm::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            b"iCCP" => Ok(PngChunkData::Iccp(Box::new(Iccp::from_stream(
+            Iccp::TYPE => Ok(PngChunkData::Iccp(Box::new(Iccp::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"sBIT" => {
+            Sbit::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
                     Ok(PngChunkData::Sbit(Sbit::from_stream(
                         &mut chunkstream,
@@ -459,45 +459,45 @@ impl PngChunkRef {
                 }
             }
 
-            b"sRGB" => Ok(PngChunkData::Srgb(Srgb::from_stream(
+            Srgb::TYPE => Ok(PngChunkData::Srgb(Srgb::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"cICP" => Ok(PngChunkData::Cicp(Cicp::from_stream(
+            Cicp::TYPE => Ok(PngChunkData::Cicp(Cicp::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"mDCV" => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_stream(
+            Mdcv::TYPE => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            b"cLLI" => Ok(PngChunkData::Clli(Clli::from_stream(
+            Clli::TYPE => Ok(PngChunkData::Clli(Clli::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"tEXt" => Ok(PngChunkData::Text(Box::new(Text::from_stream(
+            Text::TYPE => Ok(PngChunkData::Text(Box::new(Text::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"zTXt" => Ok(PngChunkData::Ztxt(Box::new(Ztxt::from_stream(
+            Ztxt::TYPE => Ok(PngChunkData::Ztxt(Box::new(Ztxt::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"iTXt" => Ok(PngChunkData::Itxt(Box::new(Itxt::from_stream(
+            Itxt::TYPE => Ok(PngChunkData::Itxt(Box::new(Itxt::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"bKGD" => {
+            Bkgd::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
                     Ok(PngChunkData::Bkgd(Bkgd::from_stream(
                         &mut chunkstream,
@@ -510,18 +510,18 @@ impl PngChunkRef {
                 }
             }
 
-            b"hIST" => Ok(PngChunkData::Hist(Box::new(Hist::from_stream(
+            Hist::TYPE => Ok(PngChunkData::Hist(Box::new(Hist::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"pHYs" => Ok(PngChunkData::Phys(Phys::from_stream(
+            Phys::TYPE => Ok(PngChunkData::Phys(Phys::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"eXIf" => {
+            EXIF_TYPE => {
                 let mut profile = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut profile)?;
                 data_crc.consume(&profile);
@@ -529,75 +529,75 @@ impl PngChunkRef {
                 Ok(PngChunkData::Exif(Box::new(profile)))
             }
 
-            b"sPLT" => Ok(PngChunkData::Splt(Box::new(Splt::from_stream(
+            Splt::TYPE => Ok(PngChunkData::Splt(Box::new(Splt::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"tIME" => Ok(PngChunkData::Time(Time::from_stream(
+            Time::TYPE => Ok(PngChunkData::Time(Time::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
             // Animation information
-            b"acTL" => Ok(PngChunkData::Actl(Actl::from_stream(
+            Actl::TYPE => Ok(PngChunkData::Actl(Actl::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"fcTL" => Ok(PngChunkData::Fctl(Box::new(Fctl::from_stream(
+            Fctl::TYPE => Ok(PngChunkData::Fctl(Box::new(Fctl::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            b"fdAT" => Ok(PngChunkData::Fdat(Box::new(Fdat::from_stream(
+            Fdat::TYPE => Ok(PngChunkData::Fdat(Box::new(Fdat::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
             // Extensions
-            b"oFFs" => Ok(PngChunkData::Offs(Offs::from_stream(
+            Offs::TYPE => Ok(PngChunkData::Offs(Offs::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"pCAL" => Ok(PngChunkData::Pcal(Box::new(Pcal::from_stream(
+            Pcal::TYPE => Ok(PngChunkData::Pcal(Box::new(Pcal::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"sCAL" => Ok(PngChunkData::Scal(Box::new(Scal::from_stream(
+            Scal::TYPE => Ok(PngChunkData::Scal(Box::new(Scal::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"gIFg" => Ok(PngChunkData::Gifg(Gifg::from_stream(
+            Gifg::TYPE => Ok(PngChunkData::Gifg(Gifg::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            b"gIFx" => Ok(PngChunkData::Gifx(Box::new(Gifx::from_stream(
+            Gifx::TYPE => Ok(PngChunkData::Gifx(Box::new(Gifx::from_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            b"sTER" => Ok(PngChunkData::Ster(Ster::from_stream(
+            Ster::TYPE => Ok(PngChunkData::Ster(Ster::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
             // JNG chunks
-            b"Jhdr" => Ok(PngChunkData::Jhdr(Box::new(Jhdr::from_stream(
+            Jhdr::TYPE => Ok(PngChunkData::Jhdr(Box::new(Jhdr::from_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            b"JDAT" => {
+            JDAT_TYPE => {
                 let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
@@ -605,7 +605,7 @@ impl PngChunkRef {
                 Ok(PngChunkData::Jdat(Box::new(data)))
             }
 
-            b"JDAA" => {
+            JDAA_TYPE => {
                 let mut data = vec![0_u8; self.length as usize];
                 chunkstream.read_exact(&mut data)?;
                 data_crc.consume(&data);
@@ -613,7 +613,7 @@ impl PngChunkRef {
                 Ok(PngChunkData::Jdaa(Box::new(data)))
             }
 
-            b"JSEP" => Ok(PngChunkData::Jsep),
+            JSEP_TYPE => Ok(PngChunkData::Jsep),
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({:?})",
@@ -638,6 +638,13 @@ impl PngChunkRef {
         Ok(chunk)
     }
 }
+
+pub(crate) const IDAT_TYPE: [u8; 4] = *b"IDAT";
+pub(crate) const IEND_TYPE: [u8; 4] = *b"IEND";
+pub(crate) const EXIF_TYPE: [u8; 4] = *b"eXIf";
+pub(crate) const JDAT_TYPE: [u8; 4] = *b"JDAT";
+pub(crate) const JDAA_TYPE: [u8; 4] = *b"JDAA";
+pub(crate) const JSEP_TYPE: [u8; 4] = *b"JSEP";
 
 /// A frame in an APNG file
 #[derive(Clone, Default, Debug)]

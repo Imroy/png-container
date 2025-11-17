@@ -34,6 +34,8 @@ pub struct Actl {
 }
 
 impl Actl {
+    pub(crate) const TYPE: [u8; 4] = *b"acTL";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -67,6 +69,8 @@ pub struct Fctl {
 }
 
 impl Fctl {
+    pub(crate) const TYPE: [u8; 4] = *b"fcTL";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -105,6 +109,8 @@ pub struct Fdat {
 }
 
 impl Fdat {
+    pub(crate) const TYPE: [u8; 4] = *b"fdAT";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,

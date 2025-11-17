@@ -34,6 +34,8 @@ pub struct Offs {
 }
 
 impl Offs {
+    pub(crate) const TYPE: [u8; 4] = *b"oFFs";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -65,6 +67,8 @@ pub struct Pcal {
 }
 
 impl Pcal {
+    pub(crate) const TYPE: [u8; 4] = *b"pCAL";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -127,6 +131,8 @@ pub struct Scal {
 }
 
 impl Scal {
+    pub(crate) const TYPE: [u8; 4] = *b"sCAL";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -165,6 +171,8 @@ pub struct Gifg {
 }
 
 impl Gifg {
+    pub(crate) const TYPE: [u8; 4] = *b"gIFg";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -193,6 +201,8 @@ pub struct Gifx {
 }
 
 impl Gifx {
+    pub(crate) const TYPE: [u8; 4] = *b"gIFx";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -223,6 +233,8 @@ pub struct Ster {
 }
 
 impl Ster {
+    pub(crate) const TYPE: [u8; 4] = *b"sTER";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where

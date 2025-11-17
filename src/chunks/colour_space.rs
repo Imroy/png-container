@@ -47,6 +47,8 @@ pub struct Chrm {
 }
 
 impl Chrm {
+    pub(crate) const TYPE: [u8; 4] = *b"cHRM";
+
     /// Constructor
     pub fn new(white: (f64, f64), red: (f64, f64), green: (f64, f64), blue: (f64, f64)) -> Self {
         Self {
@@ -143,6 +145,8 @@ pub struct Gama {
 }
 
 impl Gama {
+    pub(crate) const TYPE: [u8; 4] = *b"gAMA";
+
     /// Constructor
     pub fn new(gamma: f64) -> Self {
         Self {
@@ -186,6 +190,8 @@ pub struct Iccp {
 }
 
 impl Iccp {
+    pub(crate) const TYPE: [u8; 4] = *b"iCCP";
+
     /// Constructor
     pub fn new(name: &str, compression_method: PngCompressionMethod, profile: &[u8]) -> Self {
         let mut compressed_profile = Vec::new();
@@ -277,6 +283,8 @@ pub enum Sbit {
 }
 
 impl Sbit {
+    pub(crate) const TYPE: [u8; 4] = *b"sBIT";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -324,6 +332,8 @@ pub struct Srgb {
 }
 
 impl Srgb {
+    pub(crate) const TYPE: [u8; 4] = *b"sRGB";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -351,6 +361,8 @@ pub struct Cicp {
 }
 
 impl Cicp {
+    pub(crate) const TYPE: [u8; 4] = *b"cICP";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -387,6 +399,8 @@ pub struct Mdcv {
 }
 
 impl Mdcv {
+    pub(crate) const TYPE: [u8; 4] = *b"mDCV";
+
     /// Constructor
     pub fn new(
         red: (f64, f64),
@@ -511,6 +525,8 @@ pub struct Clli {
 }
 
 impl Clli {
+    pub(crate) const TYPE: [u8; 4] = *b"cLLI";
+
     /// Constructor
     pub fn new(max_cll: Luminance, max_fall: Luminance) -> Self {
         Self {

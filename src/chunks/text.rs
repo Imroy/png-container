@@ -38,6 +38,8 @@ pub struct Text {
 }
 
 impl Text {
+    pub(crate) const TYPE: [u8; 4] = *b"tEXt";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -70,6 +72,8 @@ pub struct Ztxt {
 }
 
 impl Ztxt {
+    pub(crate) const TYPE: [u8; 4] = *b"zTXt";
+
     /// Constructor
     pub fn new(keyword: &str, compression_method: PngCompressionMethod, string: &str) -> Self {
         let mut compressed_string = Vec::new();
@@ -145,6 +149,8 @@ pub struct Itxt {
 }
 
 impl Itxt {
+    pub(crate) const TYPE: [u8; 4] = *b"iTXt";
+
     /// Constructor
     pub fn new(
         keyword: &str,

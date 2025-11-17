@@ -37,6 +37,8 @@ pub struct Time {
 }
 
 impl Time {
+    pub(crate) const TYPE: [u8; 4] = *b"tIME";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where

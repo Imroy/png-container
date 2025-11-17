@@ -38,6 +38,8 @@ pub enum Bkgd {
 }
 
 impl Bkgd {
+    pub(crate) const TYPE: [u8; 4] = *b"bKGD";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -102,6 +104,8 @@ impl Bkgd {
 pub struct Hist(pub Vec<u16>);
 
 impl Hist {
+    pub(crate) const TYPE: [u8; 4] = *b"hIST";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
@@ -134,6 +138,8 @@ pub struct Phys {
 }
 
 impl Phys {
+    pub(crate) const TYPE: [u8; 4] = *b"pHYs";
+
     /// Read contents from a stream
     pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
     where
@@ -174,6 +180,8 @@ pub struct Splt {
 }
 
 impl Splt {
+    pub(crate) const TYPE: [u8; 4] = *b"sPLT";
+
     /// Read contents from a stream
     pub fn from_stream<R>(
         stream: &mut R,
