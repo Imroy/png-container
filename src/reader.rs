@@ -50,9 +50,6 @@ pub struct PngReader<R> {
     /// The IHDR chunk data
     pub ihdr: Option<Ihdr>,
 
-    /// The PLTE chunk, if the file has one
-    pub plte: Option<PngChunkRef>,
-
     next_chunk_pos: u64,
 }
 
@@ -81,7 +78,6 @@ where
             colour_type: PngColourType::Greyscale,
             stream,
             ihdr: None,
-            plte: None,
             next_chunk_pos: 8,
         })
     }
@@ -168,10 +164,6 @@ where
                 }
 
                 self.stream.seek(SeekFrom::Start(oldpos))?;
-            }
-
-            b"PLTE" => {
-                self.plte = Some(chunkref);
             }
 
             _ => (),

@@ -100,11 +100,6 @@ fn main() -> std::io::Result<()> {
     );
 
     println!("{} header chunks.", header_chunks.len());
-    if reader.plte.is_some() {
-        println!("\tPLTE chunk");
-    } else {
-        println!("\tNo PLTE chunk");
-    }
 
     for c in &header_chunks {
         println!("type_str={}, ref={:?}", c.type_str(), c);
