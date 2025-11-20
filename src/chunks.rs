@@ -507,12 +507,12 @@ impl PngChunkRef {
         data_crc.consume(&self.chunktype);
 
         let chunk = match self.chunktype {
-            Ihdr::TYPE => Ok(PngChunkData::Ihdr(Ihdr::from_stream(
+            Ihdr::TYPE => Ok(PngChunkData::Ihdr(Ihdr::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Plte::TYPE => Ok(PngChunkData::Plte(Box::new(Plte::from_stream(
+            Plte::TYPE => Ok(PngChunkData::Plte(Box::new(Plte::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
@@ -530,7 +530,7 @@ impl PngChunkRef {
 
             Trns::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    Ok(PngChunkData::Trns(Box::new(Trns::from_stream(
+                    Ok(PngChunkData::Trns(Box::new(Trns::from_contents_stream(
                         &mut chunkstream,
                         self.length,
                         *colour_type,
@@ -541,17 +541,17 @@ impl PngChunkRef {
                 }
             }
 
-            Gama::TYPE => Ok(PngChunkData::Gama(Gama::from_stream(
+            Gama::TYPE => Ok(PngChunkData::Gama(Gama::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Chrm::TYPE => Ok(PngChunkData::Chrm(Box::new(Chrm::from_stream(
+            Chrm::TYPE => Ok(PngChunkData::Chrm(Box::new(Chrm::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            Iccp::TYPE => Ok(PngChunkData::Iccp(Box::new(Iccp::from_stream(
+            Iccp::TYPE => Ok(PngChunkData::Iccp(Box::new(Iccp::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
@@ -559,7 +559,7 @@ impl PngChunkRef {
 
             Sbit::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    Ok(PngChunkData::Sbit(Sbit::from_stream(
+                    Ok(PngChunkData::Sbit(Sbit::from_contents_stream(
                         &mut chunkstream,
                         self.length,
                         *colour_type,
@@ -570,39 +570,39 @@ impl PngChunkRef {
                 }
             }
 
-            Srgb::TYPE => Ok(PngChunkData::Srgb(Srgb::from_stream(
+            Srgb::TYPE => Ok(PngChunkData::Srgb(Srgb::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Cicp::TYPE => Ok(PngChunkData::Cicp(Cicp::from_stream(
+            Cicp::TYPE => Ok(PngChunkData::Cicp(Cicp::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Mdcv::TYPE => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_stream(
+            Mdcv::TYPE => Ok(PngChunkData::Mdcv(Box::new(Mdcv::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            Clli::TYPE => Ok(PngChunkData::Clli(Clli::from_stream(
+            Clli::TYPE => Ok(PngChunkData::Clli(Clli::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Text::TYPE => Ok(PngChunkData::Text(Box::new(Text::from_stream(
+            Text::TYPE => Ok(PngChunkData::Text(Box::new(Text::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Ztxt::TYPE => Ok(PngChunkData::Ztxt(Box::new(Ztxt::from_stream(
+            Ztxt::TYPE => Ok(PngChunkData::Ztxt(Box::new(Ztxt::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Itxt::TYPE => Ok(PngChunkData::Itxt(Box::new(Itxt::from_stream(
+            Itxt::TYPE => Ok(PngChunkData::Itxt(Box::new(Itxt::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
@@ -610,7 +610,7 @@ impl PngChunkRef {
 
             Bkgd::TYPE => {
                 if let Some(Ihdr { colour_type, .. }) = ihdr {
-                    Ok(PngChunkData::Bkgd(Bkgd::from_stream(
+                    Ok(PngChunkData::Bkgd(Bkgd::from_contents_stream(
                         &mut chunkstream,
                         self.length,
                         *colour_type,
@@ -621,13 +621,13 @@ impl PngChunkRef {
                 }
             }
 
-            Hist::TYPE => Ok(PngChunkData::Hist(Box::new(Hist::from_stream(
+            Hist::TYPE => Ok(PngChunkData::Hist(Box::new(Hist::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Phys::TYPE => Ok(PngChunkData::Phys(Phys::from_stream(
+            Phys::TYPE => Ok(PngChunkData::Phys(Phys::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
@@ -640,70 +640,70 @@ impl PngChunkRef {
                 Ok(PngChunkData::Exif(Box::new(profile)))
             }
 
-            Splt::TYPE => Ok(PngChunkData::Splt(Box::new(Splt::from_stream(
+            Splt::TYPE => Ok(PngChunkData::Splt(Box::new(Splt::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Time::TYPE => Ok(PngChunkData::Time(Time::from_stream(
+            Time::TYPE => Ok(PngChunkData::Time(Time::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
             // Animation information
-            Actl::TYPE => Ok(PngChunkData::Actl(Actl::from_stream(
+            Actl::TYPE => Ok(PngChunkData::Actl(Actl::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Fctl::TYPE => Ok(PngChunkData::Fctl(Box::new(Fctl::from_stream(
+            Fctl::TYPE => Ok(PngChunkData::Fctl(Box::new(Fctl::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),
 
-            Fdat::TYPE => Ok(PngChunkData::Fdat(Box::new(Fdat::from_stream(
+            Fdat::TYPE => Ok(PngChunkData::Fdat(Box::new(Fdat::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
             // Extensions
-            Offs::TYPE => Ok(PngChunkData::Offs(Offs::from_stream(
+            Offs::TYPE => Ok(PngChunkData::Offs(Offs::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Pcal::TYPE => Ok(PngChunkData::Pcal(Box::new(Pcal::from_stream(
+            Pcal::TYPE => Ok(PngChunkData::Pcal(Box::new(Pcal::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Scal::TYPE => Ok(PngChunkData::Scal(Box::new(Scal::from_stream(
+            Scal::TYPE => Ok(PngChunkData::Scal(Box::new(Scal::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Gifg::TYPE => Ok(PngChunkData::Gifg(Gifg::from_stream(
+            Gifg::TYPE => Ok(PngChunkData::Gifg(Gifg::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
-            Gifx::TYPE => Ok(PngChunkData::Gifx(Box::new(Gifx::from_stream(
+            Gifx::TYPE => Ok(PngChunkData::Gifx(Box::new(Gifx::from_contents_stream(
                 &mut chunkstream,
                 self.length,
                 Some(&mut data_crc),
             )?))),
 
-            Ster::TYPE => Ok(PngChunkData::Ster(Ster::from_stream(
+            Ster::TYPE => Ok(PngChunkData::Ster(Ster::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
 
             // JNG chunks
-            Jhdr::TYPE => Ok(PngChunkData::Jhdr(Box::new(Jhdr::from_stream(
+            Jhdr::TYPE => Ok(PngChunkData::Jhdr(Box::new(Jhdr::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?))),

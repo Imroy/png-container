@@ -65,7 +65,10 @@ impl Chrm {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -213,7 +216,10 @@ impl Gama {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -274,7 +280,7 @@ impl Iccp {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
@@ -381,7 +387,7 @@ impl Sbit {
     pub(crate) const TYPE: [u8; 4] = *b"sBIT";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         colour_type: PngColourType,
@@ -475,7 +481,10 @@ impl Srgb {
     pub(crate) const LENGTH: u32 = 1;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -523,7 +532,10 @@ impl Cicp {
     pub(crate) const LENGTH: u32 = 4;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -608,7 +620,10 @@ impl Mdcv {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -774,7 +789,10 @@ impl Clli {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {

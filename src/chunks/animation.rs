@@ -38,7 +38,10 @@ impl Actl {
     pub(crate) const LENGTH: u32 = 8;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -96,7 +99,10 @@ impl Fctl {
     pub(crate) const LENGTH: u32 = 26;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -182,7 +188,7 @@ impl Fdat {
     pub(crate) const TYPE: [u8; 4] = *b"fdAT";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,

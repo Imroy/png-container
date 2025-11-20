@@ -53,8 +53,12 @@ impl Ihdr {
     pub(crate) const TYPE: [u8; 4] = *b"IHDR";
     pub(crate) const LENGTH: u32 = 13;
 
+
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -133,7 +137,7 @@ impl Plte {
     pub(crate) const TYPE: [u8; 4] = *b"PLTE";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
@@ -225,7 +229,10 @@ impl Jhdr {
     pub(crate) const LENGTH: u32 = 16;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {

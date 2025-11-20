@@ -41,7 +41,10 @@ impl Time {
     pub(crate) const LENGTH: u32 = 7;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {

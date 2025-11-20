@@ -37,7 +37,7 @@ pub enum Trns {
 impl Trns {
     pub(crate) const TYPE: [u8; 4] = *b"tRNS";
 
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         colour_type: PngColourType,

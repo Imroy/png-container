@@ -41,7 +41,7 @@ impl Bkgd {
     pub(crate) const TYPE: [u8; 4] = *b"bKGD";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         colour_type: PngColourType,
@@ -142,7 +142,7 @@ impl Hist {
     pub(crate) const TYPE: [u8; 4] = *b"hIST";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
@@ -203,7 +203,10 @@ impl Phys {
     pub(crate) const LENGTH: u32 = 9;
 
     /// Read contents from a stream
-    pub fn from_stream<R>(stream: &mut R, data_crc: Option<&mut CRC>) -> std::io::Result<Self>
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
     where
         R: Read,
     {
@@ -271,7 +274,7 @@ impl Splt {
     pub(crate) const TYPE: [u8; 4] = *b"sPLT";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,

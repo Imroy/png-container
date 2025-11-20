@@ -41,7 +41,7 @@ impl Text {
     pub(crate) const TYPE: [u8; 4] = *b"tEXt";
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
@@ -120,7 +120,7 @@ impl Ztxt {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
@@ -236,7 +236,7 @@ impl Itxt {
     }
 
     /// Read contents from a stream
-    pub fn from_stream<R>(
+    pub fn from_contents_stream<R>(
         stream: &mut R,
         length: u32,
         data_crc: Option<&mut CRC>,
