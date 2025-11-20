@@ -53,9 +53,6 @@ pub struct PngReader<R> {
     /// The PLTE chunk, if the file has one
     pub plte: Option<PngChunkRef>,
 
-    /// The IEND chunk
-    pub iend: PngChunkRef,
-
     next_chunk_pos: u64,
 }
 
@@ -85,7 +82,6 @@ where
             stream,
             ihdr: None,
             plte: None,
-            iend: PngChunkRef::default(),
             next_chunk_pos: 8,
         })
     }
@@ -176,10 +172,6 @@ where
 
             b"PLTE" => {
                 self.plte = Some(chunkref);
-            }
-
-            b"IEND" => {
-                self.iend = chunkref;
             }
 
             _ => (),
