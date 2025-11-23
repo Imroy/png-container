@@ -27,14 +27,15 @@ pub mod animation;
 pub mod colour_space;
 pub mod critical;
 pub mod extensions;
+pub mod imagemagick;
 pub mod misc;
 pub mod text;
 pub mod time;
 pub mod transparency;
 
 pub use crate::chunks::{
-    animation::*, colour_space::*, critical::*, extensions::*, misc::*, text::*, time::*,
-    transparency::*,
+    animation::*, colour_space::*, critical::*, extensions::*, imagemagick::*, misc::*, text::*,
+    time::*, transparency::*,
 };
 
 use crate::crc::*;
@@ -154,6 +155,16 @@ pub enum PngChunkData {
 
     /// JNG image separator
     Jsep,
+
+    // ImageMagick chunks
+    /// Canvas
+    Canv(Box<Canv>),
+
+    /// VirtualPage
+    Vpag(Box<Vpag>),
+
+    /// Orientation
+    Ornt(PngOrientation),
 }
 
 impl PngChunkData {
@@ -216,6 +227,9 @@ impl PngChunkData {
             PngChunkData::Jdat(data) => (data.len() as u32, JDAT_TYPE),
             PngChunkData::Jdaa(data) => (data.len() as u32, JDAA_TYPE),
             PngChunkData::Jsep => (0, JSEP_TYPE),
+            PngChunkData::Vpag(_) => (Vpag::LENGTH, Vpag::TYPE),
+            PngChunkData::Canv(_) => (Canv::LENGTH, Canv::TYPE),
+            PngChunkData::Ornt(_) => (1, ORNT_TYPE),
         };
 
         // Write the chunk length and type
@@ -274,6 +288,14 @@ impl PngChunkData {
                 data_crc.consume(data);
             }
             PngChunkData::Jsep => (),
+
+            PngChunkData::Canv(canv) => canv.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Vpag(vpag) => vpag.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Ornt(ornt) => {
+                let bytes = [(*ornt).into()];
+                stream.write_all(&bytes)?;
+                data_crc.consume(&bytes);
+            }
         }
 
         // Now write the CRC
@@ -624,6 +646,25 @@ impl PngChunkRef {
 
             JSEP_TYPE => Ok(PngChunkData::Jsep),
 
+            // Imagemagick chunk types
+            Canv::TYPE => Ok(PngChunkData::Canv(Box::new(Canv::from_contents_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
+
+            Vpag::TYPE => Ok(PngChunkData::Vpag(Box::new(Vpag::from_contents_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?))),
+
+            ORNT_TYPE => {
+                let mut data = [0_u8; 1];
+                chunkstream.read_exact(&mut data)?;
+                data_crc.consume(&data);
+
+                Ok(PngChunkData::Ornt(data[0].into()))
+            }
+
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({:?})",
                 self.chunktype
@@ -655,6 +696,7 @@ pub(crate) const EXIF_TYPE: [u8; 4] = *b"eXIf";
 pub(crate) const JDAT_TYPE: [u8; 4] = *b"JDAT";
 pub(crate) const JDAA_TYPE: [u8; 4] = *b"JDAA";
 pub(crate) const JSEP_TYPE: [u8; 4] = *b"JSEP";
+pub(crate) const ORNT_TYPE: [u8; 4] = *b"orNT";
 
 /// A frame in an APNG file
 #[derive(Clone, Default, Debug)]
