@@ -22,6 +22,7 @@ use std::io::{Read, Write};
 
 use uom::si::f64::Time;
 
+use crate::chunks::PngChunkData;
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -174,6 +175,17 @@ impl Fctl {
     /// Calculate delay from fcTL chunk in seconds
     pub fn delay(&self) -> Time {
         Time::new::<uom::si::time::second>(self.delay_num as f64 / self.delay_den as f64)
+    }
+}
+
+impl PngChunkData {
+    /// Calculate delay from fcTL chunk in seconds
+    pub fn fctl_delay(&self) -> Option<Time> {
+        if let PngChunkData::Fctl(fctl) = self {
+            return Some(fctl.delay());
+        }
+
+        None
     }
 }
 

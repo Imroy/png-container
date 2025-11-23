@@ -26,7 +26,7 @@ use flate2::{
 };
 use uom::si::{f64::Luminance, luminance::candela_per_square_meter};
 
-use crate::chunks::find_null;
+use crate::chunks::{PngChunkData, find_null};
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -187,6 +187,44 @@ impl Chrm {
     }
 }
 
+impl PngChunkData {
+    /// Scaled white coordinates of the cHRM chunk
+    pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
+        if let PngChunkData::Chrm(chrm) = self {
+            return Some(chrm.white_coords());
+        }
+
+        None
+    }
+
+    /// Scaled red coordinates of the cHRM chunk
+    pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
+        if let PngChunkData::Chrm(chrm) = self {
+            return Some(chrm.red_coords());
+        }
+
+        None
+    }
+
+    /// Scaled green coordinates of the cHRM chunk
+    pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
+        if let PngChunkData::Chrm(chrm) = self {
+            return Some(chrm.green_coords());
+        }
+
+        None
+    }
+
+    /// Scaled blue coordinates of the cHRM chunk
+    pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
+        if let PngChunkData::Chrm(chrm) = self {
+            return Some(chrm.blue_coords());
+        }
+
+        None
+    }
+}
+
 /// Image gamma
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Gama {
@@ -250,6 +288,17 @@ impl Gama {
         }
 
         Ok(())
+    }
+}
+
+impl PngChunkData {
+    /// Scaled gamma value of a gAMA chunk
+    pub fn gama_gamma(&self) -> Option<f64> {
+        if let PngChunkData::Gama(g) = self {
+            Some(g.gamma())
+        } else {
+            None
+        }
     }
 }
 
@@ -354,6 +403,17 @@ impl Iccp {
         }
 
         None
+    }
+}
+
+impl PngChunkData {
+    /// Decompress the compressed profile in a iCCP chunk
+    pub fn iccp_profile(&self) -> Option<Vec<u8>> {
+        if let PngChunkData::Iccp(iccp) = self {
+            iccp.profile()
+        } else {
+            None
+        }
     }
 }
 

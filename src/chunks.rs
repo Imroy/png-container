@@ -23,9 +23,6 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::slice::Iter;
 use std::str;
 
-use chrono::{DateTime, Utc};
-use uom::si::f64::{LinearNumberDensity, Time as UoMTime};
-
 pub mod animation;
 pub mod colour_space;
 pub mod critical;
@@ -287,105 +284,6 @@ impl PngChunkData {
             length,
             chunktype,
         })
-    }
-
-    /// Scaled white coordinates of the cHRM chunk
-    pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
-            return Some(chrm.white_coords());
-        }
-
-        None
-    }
-
-    /// Scaled red coordinates of the cHRM chunk
-    pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
-            return Some(chrm.red_coords());
-        }
-
-        None
-    }
-
-    /// Scaled green coordinates of the cHRM chunk
-    pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
-            return Some(chrm.green_coords());
-        }
-
-        None
-    }
-
-    /// Scaled blue coordinates of the cHRM chunk
-    pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
-            return Some(chrm.blue_coords());
-        }
-
-        None
-    }
-
-    /// Scaled gamma value of a gAMA chunk
-    pub fn gama_gamma(&self) -> Option<f64> {
-        if let PngChunkData::Gama(g) = self {
-            Some(g.gamma())
-        } else {
-            None
-        }
-    }
-
-    /// Decompress the compressed profile in a iCCP chunk
-    pub fn iccp_profile(&self) -> Option<Vec<u8>> {
-        if let PngChunkData::Iccp(iccp) = self {
-            iccp.profile()
-        } else {
-            None
-        }
-    }
-
-    /// Decompress the compressed string in a zTXt chunk
-    pub fn ztxt_string(&self) -> Option<String> {
-        if let PngChunkData::Ztxt(ztxt) = self {
-            return ztxt.string();
-        }
-
-        None
-    }
-
-    /// Decompress the compressed string in an iTXt chunk
-    pub fn itxt_string(&self) -> Option<String> {
-        if let PngChunkData::Itxt(itxt) = self {
-            return itxt.string();
-        }
-
-        None
-    }
-
-    /// Convert the units in a pHYs chunk to a UoM type
-    pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
-        if let PngChunkData::Phys(phys) = self {
-            return phys.resolution();
-        }
-
-        None
-    }
-
-    /// Convert the timestamp in a tIME chunk to a chrono DateTime object
-    pub fn time(&self) -> Option<DateTime<Utc>> {
-        if let PngChunkData::Time(time) = self {
-            return time.time();
-        }
-
-        None
-    }
-
-    /// Calculate delay from fcTL chunk in seconds
-    pub fn fctl_delay(&self) -> Option<UoMTime> {
-        if let PngChunkData::Fctl(fctl) = self {
-            return Some(fctl.delay());
-        }
-
-        None
     }
 }
 

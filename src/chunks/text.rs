@@ -25,7 +25,7 @@ use flate2::{
     bufread::{ZlibDecoder, ZlibEncoder},
 };
 
-use crate::chunks::find_null;
+use crate::chunks::{PngChunkData, find_null};
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -191,6 +191,17 @@ impl Ztxt {
             if decoder.read_to_end(&mut out).is_ok() {
                 return Some(out.iter().map(|b| *b as char).collect());
             }
+        }
+
+        None
+    }
+}
+
+impl PngChunkData {
+    /// Decompress the compressed string in a zTXt chunk
+    pub fn ztxt_string(&self) -> Option<String> {
+        if let PngChunkData::Ztxt(ztxt) = self {
+            return ztxt.string();
         }
 
         None
@@ -363,5 +374,16 @@ impl Itxt {
         }
 
         String::from_utf8(self.compressed_string.to_vec()).ok()
+    }
+}
+
+impl PngChunkData {
+    /// Decompress the compressed string in an iTXt chunk
+    pub fn itxt_string(&self) -> Option<String> {
+        if let PngChunkData::Itxt(itxt) = self {
+            return itxt.string();
+        }
+
+        None
     }
 }

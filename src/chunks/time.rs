@@ -22,6 +22,7 @@ use std::io::{Read, Write};
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 
+use crate::chunks::PngChunkData;
 use crate::crc::*;
 use crate::to_io_error;
 
@@ -98,5 +99,16 @@ impl Time {
             ),
             Utc,
         ))
+    }
+}
+
+impl PngChunkData {
+    /// Convert the timestamp in a tIME chunk to a chrono DateTime object
+    pub fn time(&self) -> Option<DateTime<Utc>> {
+        if let PngChunkData::Time(time) = self {
+            return time.time();
+        }
+
+        None
     }
 }

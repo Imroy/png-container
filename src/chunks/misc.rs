@@ -22,7 +22,7 @@ use std::io::{Read, Write};
 
 use uom::si::{f64::LinearNumberDensity, linear_number_density::per_meter};
 
-use crate::chunks::find_null;
+use crate::chunks::{PngChunkData, find_null};
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -259,6 +259,17 @@ impl Phys {
                 LinearNumberDensity::new::<per_meter>(self.y_pixels_per_unit as f64),
             )),
         }
+    }
+}
+
+impl PngChunkData {
+    /// Convert the units in a pHYs chunk to a UoM type
+    pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
+        if let PngChunkData::Phys(phys) = self {
+            return phys.resolution();
+        }
+
+        None
     }
 }
 
