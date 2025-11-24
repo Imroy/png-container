@@ -51,6 +51,9 @@ pub struct PngReader<R> {
     pub ihdr: Option<Ihdr>,
 
     next_chunk_pos: u64,
+
+    in_header: bool,
+    first_frame_is_static: bool,
 }
 
 impl<R> PngReader<R>
@@ -79,6 +82,8 @@ where
             stream,
             ihdr: None,
             next_chunk_pos: 8,
+            in_header: true,
+            first_frame_is_static: false,
         })
     }
 
@@ -166,14 +171,22 @@ where
                 self.stream.seek(SeekFrom::Start(oldpos))?;
             }
 
-            _ => (),
-        }
+            b"IDAT" => {
+                self.in_header = false;
+            }
 
-        if (chunkref.chunktype == *b"aCTL")
-            | (chunkref.chunktype == *b"fcTL")
-            | (chunkref.chunktype == *b"fdAT")
-        {
-            self.filetype = PngFileType::Apng;
+            b"aCTL" | b"fdAT" => {
+                self.filetype = PngFileType::Apng;
+            }
+
+            b"fcTL" => {
+                self.filetype = PngFileType::Apng;
+                if self.in_header {
+                    self.first_frame_is_static = true;
+                }
+            }
+
+            _ => (),
         }
 
         Ok(chunkref)
@@ -182,6 +195,7 @@ where
     /// Reset the position of the next chunk to scan back to the start of the file
     pub fn reset_next_chunk_position(&mut self) {
         self.next_chunk_pos = 8;
+        self.in_header = true;
     }
 
     /// Set the position of the next chunk to scan to a given chunk
@@ -199,39 +213,29 @@ where
         chunkref.read_chunk(&mut self.stream, self.ihdr.as_ref())
     }
 
-    pub fn apng_scan_frames(&mut self) -> Result<Vec<ApngFrame>, std::io::Error> {
-        let mut fctl_fdats = self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?;
+    pub fn apng_scan_chunks(&mut self) -> std::io::Result<Vec<PngChunkRef>> {
+        let mut chunkrefs = if self.first_frame_is_static {
+            self.scan_chunks_filtered(|ct| ct == *b"IDAT" || ct == *b"fcTL" || ct == *b"fdAT")?
+        } else {
+            self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?
+        };
 
-        // Sort fcTL and fdAT chunks by their sequence number
-        fctl_fdats
-            .sort_by_cached_key(|c| c.read_fctl_fdat_sequence_number(&mut self.stream).unwrap());
-
-        let mut frames = Vec::new();
-        let mut frame = ApngFrame::default();
-
-        // Now assemble them into frames
-        for chunkref in fctl_fdats {
-            match chunkref.type_str() {
-                "fcTL" => {
-                    if frame.fctl.position > 0 {
-                        frames.push(frame);
-                        frame = ApngFrame::default();
-                    }
-                    frame.fctl = chunkref;
+        // Sort chunks by their sequence number (and make one up for IDATs)
+        let mut idat_num = 0;
+        chunkrefs.sort_by_cached_key(|cr| {
+            if cr.chunktype == *b"IDAT" {
+                idat_num += 1;
+                idat_num
+            } else {
+                let seq_num = cr.read_fctl_fdat_sequence_number(&mut self.stream).unwrap();
+                if self.first_frame_is_static && (seq_num > 0) {
+                    seq_num + idat_num
+                } else {
+                    seq_num
                 }
-
-                "fdAT" => {
-                    frame.fdats.push(chunkref);
-                }
-
-                _ => (),
             }
-        }
+        });
 
-        if frame.fctl.position > 0 {
-            frames.push(frame);
-        }
-
-        Ok(frames)
+        Ok(chunkrefs)
     }
 }

@@ -112,18 +112,9 @@ fn main() -> std::io::Result<()> {
 
     if reader.filetype == PngFileType::Apng {
         reader.reset_next_chunk_position();
-        for f in reader.apng_scan_frames()? {
+        for cr in reader.apng_scan_chunks()? {
             println!("frame");
-            println!("\t{:?}", reader.read_chunk(&f.fctl)?);
-            let fdats = f
-                .fdats
-                .iter()
-                .map(|cr| reader.read_chunk(cr).unwrap())
-                .collect::<Vec<_>>();
-            println!("\tdata:");
-            for fd in fdats {
-                println!("\t\t{:?}", fd);
-            }
+            println!("\t{:?}", reader.read_chunk(&cr)?);
         }
     } else {
         for c in reader.scan_all_chunks()? {

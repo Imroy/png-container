@@ -697,13 +697,3 @@ pub(crate) const JDAT_TYPE: [u8; 4] = *b"JDAT";
 pub(crate) const JDAA_TYPE: [u8; 4] = *b"JDAA";
 pub(crate) const JSEP_TYPE: [u8; 4] = *b"JSEP";
 pub(crate) const ORNT_TYPE: [u8; 4] = *b"orNT";
-
-/// A frame in an APNG file
-#[derive(Clone, Default, Debug)]
-pub struct ApngFrame {
-    /// The fcTL chunk defining the frame
-    pub fctl: PngChunkRef,
-
-    /// The fdAT chunk(s) containing the frame data
-    pub fdats: Vec<PngChunkRef>,
-}
