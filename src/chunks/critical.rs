@@ -53,6 +53,24 @@ impl Ihdr {
     pub(crate) const TYPE: [u8; 4] = *b"IHDR";
     pub(crate) const LENGTH: u32 = 13;
 
+    /// Constructor
+    pub fn new(
+        width: u32,
+        height: u32,
+        bit_depth: u8,
+        colour_type: PngColourType,
+        interlace_method: PngInterlaceMethod,
+    ) -> Self {
+        Self {
+            width,
+            height,
+            bit_depth,
+            colour_type,
+            compression_method: PngCompressionMethod::default(),
+            filter_method: PngFilterMethod::default(),
+            interlace_method,
+        }
+    }
 
     /// Read contents from a stream
     pub fn from_contents_stream<R>(
@@ -135,6 +153,11 @@ pub struct Plte(pub Vec<PngPaletteEntry>);
 
 impl Plte {
     pub(crate) const TYPE: [u8; 4] = *b"PLTE";
+
+    /// Constructor
+    pub fn new(palette: &[PngPaletteEntry]) -> Self {
+        Self(palette.to_vec())
+    }
 
     /// Read contents from a stream
     pub fn from_contents_stream<R>(
@@ -227,6 +250,33 @@ pub struct Jhdr {
 impl Jhdr {
     pub(crate) const TYPE: [u8; 4] = *b"Jhdr";
     pub(crate) const LENGTH: u32 = 16;
+
+    /// Constructor
+    pub fn new(
+        width: u32,
+        height: u32,
+        colour_type: JngColourType,
+        image_sample_depth: JngImageSampleDepth,
+        image_compression_method: JngCompressionType,
+        image_interlace_method: JngInterlaceMethod,
+        alpha_sample_depth: JngAlphaSampleDepth,
+        alpha_compression_method: JngCompressionType,
+        alpha_filter_method: PngFilterMethod,
+        alpha_interlace_method: JngInterlaceMethod,
+    ) -> Self {
+        Self {
+            width,
+            height,
+            colour_type,
+            image_sample_depth,
+            image_compression_method,
+            image_interlace_method,
+            alpha_sample_depth,
+            alpha_compression_method,
+            alpha_filter_method,
+            alpha_interlace_method,
+        }
+    }
 
     /// Read contents from a stream
     pub fn from_contents_stream<R>(

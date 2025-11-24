@@ -40,6 +40,14 @@ pub struct Text {
 impl Text {
     pub(crate) const TYPE: [u8; 4] = *b"tEXt";
 
+    /// Constructor
+    pub fn new(keyword: &str, string: &str) -> Self {
+        Self {
+            keyword: keyword.to_string(),
+            string: string.to_string(),
+        }
+    }
+
     /// Read contents from a stream
     pub fn from_contents_stream<R>(
         stream: &mut R,
@@ -198,9 +206,16 @@ impl Ztxt {
 }
 
 impl PngChunkData {
+    /// Set the string in a zTXt chunk
+    pub fn set_ztxt_string(&mut self, compression_method: PngCompressionMethod, string: &str) {
+        if let Self::Ztxt(ztxt) = self {
+            ztxt.set_string(compression_method, string);
+        }
+    }
+
     /// Decompress the compressed string in a zTXt chunk
     pub fn ztxt_string(&self) -> Option<String> {
-        if let PngChunkData::Ztxt(ztxt) = self {
+        if let Self::Ztxt(ztxt) = self {
             return ztxt.string();
         }
 
@@ -378,9 +393,20 @@ impl Itxt {
 }
 
 impl PngChunkData {
+    /// Set the string in an iTXt chunk
+    pub fn set_itxt_string(
+        &mut self,
+        compression_method: Option<PngCompressionMethod>,
+        string: &str,
+    ) {
+        if let Self::Itxt(itxt) = self {
+            itxt.set_string(compression_method, string)
+        }
+    }
+
     /// Decompress the compressed string in an iTXt chunk
     pub fn itxt_string(&self) -> Option<String> {
-        if let PngChunkData::Itxt(itxt) = self {
+        if let Self::Itxt(itxt) = self {
             return itxt.string();
         }
 

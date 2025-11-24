@@ -249,7 +249,7 @@ impl Phys {
         Ok(())
     }
 
-    /// Convert the units in a pHYs chunk to a UoM type
+    /// Convert the units to a UoM type
     pub fn resolution(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
         match self.unit {
             PngUnitType::Unknown => None,
@@ -265,7 +265,7 @@ impl Phys {
 impl PngChunkData {
     /// Convert the units in a pHYs chunk to a UoM type
     pub fn phys_res(&self) -> Option<(LinearNumberDensity, LinearNumberDensity)> {
-        if let PngChunkData::Phys(phys) = self {
+        if let Self::Phys(phys) = self {
             return phys.resolution();
         }
 
@@ -283,6 +283,15 @@ pub struct Splt {
 
 impl Splt {
     pub(crate) const TYPE: [u8; 4] = *b"sPLT";
+
+    /// Constructor
+    pub fn new(name: &str, depth: u8, palette: &[PngSuggestedPaletteEntry]) -> Self {
+        Self {
+            name: name.into(),
+            depth,
+            palette: palette.into(),
+        }
+    }
 
     /// Read contents from a stream
     pub fn from_contents_stream<R>(

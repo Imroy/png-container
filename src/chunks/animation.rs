@@ -181,7 +181,7 @@ impl Fctl {
 impl PngChunkData {
     /// Calculate delay from fcTL chunk in seconds
     pub fn fctl_delay(&self) -> Option<Time> {
-        if let PngChunkData::Fctl(fctl) = self {
+        if let Self::Fctl(fctl) = self {
             return Some(fctl.delay());
         }
 

@@ -20,6 +20,8 @@
 
 use std::io::{Read, Write};
 
+use uom::si::{f64::Length, length::meter};
+
 use crate::chunks::find_null;
 use crate::crc::*;
 use crate::to_io_error;
@@ -82,6 +84,29 @@ impl Offs {
         }
 
         Ok(())
+    }
+
+    /// Convert the units to a UoM type
+    pub fn offset(&self) -> Option<(Length, Length)> {
+        match self.unit {
+            PngUnitType::Unknown => None,
+
+            PngUnitType::Metre => Some((
+                Length::new::<meter>(self.x as f64),
+                Length::new::<meter>(self.y as f64),
+            )),
+        }
+    }
+}
+
+impl PngChunkData {
+    /// Convert the units in an oFFs chunk to a UoM type
+    pub fn offs_offset(&self) -> Option<(Length, Length)> {
+        if let Self::Offs(offs) = self {
+            return offs.offset();
+        }
+
+        None
     }
 }
 

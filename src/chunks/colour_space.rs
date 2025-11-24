@@ -188,36 +188,64 @@ impl Chrm {
 }
 
 impl PngChunkData {
+    /// Set the white coordinates of the cHRM chunk
+    pub fn set_chrm_white_coords(&mut self, white: (f64, f64)) {
+        if let Self::Chrm(chrm) = self {
+            chrm.set_white_coords(white);
+        }
+    }
+
     /// Scaled white coordinates of the cHRM chunk
     pub fn chrm_white_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
+        if let Self::Chrm(chrm) = self {
             return Some(chrm.white_coords());
         }
 
         None
     }
 
+    /// Set the red coordinates of the cHRM chunk
+    pub fn set_chrm_red_coords(&mut self, white: (f64, f64)) {
+        if let Self::Chrm(chrm) = self {
+            chrm.set_red_coords(white);
+        }
+    }
+
     /// Scaled red coordinates of the cHRM chunk
     pub fn chrm_red_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
+        if let Self::Chrm(chrm) = self {
             return Some(chrm.red_coords());
         }
 
         None
     }
 
+    /// Set the green coordinates of the cHRM chunk
+    pub fn set_chrm_green_coords(&mut self, white: (f64, f64)) {
+        if let Self::Chrm(chrm) = self {
+            chrm.set_green_coords(white);
+        }
+    }
+
     /// Scaled green coordinates of the cHRM chunk
     pub fn chrm_green_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
+        if let Self::Chrm(chrm) = self {
             return Some(chrm.green_coords());
         }
 
         None
     }
 
+    /// Set the blue coordinates of the cHRM chunk
+    pub fn set_chrm_blue_coords(&mut self, white: (f64, f64)) {
+        if let Self::Chrm(chrm) = self {
+            chrm.set_blue_coords(white);
+        }
+    }
+
     /// Scaled blue coordinates of the cHRM chunk
     pub fn chrm_blue_coords(&self) -> Option<(f64, f64)> {
-        if let PngChunkData::Chrm(chrm) = self {
+        if let Self::Chrm(chrm) = self {
             return Some(chrm.blue_coords());
         }
 
@@ -292,13 +320,20 @@ impl Gama {
 }
 
 impl PngChunkData {
+    /// Set the gamma value of the gAMA chunk
+    pub fn set_gama_gamma(&mut self, gamma: f64) {
+        if let Self::Gama(gama) = self {
+            gama.set_gamma(gamma);
+        }
+    }
+
     /// Scaled gamma value of a gAMA chunk
     pub fn gama_gamma(&self) -> Option<f64> {
-        if let PngChunkData::Gama(g) = self {
-            Some(g.gamma())
-        } else {
-            None
+        if let Self::Gama(gama) = self {
+            return Some(gama.gamma());
         }
+
+        None
     }
 }
 
@@ -407,13 +442,20 @@ impl Iccp {
 }
 
 impl PngChunkData {
+    /// Set profile of an iCCP chunk
+    pub fn set_iccp_profile(&mut self, compression_method: PngCompressionMethod, profile: &[u8]) {
+        if let Self::Iccp(iccp) = self {
+            iccp.set_profile(compression_method, profile);
+        }
+    }
+
     /// Decompress the compressed profile in a iCCP chunk
     pub fn iccp_profile(&self) -> Option<Vec<u8>> {
-        if let PngChunkData::Iccp(iccp) = self {
-            iccp.profile()
-        } else {
-            None
+        if let Self::Iccp(iccp) = self {
+            return iccp.profile();
         }
+
+        None
     }
 }
 
@@ -767,7 +809,7 @@ impl Mdcv {
         self.red_y = (red.1 * 50000.0) as u16;
     }
 
-    /// Scaled red coordinates of the mDCV chunk
+    /// Scaled red coordinates
     pub fn red_coords(&self) -> (f64, f64) {
         (self.red_x as f64 / 50000.0, self.red_y as f64 / 50000.0)
     }
@@ -778,7 +820,7 @@ impl Mdcv {
         self.green_y = (green.1 * 50000.0) as u16;
     }
 
-    /// Scaled green coordinates of the mDCV chunk
+    /// Scaled green coordinates
     pub fn green_coords(&self) -> (f64, f64) {
         (self.green_x as f64 / 50000.0, self.green_y as f64 / 50000.0)
     }
@@ -789,7 +831,7 @@ impl Mdcv {
         self.blue_y = (blue.1 * 50000.0) as u16;
     }
 
-    /// Scaled blue coordinates of the mDCV chunk
+    /// Scaled blue coordinates
     pub fn blue_coords(&self) -> (f64, f64) {
         (self.blue_x as f64 / 50000.0, self.blue_y as f64 / 50000.0)
     }
@@ -800,29 +842,127 @@ impl Mdcv {
         self.white_y = (white.1 * 50000.0) as u16;
     }
 
-    /// Scaled white coordinates of the mDCV chunk
+    /// Scaled white coordinates
     pub fn white_coords(&self) -> (f64, f64) {
         (self.white_x as f64 / 50000.0, self.white_y as f64 / 50000.0)
     }
 
-    /// Set the maximum luminance of the mDCV chunk
+    /// Set the maximum luminance
     pub fn set_max_lum(&mut self, max_lum: Luminance) {
         self.max_lum = (max_lum.get::<candela_per_square_meter>() * 10000.0) as u32;
     }
 
-    /// Scaled mastering display maximum luminance of the mDCV chunk
+    /// Scaled mastering display maximum luminance
     pub fn max_lum(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.max_lum as f64 / 10000.0)
     }
 
-    /// Set the minimum luminance of the mDCV chunk
+    /// Set the minimum luminance
     pub fn set_min_lum(&mut self, min_lum: Luminance) {
         self.min_lum = (min_lum.get::<candela_per_square_meter>() * 10000.0) as u32;
     }
 
-    /// Scaled mastering display minimum luminance of the mDCV chunk
+    /// Scaled mastering display minimum luminance
     pub fn min_lum(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.min_lum as f64 / 10000.0)
+    }
+}
+
+impl PngChunkData {
+    /// Set the red coordinates of an mDCV chunk
+    pub fn set_mdcv_red_coords(&mut self, red: (f64, f64)) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_red_coords(red);
+        }
+    }
+
+    /// Scaled red coordinates of an mDCV chunk
+    pub fn mdcv_red_coords(&self) -> Option<(f64, f64)> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.red_coords());
+        }
+
+        None
+    }
+
+    /// Set the green coordinates of an mDCV chunk
+    pub fn set_mdcv_green_coords(&mut self, green: (f64, f64)) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_green_coords(green);
+        }
+    }
+
+    /// Scaled green coordinates of an mDCV chunk
+    pub fn mdcv_green_coords(&self) -> Option<(f64, f64)> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.green_coords());
+        }
+
+        None
+    }
+
+    /// Set the blue coordinates of an mDCV chunk
+    pub fn set_mdcv_blue_coords(&mut self, blue: (f64, f64)) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_blue_coords(blue);
+        }
+    }
+
+    /// Scaled blue coordinates of an mDCV chunk
+    pub fn mdcv_blue_coords(&self) -> Option<(f64, f64)> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.blue_coords());
+        }
+
+        None
+    }
+
+    /// Set the white coordinates of an mDCV chunk
+    pub fn set_mdcv_white_coords(&mut self, white: (f64, f64)) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_white_coords(white);
+        }
+    }
+
+    /// Scaled white coordinates of an mDCV chunk
+    pub fn mdcv_white_coords(&self) -> Option<(f64, f64)> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.white_coords());
+        }
+
+        None
+    }
+
+    /// Set the maximum luminance of an mDCV chunk
+    pub fn set_mdcv_max_lum(&mut self, max_lum: Luminance) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_max_lum(max_lum);
+        }
+    }
+
+    /// Scaled mastering display maximum luminance of an mDCV chunk
+    pub fn mdcv_max_lum(&self) -> Option<Luminance> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.max_lum());
+        }
+
+        None
+    }
+
+    /// Set the minimum luminance of an mDCV chunk
+    pub fn set_mdcv_min_lum(&mut self, min_lum: Luminance) {
+        if let Self::Mdcv(mdcv) = self {
+            mdcv.set_min_lum(min_lum);
+        }
+    }
+
+    /// Scaled mastering display minimum luminance of an mDCV chunk
+    pub fn mdcv_min_lum(&self) -> Option<Luminance> {
+        if let Self::Mdcv(mdcv) = self {
+            return Some(mdcv.min_lum());
+        }
+
+        None
     }
 }
 
@@ -908,5 +1048,39 @@ impl Clli {
     /// Scaled maximum frame-average Light Level
     pub fn max_fall(&self) -> Luminance {
         Luminance::new::<candela_per_square_meter>(self.max_fall as f64 / 10000.0)
+    }
+}
+
+impl PngChunkData {
+    /// Set Maximum Content Light Level of a cLLI chunk
+    pub fn set_clli_max_cll(&mut self, max_cll: Luminance) {
+        if let Self::Clli(clli) = self {
+            clli.set_max_cll(max_cll);
+        }
+    }
+
+    /// Scaled maximum content light level of a cLLI chunk
+    pub fn clli_max_cll(&self) -> Option<Luminance> {
+        if let Self::Clli(clli) = self {
+            return Some(clli.max_cll());
+        }
+
+        None
+    }
+
+    /// Set Maximum Frame-Average Light Level of a cLLI chunk
+    pub fn set_clli_max_fall(&mut self, max_fall: Luminance) {
+        if let Self::Clli(clli) = self {
+            clli.set_max_fall(max_fall);
+        }
+    }
+
+    /// Scaled maximum frame-average Light Level of a cLLI chunk
+    pub fn clli_max_fall(&self) -> Option<Luminance> {
+        if let Self::Clli(clli) = self {
+            return Some(clli.max_fall());
+        }
+
+        None
     }
 }

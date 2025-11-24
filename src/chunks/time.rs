@@ -41,6 +41,18 @@ impl Time {
     pub(crate) const TYPE: [u8; 4] = *b"tIME";
     pub(crate) const LENGTH: u32 = 7;
 
+    /// Constructor
+    pub fn new(year: u16, month: u8, day: u8, hour: u8, minute: u8, second: u8) -> Self {
+        Self {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+        }
+    }
+
     /// Read contents from a stream
     pub fn from_contents_stream<R>(
         stream: &mut R,
@@ -91,6 +103,7 @@ impl Time {
         Ok(())
     }
 
+    /// Convert values into a Chrono DateTime object
     pub fn time(&self) -> Option<DateTime<Utc>> {
         Some(DateTime::from_naive_utc_and_offset(
             NaiveDateTime::new(
@@ -105,7 +118,7 @@ impl Time {
 impl PngChunkData {
     /// Convert the timestamp in a tIME chunk to a chrono DateTime object
     pub fn time(&self) -> Option<DateTime<Utc>> {
-        if let PngChunkData::Time(time) = self {
+        if let Self::Time(time) = self {
             return time.time();
         }
 
