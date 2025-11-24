@@ -134,6 +134,12 @@ impl Bkgd {
     }
 }
 
+impl From<Bkgd> for PngChunkData {
+    fn from(bkgd: Bkgd) -> Self {
+        Self::Bkgd(bkgd)
+    }
+}
+
 /// Image histogram
 #[derive(Clone, Debug)]
 pub struct Hist(pub Vec<u16>);
@@ -187,6 +193,12 @@ impl Hist {
         }
 
         Ok(())
+    }
+}
+
+impl From<Hist> for PngChunkData {
+    fn from(hist: Hist) -> Self {
+        Self::Hist(Box::new(hist))
     }
 }
 
@@ -270,6 +282,12 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Phys> for PngChunkData {
+    fn from(phys: Phys) -> Self {
+        Self::Phys(phys)
     }
 }
 
@@ -418,5 +436,11 @@ impl Splt {
         }
 
         Ok(())
+    }
+}
+
+impl From<Splt> for PngChunkData {
+    fn from(splt: Splt) -> Self {
+        Self::Splt(Box::new(splt))
     }
 }

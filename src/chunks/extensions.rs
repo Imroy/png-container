@@ -22,7 +22,7 @@ use std::io::{Read, Write};
 
 use uom::si::{f64::Length, length::meter};
 
-use crate::chunks::find_null;
+use crate::chunks::{PngChunkData, find_null};
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -107,6 +107,12 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Offs> for PngChunkData {
+    fn from(offs: Offs) -> Self {
+        Self::Offs(offs)
     }
 }
 
@@ -235,6 +241,12 @@ impl Pcal {
     }
 }
 
+impl From<Pcal> for PngChunkData {
+    fn from(pcal: Pcal) -> Self {
+        Self::Pcal(Box::new(pcal))
+    }
+}
+
 /// Physical scale of image subject
 #[derive(Clone, Debug)]
 pub struct Scal {
@@ -317,6 +329,12 @@ impl Scal {
     }
 }
 
+impl From<Scal> for PngChunkData {
+    fn from(scal: Scal) -> Self {
+        Self::Scal(Box::new(scal))
+    }
+}
+
 /// GIF Graphic Control Extension
 #[derive(Clone, Copy, Debug)]
 pub struct Gifg {
@@ -370,6 +388,12 @@ impl Gifg {
         }
 
         Ok(())
+    }
+}
+
+impl From<Gifg> for PngChunkData {
+    fn from(gifg: Gifg) -> Self {
+        Self::Gifg(gifg)
     }
 }
 
@@ -439,6 +463,12 @@ impl Gifx {
     }
 }
 
+impl From<Gifx> for PngChunkData {
+    fn from(gifx: Gifx) -> Self {
+        Self::Gifx(Box::new(gifx))
+    }
+}
+
 /// Indicator of Stereo Image
 #[derive(Clone, Copy, Debug)]
 pub struct Ster {
@@ -484,5 +514,11 @@ impl Ster {
         }
 
         Ok(())
+    }
+}
+
+impl From<Ster> for PngChunkData {
+    fn from(ster: Ster) -> Self {
+        Self::Ster(ster)
     }
 }

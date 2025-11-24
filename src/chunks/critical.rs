@@ -20,6 +20,7 @@
 
 use std::io::{Read, Write};
 
+use crate::chunks::PngChunkData;
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -147,6 +148,12 @@ impl Ihdr {
     }
 }
 
+impl From<Ihdr> for PngChunkData {
+    fn from(ihdr: Ihdr) -> Self {
+        Self::Ihdr(ihdr)
+    }
+}
+
 /// Palette
 #[derive(Clone, Debug, Default)]
 pub struct Plte(pub Vec<PngPaletteEntry>);
@@ -210,6 +217,12 @@ impl Plte {
         }
 
         Ok(())
+    }
+}
+
+impl From<Plte> for PngChunkData {
+    fn from(plte: Plte) -> Self {
+        Self::Plte(Box::new(plte))
     }
 }
 
@@ -339,5 +352,11 @@ impl Jhdr {
         }
 
         Ok(())
+    }
+}
+
+impl From<Jhdr> for PngChunkData {
+    fn from(jhdr: Jhdr) -> Self {
+        Self::Jhdr(Box::new(jhdr))
     }
 }

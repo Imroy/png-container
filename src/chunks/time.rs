@@ -125,3 +125,9 @@ impl PngChunkData {
         None
     }
 }
+
+impl From<Time> for PngChunkData {
+    fn from(time: Time) -> Self {
+        Self::Time(time)
+    }
+}

@@ -81,6 +81,12 @@ impl Actl {
     }
 }
 
+impl From<Actl> for PngChunkData {
+    fn from(actl: Actl) -> Self {
+        Self::Actl(actl)
+    }
+}
+
 /// Frame control
 #[derive(Clone, Copy, Debug)]
 pub struct Fctl {
@@ -189,6 +195,12 @@ impl PngChunkData {
     }
 }
 
+impl From<Fctl> for PngChunkData {
+    fn from(fctl: Fctl) -> Self {
+        Self::Fctl(Box::new(fctl))
+    }
+}
+
 /// Frame data
 #[derive(Clone, Debug)]
 pub struct Fdat {
@@ -243,5 +255,11 @@ impl Fdat {
         }
 
         Ok(())
+    }
+}
+
+impl From<Fdat> for PngChunkData {
+    fn from(fdat: Fdat) -> Self {
+        Self::Fdat(Box::new(fdat))
     }
 }

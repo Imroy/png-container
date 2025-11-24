@@ -22,6 +22,7 @@ use std::io::{Read, Write};
 
 use num_enum::{FromPrimitive, IntoPrimitive};
 
+use crate::chunks::PngChunkData;
 use crate::crc::*;
 use crate::to_io_error;
 
@@ -101,6 +102,12 @@ impl Canv {
     }
 }
 
+impl From<Canv> for PngChunkData {
+    fn from(canv: Canv) -> Self {
+        Self::Canv(Box::new(canv))
+    }
+}
+
 /// VirtualPage
 #[derive(Clone, Copy, Debug)]
 pub struct Vpag {
@@ -168,6 +175,12 @@ impl Vpag {
         }
 
         Ok(())
+    }
+}
+
+impl From<Vpag> for PngChunkData {
+    fn from(vpag: Vpag) -> Self {
+        Self::Vpag(Box::new(vpag))
     }
 }
 

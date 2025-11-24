@@ -253,6 +253,12 @@ impl PngChunkData {
     }
 }
 
+impl From<Chrm> for PngChunkData {
+    fn from(chrm: Chrm) -> Self {
+        Self::Chrm(Box::new(chrm))
+    }
+}
+
 /// Image gamma
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Gama {
@@ -334,6 +340,12 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Gama> for PngChunkData {
+    fn from(gama: Gama) -> Self {
+        Self::Gama(gama)
     }
 }
 
@@ -459,6 +471,12 @@ impl PngChunkData {
     }
 }
 
+impl From<Iccp> for PngChunkData {
+    fn from(iccp: Iccp) -> Self {
+        Self::Iccp(Box::new(iccp))
+    }
+}
+
 /// Significant bits
 #[derive(Clone, Copy, Debug)]
 pub enum Sbit {
@@ -572,6 +590,12 @@ impl Sbit {
     }
 }
 
+impl From<Sbit> for PngChunkData {
+    fn from(sbit: Sbit) -> Self {
+        Self::Sbit(sbit)
+    }
+}
+
 /// Standard RGB colour space
 #[derive(Clone, Copy, Debug)]
 pub struct Srgb {
@@ -617,6 +641,12 @@ impl Srgb {
         }
 
         Ok(())
+    }
+}
+
+impl From<Srgb> for PngChunkData {
+    fn from(srgb: Srgb) -> Self {
+        Self::Srgb(srgb)
     }
 }
 
@@ -676,6 +706,12 @@ impl Cicp {
         }
 
         Ok(())
+    }
+}
+
+impl From<Cicp> for PngChunkData {
+    fn from(cicp: Cicp) -> Self {
+        Self::Cicp(cicp)
     }
 }
 
@@ -966,6 +1002,12 @@ impl PngChunkData {
     }
 }
 
+impl From<Mdcv> for PngChunkData {
+    fn from(mdcv: Mdcv) -> Self {
+        Self::Mdcv(Box::new(mdcv))
+    }
+}
+
 /// Content Light Level Information
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Clli {
@@ -1082,5 +1124,11 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Clli> for PngChunkData {
+    fn from(clli: Clli) -> Self {
+        Self::Clli(clli)
     }
 }

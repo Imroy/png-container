@@ -101,6 +101,12 @@ impl Text {
     }
 }
 
+impl From<Text> for PngChunkData {
+    fn from(text: Text) -> Self {
+        Self::Text(Box::new(text))
+    }
+}
+
 /// Compressed textual data
 #[derive(Clone, Debug, Default)]
 pub struct Ztxt {
@@ -220,6 +226,12 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Ztxt> for PngChunkData {
+    fn from(ztxt: Ztxt) -> Self {
+        Self::Ztxt(Box::new(ztxt))
     }
 }
 
@@ -411,5 +423,11 @@ impl PngChunkData {
         }
 
         None
+    }
+}
+
+impl From<Itxt> for PngChunkData {
+    fn from(itxt: Itxt) -> Self {
+        Self::Itxt(Box::new(itxt))
     }
 }

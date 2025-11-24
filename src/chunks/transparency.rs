@@ -20,6 +20,7 @@
 
 use std::io::{Read, Write};
 
+use crate::chunks::PngChunkData;
 use crate::crc::*;
 use crate::to_io_error;
 use crate::types::*;
@@ -111,5 +112,11 @@ impl Trns {
         }
 
         Ok(())
+    }
+}
+
+impl From<Trns> for PngChunkData {
+    fn from(trns: Trns) -> Self {
+        Self::Trns(Box::new(trns))
     }
 }
