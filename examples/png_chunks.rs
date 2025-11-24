@@ -28,42 +28,43 @@ use png_container::chunks::*;
 use png_container::reader::*;
 use png_container::types::*;
 
-fn print_chunk(cd: &PngChunkData) {
+fn print_chunk(first: &str, cd: &PngChunkData) {
     println!("data={:?}", &cd);
     match cd {
         PngChunkData::Chrm { .. } => {
-            println!("white_coords={:?}", cd.chrm_white_coords());
-            println!("  red_coords={:?}", cd.chrm_red_coords());
-            println!("green_coords={:?}", cd.chrm_green_coords());
-            println!(" blue_coords={:?}", cd.chrm_blue_coords());
+            println!("{}white_coords={:?}", first, cd.chrm_white_coords());
+            println!("{}  red_coords={:?}", first, cd.chrm_red_coords());
+            println!("{}green_coords={:?}", first, cd.chrm_green_coords());
+            println!("{} blue_coords={:?}", first, cd.chrm_blue_coords());
         }
 
         PngChunkData::Gama { .. } => {
             if let Some(gamma) = cd.gama_gamma() {
-                println!("gamma={}", gamma);
+                println!("{}gamma={}", first, gamma);
             }
         }
 
         PngChunkData::Iccp { .. } => {
-            println!("profile={:?}", cd.iccp_profile());
+            println!("{}profile={:?}", first, cd.iccp_profile());
         }
 
         PngChunkData::Ztxt { .. } => {
             if let Some(string) = cd.ztxt_string() {
-                println!("string=\"{}\"", string);
+                println!("{}string=\"{}\"", first, string);
             }
         }
 
         PngChunkData::Itxt { .. } => {
             if let Some(string) = cd.itxt_string() {
-                println!("string=\"{}\"", string);
+                println!("{}string=\"{}\"", first, string);
             }
         }
 
         PngChunkData::Phys { .. } => {
             if let Some((xres, yres)) = cd.phys_res() {
                 println!(
-                    "pixels per inch={} × {}",
+                    "{}pixels per inch={} × {}",
+                    first,
                     xres.into_format_args(per_inch, Abbreviation),
                     yres.into_format_args(per_inch, Abbreviation)
                 );
@@ -72,13 +73,17 @@ fn print_chunk(cd: &PngChunkData) {
 
         PngChunkData::Time { .. } => {
             if let Some(time) = cd.time() {
-                println!("time={}", time);
+                println!("{}time={}", first, time);
             }
         }
 
         PngChunkData::Fctl { .. } => {
             if let Some(delay) = cd.fctl_delay() {
-                println!("delay={}", delay.into_format_args(second, Abbreviation));
+                println!(
+                    "{}delay={}",
+                    first,
+                    delay.into_format_args(second, Abbreviation)
+                );
             }
         }
 
@@ -105,7 +110,7 @@ fn main() -> std::io::Result<()> {
         println!("type_str={}, ref={:?}", c.type_str(), c);
 
         if let Ok(cd) = reader.read_chunk(c) {
-            print_chunk(&cd);
+            print_chunk("", &cd);
         }
         println!("");
     }
@@ -113,15 +118,20 @@ fn main() -> std::io::Result<()> {
     if reader.filetype == PngFileType::Apng {
         reader.reset_next_chunk_position();
         for cr in reader.apng_scan_chunks()? {
-            println!("frame");
-            println!("\t{:?}", reader.read_chunk(&cr)?);
+            println!("Frame");
+            println!("\ttype_str={}, ref={:?}", cr.type_str(), cr);
+
+            if let Ok(cd) = reader.read_chunk(&cr) {
+                print_chunk("\t", &cd);
+            }
+            println!();
         }
     } else {
         for c in reader.scan_all_chunks()? {
             println!("type_str={}, ref={:?}", c.type_str(), c);
 
             if let Ok(cd) = reader.read_chunk(&c) {
-                print_chunk(&cd);
+                print_chunk("", &cd);
             }
             println!("");
         }
