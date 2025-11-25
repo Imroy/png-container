@@ -26,15 +26,15 @@ use std::str;
 pub mod animation;
 pub mod colour_space;
 pub mod critical;
-pub mod extensions;
 pub mod imagemagick;
 pub mod misc;
+pub mod public;
 pub mod text;
 pub mod time;
 pub mod transparency;
 
 pub use crate::chunks::{
-    animation::*, colour_space::*, critical::*, extensions::*, imagemagick::*, misc::*, text::*,
+    animation::*, colour_space::*, critical::*, imagemagick::*, misc::*, public::*, text::*,
     time::*, transparency::*,
 };
 
@@ -124,7 +124,7 @@ pub enum PngChunkData {
     /// Frame data
     Fdat(Box<Fdat>),
 
-    // Extensions
+    // Public extensions
     /// Image offset
     Offs(Offs),
 
@@ -278,6 +278,7 @@ impl PngChunkData {
             PngChunkData::Gifg(gifg) => gifg.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Gifx(gifx) => gifx.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Ster(ster) => ster.write_contents(stream, Some(&mut data_crc))?,
+
             PngChunkData::Jhdr(jhdr) => jhdr.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Jdat(data) => {
                 stream.write_all(data)?;
@@ -588,7 +589,7 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            // Extensions
+            // Public extensions
             Offs::TYPE => Ok(PngChunkData::Offs(Offs::from_contents_stream(
                 &mut chunkstream,
                 Some(&mut data_crc),
