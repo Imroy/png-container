@@ -214,7 +214,7 @@ where
         chunkref.read_chunk(&mut self.stream, self.ihdr.as_ref())
     }
 
-    pub fn apng_scan_chunks(&mut self) -> std::io::Result<Vec<PngChunkRef>> {
+    pub fn apng_scan_frames(&mut self) -> std::io::Result<Vec<ApngFrame>> {
         let mut chunkrefs = if self.first_frame_is_static {
             self.scan_chunks_filtered(|ct| ct == *b"IDAT" || ct == *b"fcTL" || ct == *b"fdAT")?
         } else {
@@ -248,6 +248,36 @@ where
             }
         });
 
-        Ok(chunkrefs)
+        // Group fcTL and fdAT chunks into frames
+        let mut frames = Vec::new();
+        for chunkref in chunkrefs {
+            if chunkref.chunktype == *b"fcTL" {
+                let chunk = self.read_chunk(&chunkref)?;
+                if let PngChunkData::Fctl(fctl) = chunk {
+                    frames.push(ApngFrame {
+                        fctl: *fctl,
+                        dats: Vec::new(),
+                    });
+                }
+            } else {
+                if frames.is_empty() {
+                    return Err(std::io::Error::other(
+                        "At least one fcTL chunk must go before fdAT chunks".to_string(),
+                    ));
+                }
+                let lasti = frames.len() - 1;
+                frames[lasti].dats.push(chunkref);
+            }
+        }
+
+        Ok(frames)
     }
+}
+
+/// An APNG frame
+#[derive(Clone, Debug)]
+pub struct ApngFrame {
+    pub fctl: Fctl,
+
+    pub dats: Vec<PngChunkRef>,
 }

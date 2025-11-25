@@ -117,12 +117,13 @@ fn main() -> std::io::Result<()> {
 
     if reader.filetype == PngFileType::Apng {
         reader.reset_next_chunk_position();
-        for cr in reader.apng_scan_chunks()? {
+        for f in reader.apng_scan_frames()? {
             println!("Frame");
-            println!("\ttype_str={}, ref={:?}", cr.type_str(), cr);
+            print_chunk("\t", &f.fctl.into());
 
-            if let Ok(cd) = reader.read_chunk(&cr) {
-                print_chunk("\t", &cd);
+            println!("\tDats:");
+            for dat in f.dats {
+                println!("\t\ttype_str={}, ref={:?}", dat.type_str(), dat);
             }
             println!();
         }
