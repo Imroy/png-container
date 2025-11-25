@@ -444,3 +444,56 @@ impl From<Splt> for PngChunkData {
         Self::Splt(Box::new(splt))
     }
 }
+
+/// Exchangeable Image File (Exif) Profile
+#[derive(Clone, Debug)]
+pub struct Exif(pub Vec<u8>);
+
+impl Exif {
+    pub(crate) const TYPE: [u8; 4] = *b"eXIf";
+
+    /// Read contents from a stream
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        length: u32,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut data = vec![0_u8; length as usize];
+        stream.read_exact(&mut data)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&data);
+        }
+
+        Ok(Self(data))
+    }
+
+    pub(crate) fn length(&self) -> u32 {
+        self.0.len() as u32
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        stream.write_all(&self.0)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&self.0);
+        }
+
+        Ok(())
+    }
+
+}
+
+impl From<Exif> for PngChunkData {
+    fn from(exif: Exif) -> Self {
+        Self::Exif(Box::new(exif))
+    }
+}

@@ -184,6 +184,56 @@ impl From<Vpag> for PngChunkData {
     }
 }
 
+/// Orientation
+#[derive(Clone, Copy, Debug)]
+pub struct Ornt(pub PngOrientation);
+
+impl Ornt {
+    pub(crate) const TYPE: [u8; 4] = *b"orNT";
+    pub(crate) const LENGTH: u32 = 1;
+
+    /// Read contents from a stream
+    pub fn from_contents_stream<R>(
+        stream: &mut R,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<Self>
+    where
+        R: Read,
+    {
+        let mut byte = [0_u8; 1];
+        stream.read_exact(&mut byte)?;
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&byte);
+        }
+
+        Ok(Self(byte[0].into()))
+    }
+
+    pub(crate) fn write_contents<W>(
+        &self,
+        stream: &mut W,
+        data_crc: Option<&mut CRC>,
+    ) -> std::io::Result<()>
+    where
+        W: Write,
+    {
+        let byte = [self.0.into()];
+        stream.write_all(&byte)?;
+
+        if let Some(data_crc) = data_crc {
+            data_crc.consume(&byte);
+        }
+
+        Ok(())
+    }
+}
+
+impl From<Ornt> for PngChunkData {
+    fn from(ornt: Ornt) -> Self {
+        Self::Ornt(ornt)
+    }
+}
+
 /// Orientation (from EXIF/TIFF tag 0x0112)
 #[derive(Copy, Clone, Debug, PartialEq, Eq, IntoPrimitive, FromPrimitive)]
 #[repr(u8)]

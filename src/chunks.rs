@@ -27,6 +27,7 @@ pub mod animation;
 pub mod colour_space;
 pub mod critical;
 pub mod imagemagick;
+pub mod jng;
 pub mod misc;
 pub mod public;
 pub mod text;
@@ -34,8 +35,8 @@ pub mod time;
 pub mod transparency;
 
 pub use crate::chunks::{
-    animation::*, colour_space::*, critical::*, imagemagick::*, misc::*, public::*, text::*,
-    time::*, transparency::*,
+    animation::*, colour_space::*, critical::*, imagemagick::*, jng::*, misc::*, public::*,
+    text::*, time::*, transparency::*,
 };
 
 use crate::crc::*;
@@ -51,7 +52,7 @@ pub enum PngChunkData {
     Plte(Box<Plte>),
 
     /// Image data
-    Idat(Box<Vec<u8>>),
+    Idat(Box<Idat>),
 
     /// Image end
     Iend,
@@ -109,7 +110,7 @@ pub enum PngChunkData {
     Splt(Box<Splt>),
 
     /// Exchangeable Image File (Exif) Profile
-    Exif(Box<Vec<u8>>),
+    Exif(Box<Exif>),
 
     // Time stamp information
     /// Image last-modification time
@@ -148,10 +149,10 @@ pub enum PngChunkData {
     Jhdr(Box<Jhdr>),
 
     /// JNG image data
-    Jdat(Box<Vec<u8>>),
+    Jdat(Box<Jdat>),
 
     /// JNG alpha data
-    Jdaa(Box<Vec<u8>>),
+    Jdaa(Box<Jdaa>),
 
     /// JNG image separator
     Jsep,
@@ -164,20 +165,20 @@ pub enum PngChunkData {
     Vpag(Box<Vpag>),
 
     /// Orientation
-    Ornt(PngOrientation),
+    Ornt(Ornt),
 }
 
 impl PngChunkData {
     /// Return an iterator into the data of IDAT/fdAT/JDAT/JDAA chunks
     pub fn dat_data_iter(&self) -> Option<Iter<'_, u8>> {
         match self {
-            PngChunkData::Idat(data) => Some(data.iter()),
+            PngChunkData::Idat(idat) => Some(idat.0.iter()),
 
             PngChunkData::Fdat(fdat) => Some(fdat.frame_data.iter()),
 
-            PngChunkData::Jdat(data) => Some(data.iter()),
+            PngChunkData::Jdat(jdat) => Some(jdat.0.iter()),
 
-            PngChunkData::Jdaa(data) => Some(data.iter()),
+            PngChunkData::Jdaa(jdaa) => Some(jdaa.0.iter()),
 
             _ => None,
         }
@@ -194,7 +195,7 @@ impl PngChunkData {
         let (length, chunktype) = match self {
             PngChunkData::Ihdr(_) => (Ihdr::LENGTH, Ihdr::TYPE),
             PngChunkData::Plte(plte) => (plte.length(), Plte::TYPE),
-            PngChunkData::Idat(data) => (data.len() as u32, IDAT_TYPE),
+            PngChunkData::Idat(idat) => (idat.length(), Idat::TYPE),
             PngChunkData::Iend => (0, IEND_TYPE),
             PngChunkData::Trns(trns) => (trns.length(), Trns::TYPE),
             PngChunkData::Gama(_) => (Gama::LENGTH, Gama::TYPE),
@@ -211,7 +212,7 @@ impl PngChunkData {
             PngChunkData::Bkgd(bkgd) => (bkgd.length(), Bkgd::TYPE),
             PngChunkData::Hist(hist) => (hist.length(), Hist::TYPE),
             PngChunkData::Phys(_) => (Phys::LENGTH, Phys::TYPE),
-            PngChunkData::Exif(exif) => (exif.len() as u32, EXIF_TYPE),
+            PngChunkData::Exif(exif) => (exif.length(), Exif::TYPE),
             PngChunkData::Splt(splt) => (splt.length(), Splt::TYPE),
             PngChunkData::Time(_) => (Time::LENGTH, Time::TYPE),
             PngChunkData::Actl(_) => (Actl::LENGTH, Actl::TYPE),
@@ -224,12 +225,12 @@ impl PngChunkData {
             PngChunkData::Gifx(gifx) => (gifx.length(), Gifx::TYPE),
             PngChunkData::Ster(_) => (Ster::LENGTH, Ster::TYPE),
             PngChunkData::Jhdr(_) => (Jhdr::LENGTH, Jhdr::TYPE),
-            PngChunkData::Jdat(data) => (data.len() as u32, JDAT_TYPE),
-            PngChunkData::Jdaa(data) => (data.len() as u32, JDAA_TYPE),
+            PngChunkData::Jdat(jdat) => (jdat.length(), Jdat::TYPE),
+            PngChunkData::Jdaa(jdaa) => (jdaa.length(), Jdaa::TYPE),
             PngChunkData::Jsep => (0, JSEP_TYPE),
             PngChunkData::Vpag(_) => (Vpag::LENGTH, Vpag::TYPE),
             PngChunkData::Canv(_) => (Canv::LENGTH, Canv::TYPE),
-            PngChunkData::Ornt(_) => (1, ORNT_TYPE),
+            PngChunkData::Ornt(_) => (Ornt::LENGTH, Ornt::TYPE),
         };
 
         // Write the chunk length and type
@@ -243,10 +244,7 @@ impl PngChunkData {
         match self {
             PngChunkData::Ihdr(ihdr) => ihdr.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Plte(plte) => plte.write_contents(stream, Some(&mut data_crc))?,
-            PngChunkData::Idat(data) => {
-                stream.write_all(data)?;
-                data_crc.consume(data);
-            }
+            PngChunkData::Idat(idat) => idat.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Iend => (),
             PngChunkData::Trns(trns) => trns.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Gama(gama) => gama.write_contents(stream, Some(&mut data_crc))?,
@@ -263,10 +261,7 @@ impl PngChunkData {
             PngChunkData::Bkgd(bkgd) => bkgd.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Hist(hist) => hist.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Phys(phys) => phys.write_contents(stream, Some(&mut data_crc))?,
-            PngChunkData::Exif(data) => {
-                stream.write_all(data)?;
-                data_crc.consume(data);
-            }
+            PngChunkData::Exif(exif) => exif.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Splt(splt) => splt.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Time(time) => time.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Actl(actl) => actl.write_contents(stream, Some(&mut data_crc))?,
@@ -280,23 +275,13 @@ impl PngChunkData {
             PngChunkData::Ster(ster) => ster.write_contents(stream, Some(&mut data_crc))?,
 
             PngChunkData::Jhdr(jhdr) => jhdr.write_contents(stream, Some(&mut data_crc))?,
-            PngChunkData::Jdat(data) => {
-                stream.write_all(data)?;
-                data_crc.consume(data);
-            }
-            PngChunkData::Jdaa(data) => {
-                stream.write_all(data)?;
-                data_crc.consume(data);
-            }
+            PngChunkData::Jdat(jdat) => jdat.write_contents(stream, Some(&mut data_crc))?,
+            PngChunkData::Jdaa(jdaa) => jdaa.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Jsep => (),
 
             PngChunkData::Canv(canv) => canv.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Vpag(vpag) => vpag.write_contents(stream, Some(&mut data_crc))?,
-            PngChunkData::Ornt(ornt) => {
-                let bytes = [(*ornt).into()];
-                stream.write_all(&bytes)?;
-                data_crc.consume(&bytes);
-            }
+            PngChunkData::Ornt(ornt) => ornt.write_contents(stream, Some(&mut data_crc))?,
         }
 
         // Now write the CRC
@@ -439,13 +424,11 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            IDAT_TYPE => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                Ok(PngChunkData::Idat(Box::new(data)))
-            }
+            Idat::TYPE => Ok(PngChunkData::Idat(Box::new(Idat::from_contents_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             IEND_TYPE => Ok(PngChunkData::Iend),
 
@@ -553,13 +536,11 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?)),
 
-            EXIF_TYPE => {
-                let mut profile = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut profile)?;
-                data_crc.consume(&profile);
-
-                Ok(PngChunkData::Exif(Box::new(profile)))
-            }
+            Exif::TYPE => Ok(PngChunkData::Exif(Box::new(Exif::from_contents_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             Splt::TYPE => Ok(PngChunkData::Splt(Box::new(Splt::from_contents_stream(
                 &mut chunkstream,
@@ -629,21 +610,17 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            JDAT_TYPE => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
+            Jdat::TYPE => Ok(PngChunkData::Jdat(Box::new(Jdat::from_contents_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
-                Ok(PngChunkData::Jdat(Box::new(data)))
-            }
-
-            JDAA_TYPE => {
-                let mut data = vec![0_u8; self.length as usize];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                Ok(PngChunkData::Jdaa(Box::new(data)))
-            }
+            Jdaa::TYPE => Ok(PngChunkData::Jdaa(Box::new(Jdaa::from_contents_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             JSEP_TYPE => Ok(PngChunkData::Jsep),
 
@@ -658,13 +635,10 @@ impl PngChunkRef {
                 Some(&mut data_crc),
             )?))),
 
-            ORNT_TYPE => {
-                let mut data = [0_u8; 1];
-                chunkstream.read_exact(&mut data)?;
-                data_crc.consume(&data);
-
-                Ok(PngChunkData::Ornt(data[0].into()))
-            }
+            Ornt::TYPE => Ok(PngChunkData::Ornt(Ornt::from_contents_stream(
+                &mut chunkstream,
+                Some(&mut data_crc),
+            )?)),
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({:?})",
@@ -691,10 +665,5 @@ impl PngChunkRef {
 }
 
 // Chunk types that don't have structs/enums for us to put these into
-pub(crate) const IDAT_TYPE: [u8; 4] = *b"IDAT";
 pub(crate) const IEND_TYPE: [u8; 4] = *b"IEND";
-pub(crate) const EXIF_TYPE: [u8; 4] = *b"eXIf";
-pub(crate) const JDAT_TYPE: [u8; 4] = *b"JDAT";
-pub(crate) const JDAA_TYPE: [u8; 4] = *b"JDAA";
 pub(crate) const JSEP_TYPE: [u8; 4] = *b"JSEP";
-pub(crate) const ORNT_TYPE: [u8; 4] = *b"orNT";
