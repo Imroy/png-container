@@ -19,6 +19,7 @@
 /*! PNG/APNG reader
  */
 
+use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 
 use crate::chunks::*;
@@ -220,16 +221,27 @@ where
             self.scan_chunks_filtered(|ct| ct == *b"fcTL" || ct == *b"fdAT")?
         };
 
-        // Sort chunks by their sequence number (and make one up for IDATs)
-        let mut idat_num = 0;
+        // Make a Hashmap mapping from IDAT chunk position to a generated sequence number
+        let mut idat_seq_nums = HashMap::new();
+        if self.first_frame_is_static {
+            let mut seq_num = 1;
+            chunkrefs
+                .iter()
+                .filter(|cr| cr.chunktype == *b"IDAT")
+                .for_each(|cr| {
+                    idat_seq_nums.insert(cr.position, seq_num);
+                    seq_num += 1;
+                });
+        }
+
+        // Sort chunks by their sequence number
         chunkrefs.sort_by_cached_key(|cr| {
             if cr.chunktype == *b"IDAT" {
-                idat_num += 1;
-                idat_num
+                idat_seq_nums[&cr.position]
             } else {
                 let seq_num = cr.read_fctl_fdat_sequence_number(&mut self.stream).unwrap();
                 if self.first_frame_is_static && (seq_num > 0) {
-                    seq_num + idat_num
+                    seq_num + idat_seq_nums.len() as u32
                 } else {
                     seq_num
                 }
