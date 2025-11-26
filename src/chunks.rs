@@ -24,6 +24,7 @@ use std::slice::Iter;
 use std::str;
 
 pub mod animation;
+pub mod apple;
 pub mod colour_space;
 pub mod critical;
 pub mod imagemagick;
@@ -35,8 +36,8 @@ pub mod time;
 pub mod transparency;
 
 pub use crate::chunks::{
-    animation::*, colour_space::*, critical::*, imagemagick::*, jng::*, misc::*, public::*,
-    text::*, time::*, transparency::*,
+    animation::*, apple::*, colour_space::*, critical::*, imagemagick::*, jng::*, misc::*,
+    public::*, text::*, time::*, transparency::*,
 };
 
 use crate::crc::*;
@@ -166,6 +167,9 @@ pub enum PngChunkData {
 
     /// Orientation
     Ornt(Ornt),
+
+    /// Apple's iDOT chunk to allow parallel decoding?
+    Idot(Box<Idot>),
 }
 
 impl PngChunkData {
@@ -231,6 +235,8 @@ impl PngChunkData {
             PngChunkData::Vpag(_) => (Vpag::LENGTH, Vpag::TYPE),
             PngChunkData::Canv(_) => (Canv::LENGTH, Canv::TYPE),
             PngChunkData::Ornt(_) => (Ornt::LENGTH, Ornt::TYPE),
+
+            PngChunkData::Idot(idot) => (idot.length(), Idot::TYPE),
         };
 
         // Write the chunk length and type
@@ -282,6 +288,8 @@ impl PngChunkData {
             PngChunkData::Canv(canv) => canv.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Vpag(vpag) => vpag.write_contents(stream, Some(&mut data_crc))?,
             PngChunkData::Ornt(ornt) => ornt.write_contents(stream, Some(&mut data_crc))?,
+
+            PngChunkData::Idot(idot) => idot.write_contents(stream, Some(&mut data_crc))?,
         }
 
         // Now write the CRC
@@ -639,6 +647,12 @@ impl PngChunkRef {
                 &mut chunkstream,
                 Some(&mut data_crc),
             )?)),
+
+            Idot::TYPE => Ok(PngChunkData::Idot(Box::new(Idot::from_contents_stream(
+                &mut chunkstream,
+                self.length,
+                Some(&mut data_crc),
+            )?))),
 
             _ => Err(std::io::Error::other(format!(
                 "PNG: Unhandled chunk type ({:?})",
